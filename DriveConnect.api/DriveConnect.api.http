@@ -1,0 +1,49 @@
+@DriveConnect.api_HostAddress = https://localhost:7162
+@TenantId = 1
+
+### 1. CREATE Inquiry (POST)
+POST {{DriveConnect.api_HostAddress}}/tenant/{{TenantId}}/inquiries
+Content-Type: application/json
+
+{
+  "firstName": "Juan",
+  "middleName": "Protacio",
+  "lastName": "Dela Cruz",
+  "phoneNumber": "09171234567",
+  "emailAddress": "juan.delacruz@gmail.com",
+  "carModel": "Toyota Vios 2022",
+  "concern": "Engine overheating during idling",
+  "status": "Diagnose",
+  "estimatedCost": 4500.00,
+  "handledBy": "Admin Tech",
+  "pickupStatus": "Pending",
+  "whoRequested": "Juan Dela Cruz"
+}
+
+### 2. GET All Inquiries
+GET {{DriveConnect.api_HostAddress}}/tenant/{{TenantId}}/inquiries
+Accept: application/json
+
+### 3. UPDATE Inquiry (PUT)
+PUT {{DriveConnect.api_HostAddress}}/tenant/{{TenantId}}/inquiries/1
+Content-Type: application/json
+
+{
+  "firstName": "Juan",
+  "middleName": "Protacio",
+  "lastName": "Dela Cruz",
+  "phoneNumber": "09171234567",
+  "emailAddress": "juan.delacruz@gmail.com",
+  "carModel": "Toyota Vios 2022",
+  "concern": "Engine overheating resolved - replaced radiator fan",
+  "status": "Repaired",
+  "estimatedCost": 4800.00,
+  "handledBy": "Lead Mechanic",
+  "pickupStatus": "Ready for Pickup",
+  "whoValidated": "Admin Manager",
+  "validationStatus": "Approved",
+  "validationNotes": "Inspected and ready for release"
+}
+
+### 4. DELETE Inquiry
+DELETE {{DriveConnect.api_HostAddress}}/tenant/{{TenantId}}/inquiries/1

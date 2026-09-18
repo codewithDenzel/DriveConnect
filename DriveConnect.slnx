@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="DriveConnect.api/DriveConnect.api.csproj" Id="0f4ead19-939c-4e11-9ada-f8192c422f94" />
+  <Project Path="DriveConnect.domain/DriveConnect.domain.csproj" Id="8add19f6-2203-4f2d-b89f-fedb23f94357" />
+  <Project Path="DriveConnect.infrastructure/DriveConnect.infrastructure.csproj" Id="c992cfbe-dbfa-459c-8b54-631b53328e53" />
+  <Project Path="DriveConnect/DriveConnect.winforms.csproj" />
+</Solution>

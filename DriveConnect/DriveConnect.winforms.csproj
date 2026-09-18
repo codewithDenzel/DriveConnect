@@ -1,0 +1,40 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.11" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.11">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.11" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.11">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Modules\1. SuperAdmin\SystemAdministration\Controls\" />
+    <Folder Include="Modules\1. SuperAdmin\SystemAdministration\Forms\" />
+    <Folder Include="Modules\2. Admin\CustomerRelationship\Forms\" />
+    <Folder Include="Modules\2. Admin\ManagementCompliance\Controls\" />
+    <Folder Include="Modules\2. Admin\SalesEngagement\Controls\" />
+    <Folder Include="Modules\2. Admin\TransactionsAndAfterSales\Controls\" />
+    <Folder Include="Modules\3. Staff\ServiceOperations\Controls\" />
+    <Folder Include="Modules\3. Staff\StaffDashboard\Controls\" />
+    <Folder Include="Forms\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DriveConnect.domain\DriveConnect.domain.csproj" />
+  </ItemGroup>
+
+</Project>
