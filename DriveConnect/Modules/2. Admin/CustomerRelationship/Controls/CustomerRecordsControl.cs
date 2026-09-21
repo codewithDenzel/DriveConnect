@@ -18,6 +18,21 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
         private FlowLayoutPanel subTabPanel = new FlowLayoutPanel();
         private Panel gridWrapper = new Panel();
         private Label lblPlaceholderMessage = new Label();
+        private Label lblBreadcrumb = new Label(); // Repurposing top sub-tab panel as a page title
+
+        // --- BUSINESS INTELLIGENCE PANELS ---
+        private Panel panelBI_Dashboard = new Panel();
+        private Panel panelBI_KPI = new Panel();
+        private Panel panelBI_Reports = new Panel();
+        private Panel panelBI_Graphs = new Panel();
+
+        // --- DASHBOARD UI CONTROLS ---
+        private Label lblTotalLeads = new Label();
+        private Label lblPipelineValue = new Label();
+        private Label lblConversionRate = new Label();
+        private Label lblActivePromos = new Label();
+        private DataGridView dgvPipelineSummary = new DataGridView();
+        private DataGridView dgvTopSalespeople = new DataGridView();
 
         // --- CONTROLS ---
         private DataGridView gridView = new DataGridView();
@@ -29,6 +44,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
         private string currentSubTab = "New Inquiry";
         private List<SalesLead> _allSales = new List<SalesLead>();
         private List<RepairTicket> _allRepairs = new List<RepairTicket>();
+        private List<Button> _allAccordionButtons = new List<Button>();
 
         private readonly CrmApiService _apiService = new CrmApiService();
         private const int CurrentCompanyId = 1;
@@ -58,13 +74,29 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
             Label lblLogo = new Label { Text = "DriveConnect CRM", Dock = DockStyle.Top, Height = 60, Font = new Font("Segoe UI", 16F, FontStyle.Bold), ForeColor = Color.FromArgb(17, 24, 39), TextAlign = ContentAlignment.MiddleCenter };
             sidebarPanel.Controls.Add(lblLogo);
 
-            AddSidebarMenuButton("Archived", 430);
-            AddSidebarMenuButton("Reports", 370);
-            AddSidebarMenuButton("Customer History", 310);
-            AddSidebarMenuButton("Promotions", 250);
-            AddSidebarMenuButton("Service and Repair", 190);
-            AddSidebarMenuButton("Car Sales and Leads", 130);
-            AddSidebarMenuButton("Dashboard", 70);
+            // --- ACCORDION SIDEBAR ---
+            FlowLayoutPanel sidebarFlow = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, WrapContents = false, AutoScroll = true };
+
+            sidebarFlow.Controls.Add(CreateAccordion("nav_bi", "📊 Business Intelligence",
+                new[] { "Dashboard", "KPI", "Reports", "Graphs" }));
+
+            sidebarFlow.Controls.Add(CreateAccordion("nav_sales", "🚗 Car Sales and Leads",
+                new[] { "New Inquiry", "Test Drive Scheduled", "Negotiation", "Closed Deals" }));
+
+            sidebarFlow.Controls.Add(CreateAccordion("nav_service", "🔧 Service and Repair",
+                new[] { "New Diagnose", "In Repair", "Waiting for Parts", "Repaired", "Ready for Pickup", "Picked Up" }));
+
+            sidebarFlow.Controls.Add(CreateAccordion("nav_promotions", "📢 Promotions",
+                new[] { "Active Promos", "Drafts" }));
+
+            sidebarFlow.Controls.Add(CreateAccordion("nav_history", "🕒 Customer History",
+                new[] { "Interaction Logs" }));
+
+            sidebarFlow.Controls.Add(CreateAccordion("nav_archived", "📁 Archived",
+                new[] { "Archived Sales", "Archived Repairs" }));
+
+            sidebarPanel.Controls.Add(sidebarFlow);
+            sidebarFlow.BringToFront();
 
             mainContentPanel.Dock = DockStyle.Fill;
             mainContentPanel.Padding = new Padding(30);
@@ -98,6 +130,11 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
             subTabPanel.Height = 60;
             subTabPanel.Padding = new Padding(0, 15, 0, 0);
 
+            lblBreadcrumb.AutoSize = true;
+            lblBreadcrumb.Font = new Font("Segoe UI Semibold", 14F, FontStyle.Bold);
+            lblBreadcrumb.ForeColor = Color.FromArgb(17, 24, 39);
+            subTabPanel.Controls.Add(lblBreadcrumb);
+
             gridWrapper.Dock = DockStyle.Fill;
             gridWrapper.BackColor = Color.White;
             gridWrapper.Padding = new Padding(1);
@@ -129,131 +166,240 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
 
             gridWrapper.Controls.Add(gridView);
 
+            // Add BI Panels
+            BuildDashboardView();
+            panelBI_KPI = CreatePlaceholderPanel("KPI Engine Placeholder");
+            panelBI_Graphs = CreatePlaceholderPanel("Graph Rendering Placeholder");
+            panelBI_Reports = CreatePlaceholderPanel("Reports Generator Placeholder");
+
+            mainContentPanel.Controls.Add(panelBI_Dashboard);
+            mainContentPanel.Controls.Add(panelBI_KPI);
+            mainContentPanel.Controls.Add(panelBI_Reports);
+            mainContentPanel.Controls.Add(panelBI_Graphs);
             mainContentPanel.Controls.Add(gridWrapper);
             mainContentPanel.Controls.Add(subTabPanel);
             mainContentPanel.Controls.Add(topActionBar);
-
-            gridWrapper.BringToFront();
-            subTabPanel.SendToBack();
-            topActionBar.SendToBack();
 
             this.Controls.Add(mainContentPanel);
             this.Controls.Add(sidebarPanel);
             mainContentPanel.BringToFront();
 
-            SwitchMainTab("Car Sales and Leads");
+            TriggerTabSwitch("Car Sales and Leads", "New Inquiry", null);
         }
 
-        private void AddSidebarMenuButton(string text, int top)
+        // --- ACCORDION GENERATOR ---
+        private Panel CreateAccordion(string id, string mainTitle, string[] subTitles)
         {
-            Button btn = new Button { Text = "   " + text, Top = top, Left = 15, Width = 230, Height = 45, FlatStyle = FlatStyle.Flat, ForeColor = Color.FromArgb(107, 114, 128), Font = new Font("Segoe UI Semibold", 10.5F), TextAlign = ContentAlignment.MiddleLeft, Cursor = Cursors.Hand };
-            btn.FlatAppearance.BorderSize = 0;
-            btn.Click += (s, e) => SwitchMainTab(text);
-            sidebarPanel.Controls.Add(btn);
-        }
+            Panel container = new Panel { AutoSize = true, MinimumSize = new Size(270, 45), Width = 270, Margin = new Padding(0) };
 
-        private void SwitchMainTab(string tabName)
-        {
-            currentMainTab = tabName;
+            Button btnMain = new Button { Name = id, Text = "  " + mainTitle + " ˅", Width = 270, Height = 45, Dock = DockStyle.Top, FlatStyle = FlatStyle.Flat, ForeColor = Color.FromArgb(107, 114, 128), BackColor = Color.Transparent, TextAlign = ContentAlignment.MiddleLeft, Padding = new Padding(15, 0, 0, 0), Cursor = Cursors.Hand };
+            btnMain.FlatAppearance.BorderSize = 0;
 
-            foreach (Control c in sidebarPanel.Controls)
+            Panel subContainer = new Panel { AutoSize = true, Width = 270, Dock = DockStyle.Top, Visible = false };
+
+            string cleanMainTitle = mainTitle.Replace("📊 ", "").Replace("🚗 ", "").Replace("🔧 ", "").Replace("📢 ", "").Replace("🕒 ", "").Replace("📁 ", "").Trim();
+
+            for (int i = subTitles.Length - 1; i >= 0; i--)
             {
-                if (c is Button b)
+                string subTitle = subTitles[i];
+                Button btnSub = new Button { Name = id + "_sub_" + i, Text = "      • " + subTitle, Width = 270, Height = 40, Dock = DockStyle.Top, FlatStyle = FlatStyle.Flat, ForeColor = Color.FromArgb(156, 163, 175), BackColor = Color.Transparent, TextAlign = ContentAlignment.MiddleLeft, Padding = new Padding(35, 0, 0, 0), Cursor = Cursors.Hand };
+                btnSub.FlatAppearance.BorderSize = 0;
+                btnSub.Click += (s, e) => TriggerTabSwitch(cleanMainTitle, subTitle, (Button)s);
+
+                _allAccordionButtons.Add(btnSub);
+                subContainer.Controls.Add(btnSub);
+            }
+
+            btnMain.Click += (s, e) => {
+                subContainer.Visible = !subContainer.Visible;
+                btnMain.Text = subContainer.Visible ? "  " + mainTitle + " ˄" : "  " + mainTitle + " ˅";
+            };
+
+            container.Controls.Add(subContainer);
+            container.Controls.Add(btnMain);
+            return container;
+        }
+
+        private void TriggerTabSwitch(string mainTab, string subTab, Button? selectedBtn)
+        {
+            currentMainTab = mainTab;
+            currentSubTab = subTab;
+            lblBreadcrumb.Text = $"{mainTab} > {subTab}";
+
+            foreach (var btn in _allAccordionButtons)
+            {
+                btn.BackColor = Color.Transparent;
+                btn.ForeColor = Color.FromArgb(156, 163, 175);
+            }
+            if (selectedBtn != null)
+            {
+                selectedBtn.BackColor = Color.FromArgb(224, 231, 255);
+                selectedBtn.ForeColor = Color.FromArgb(67, 56, 202);
+            }
+
+            // Hide everything first
+            gridWrapper.Visible = false;
+            panelBI_Dashboard.Visible = false;
+            panelBI_KPI.Visible = false;
+            panelBI_Graphs.Visible = false;
+            panelBI_Reports.Visible = false;
+            lblPlaceholderMessage.Visible = false;
+
+            if (mainTab == "Business Intelligence")
+            {
+                topActionBar.Visible = false;
+
+                if (subTab == "Dashboard")
                 {
-                    if (b.Text.Trim() == tabName) { b.BackColor = Color.FromArgb(243, 244, 246); b.ForeColor = Color.FromArgb(79, 70, 229); }
-                    else { b.BackColor = Color.White; b.ForeColor = Color.FromArgb(107, 114, 128); }
+                    panelBI_Dashboard.Visible = true;
+                    panelBI_Dashboard.BringToFront();
+                    RefreshDashboardMetrics();
                 }
-            }
-
-            if (currentMainTab == "Car Sales and Leads") currentSubTab = "New Inquiry";
-            else if (currentMainTab == "Service and Repair") currentSubTab = "New Diagnose";
-            else if (currentMainTab == "Archived") currentSubTab = "Archived Sales";
-
-            BuildSubTabs();
-        }
-
-        private void BuildSubTabs()
-        {
-            subTabPanel.Controls.Clear();
-            txtSearch.Clear();
-            gridView.DataSource = null;
-
-            if (currentMainTab == "Car Sales and Leads")
-            {
-                btnNewRecord.Visible = true;
-                txtSearch.Visible = true;
-                gridView.Visible = true;
-                lblPlaceholderMessage.Visible = false;
-
-                AddSubTab("New Inquiry");
-                AddSubTab("Test Drive Scheduled");
-                AddSubTab("Negotiation");
-                AddSubTab("Closed Deals");
-
-                FilterAndBindGrid();
-            }
-            else if (currentMainTab == "Service and Repair")
-            {
-                btnNewRecord.Visible = true;
-                txtSearch.Visible = true;
-                gridView.Visible = true;
-                lblPlaceholderMessage.Visible = false;
-
-                AddSubTab("New Diagnose");
-                AddSubTab("In Repair");
-                AddSubTab("Waiting for Parts");
-                AddSubTab("Repaired");
-                AddSubTab("Ready for Pickup");
-                AddSubTab("Picked Up");
-
-                FilterAndBindGrid();
-            }
-            else if (currentMainTab == "Archived")
-            {
-                btnNewRecord.Visible = false;
-                txtSearch.Visible = true;
-                gridView.Visible = true;
-                lblPlaceholderMessage.Visible = false;
-
-                AddSubTab("Archived Sales");
-                AddSubTab("Archived Repairs");
-
-                FilterAndBindGrid();
+                else if (subTab == "KPI") { panelBI_KPI.Visible = true; panelBI_KPI.BringToFront(); }
+                else if (subTab == "Graphs") { panelBI_Graphs.Visible = true; panelBI_Graphs.BringToFront(); }
+                else if (subTab == "Reports") { panelBI_Reports.Visible = true; panelBI_Reports.BringToFront(); }
             }
             else
             {
-                currentSubTab = "";
-                btnNewRecord.Visible = false;
-                txtSearch.Visible = false;
-                gridView.Visible = false;
+                topActionBar.Visible = true;
+                gridWrapper.Visible = true;
+                gridWrapper.BringToFront();
 
-                lblPlaceholderMessage.Text = $"{currentMainTab} features are currently under development.";
-                lblPlaceholderMessage.Visible = true;
+                if (mainTab == "Car Sales and Leads" || mainTab == "Service and Repair" || mainTab == "Archived")
+                {
+                    txtSearch.Visible = true;
+                    gridView.Visible = true;
+                    btnNewRecord.Visible = (mainTab != "Archived");
+                    FilterAndBindGrid();
+                }
+                else
+                {
+                    txtSearch.Visible = false;
+                    gridView.Visible = false;
+                    btnNewRecord.Visible = false;
+                    lblPlaceholderMessage.Text = $"{subTab} features are currently under development.";
+                    lblPlaceholderMessage.Visible = true;
+                }
             }
         }
 
-        private void AddSubTab(string text)
+        // --- DASHBOARD BUILDERS ---
+        private void BuildDashboardView()
         {
-            Button btn = new Button { Text = text, AutoSize = true, MinimumSize = new Size(120, 35), FlatStyle = FlatStyle.Flat, Font = new Font("Segoe UI Semibold", 9.5F), Cursor = Cursors.Hand, Margin = new Padding(0, 0, 10, 0) };
-            btn.FlatAppearance.BorderSize = 0;
+            panelBI_Dashboard.Dock = DockStyle.Fill;
+            panelBI_Dashboard.BackColor = Color.Transparent;
 
-            if (text == currentSubTab) { btn.BackColor = Color.FromArgb(224, 231, 255); btn.ForeColor = Color.FromArgb(67, 56, 202); }
-            else { btn.BackColor = Color.Transparent; btn.ForeColor = Color.FromArgb(107, 114, 128); }
+            TableLayoutPanel topCardsGrid = new TableLayoutPanel { Dock = DockStyle.Top, Height = 130, ColumnCount = 4, RowCount = 1, Padding = new Padding(0, 0, 0, 15) };
+            for (int i = 0; i < 4; i++) topCardsGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25F));
 
-            btn.Click += (s, e) => {
-                currentSubTab = text;
-                BuildSubTabs();
-            };
-            subTabPanel.Controls.Add(btn);
+            topCardsGrid.Controls.Add(CreateStatCard("Active Sales Leads", lblTotalLeads, Color.FromArgb(124, 58, 237)), 0, 0);
+            topCardsGrid.Controls.Add(CreateStatCard("Total Pipeline Value", lblPipelineValue, Color.FromArgb(16, 185, 129)), 1, 0);
+            topCardsGrid.Controls.Add(CreateStatCard("Lead Conversion Rate", lblConversionRate, Color.FromArgb(59, 130, 246)), 2, 0);
+            topCardsGrid.Controls.Add(CreateStatCard("Active Promotions", lblActivePromos, Color.FromArgb(245, 158, 11)), 3, 0);
+            lblActivePromos.Text = "0"; // Static for now until Promos entity is built
+
+            TableLayoutPanel bottomSplit = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 1 };
+            bottomSplit.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+            bottomSplit.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+
+            Panel leftCard = CreateCardPanel();
+            AddHeader(leftCard, "Dashboard Overview", "High-level CRM sales performance & active pipelines");
+            dgvPipelineSummary = CreateDashboardGridView();
+            leftCard.Controls.Add(dgvPipelineSummary);
+
+            Panel rightCard = CreateCardPanel();
+            AddHeader(rightCard, "Sales Team Leaderboard", "Top performing salespeople by closed deals");
+            dgvTopSalespeople = CreateDashboardGridView();
+            rightCard.Controls.Add(dgvTopSalespeople);
+
+            bottomSplit.Controls.Add(leftCard, 0, 0);
+            bottomSplit.Controls.Add(rightCard, 1, 0);
+
+            panelBI_Dashboard.Controls.Add(bottomSplit);
+            panelBI_Dashboard.Controls.Add(topCardsGrid);
         }
 
+        private Panel CreateStatCard(string title, Label valLabel, Color accentColor)
+        {
+            Panel card = new Panel { Dock = DockStyle.Fill, BackColor = Color.White, Margin = new Padding(5) };
+            card.Paint += (s, e) => ControlPaint.DrawBorder(e.Graphics, card.ClientRectangle, Color.FromArgb(229, 231, 235), ButtonBorderStyle.Solid);
+            Label lblT = new Label { Text = title, Left = 15, Top = 15, AutoSize = true, Font = new Font("Segoe UI", 9F), ForeColor = Color.FromArgb(107, 114, 128) };
+            valLabel.Left = 15; valLabel.Top = 45; valLabel.Width = 220; valLabel.Height = 40;
+            valLabel.Text = "0"; valLabel.Font = new Font("Segoe UI", 16F, FontStyle.Bold); valLabel.ForeColor = accentColor;
+            card.Controls.Add(lblT); card.Controls.Add(valLabel);
+            return card;
+        }
+
+        private Panel CreateCardPanel()
+        {
+            Panel p = new Panel { Dock = DockStyle.Fill, BackColor = Color.White, Margin = new Padding(5), Padding = new Padding(15, 80, 15, 15) };
+            p.Paint += (s, e) => ControlPaint.DrawBorder(e.Graphics, p.ClientRectangle, Color.FromArgb(229, 231, 235), ButtonBorderStyle.Solid);
+            return p;
+        }
+
+        private Panel CreatePlaceholderPanel(string text)
+        {
+            Panel p = new Panel { Dock = DockStyle.Fill, BackColor = Color.White, Margin = new Padding(5) };
+            p.Paint += (s, e) => ControlPaint.DrawBorder(e.Graphics, p.ClientRectangle, Color.FromArgb(229, 231, 235), ButtonBorderStyle.Solid);
+            Label l = new Label { Text = text, Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleCenter, Font = new Font("Segoe UI", 14F, FontStyle.Italic), ForeColor = Color.FromArgb(156, 163, 175) };
+            p.Controls.Add(l);
+            return p;
+        }
+
+        private void AddHeader(Panel parent, string title, string subtitle)
+        {
+            Label lblT = new Label { Text = title, Left = 20, Top = 20, AutoSize = true, Font = new Font("Segoe UI Semibold", 13F, FontStyle.Bold), ForeColor = Color.FromArgb(124, 58, 237) };
+            Label lblS = new Label { Text = subtitle, Left = 20, Top = 50, AutoSize = true, Font = new Font("Segoe UI", 9F), ForeColor = Color.FromArgb(107, 114, 128) };
+            parent.Controls.Add(lblT); parent.Controls.Add(lblS);
+        }
+
+        private DataGridView CreateDashboardGridView()
+        {
+            var gv = new DataGridView { Dock = DockStyle.Fill, BackgroundColor = Color.White, BorderStyle = BorderStyle.None, CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal, GridColor = Color.FromArgb(243, 244, 246), AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill, SelectionMode = DataGridViewSelectionMode.FullRowSelect, ReadOnly = true, RowHeadersVisible = false, AllowUserToAddRows = false, EnableHeadersVisualStyles = false, RowTemplate = { Height = 35 } };
+            gv.ColumnHeadersDefaultCellStyle = new DataGridViewCellStyle { BackColor = Color.FromArgb(249, 250, 251), ForeColor = Color.FromArgb(75, 85, 99), Font = new Font("Segoe UI", 9F, FontStyle.Bold), Padding = new Padding(10, 5, 10, 5) };
+            gv.DefaultCellStyle = new DataGridViewCellStyle { BackColor = Color.White, ForeColor = Color.FromArgb(31, 41, 55), Font = new Font("Segoe UI", 9F), SelectionBackColor = Color.FromArgb(237, 233, 254), SelectionForeColor = Color.FromArgb(124, 58, 237), Padding = new Padding(10, 0, 10, 0) };
+            return gv;
+        }
+
+        private void RefreshDashboardMetrics()
+        {
+            try
+            {
+                var activeSales = _allSales.Where(x => x.Status != "Archived").ToList();
+                var activeLeads = activeSales.Where(x => x.Status != "Closed Won" && x.Status != "Closed Lost").ToList();
+
+                lblTotalLeads.Text = activeLeads.Count.ToString();
+                lblPipelineValue.Text = $"₱{activeLeads.Sum(x => x.EstimatedCost):N2}";
+
+                int closedWon = activeSales.Count(x => x.Status == "Closed Won");
+                lblConversionRate.Text = $"{(activeSales.Count > 0 ? Math.Round(((decimal)closedWon / activeSales.Count) * 100, 1) : 0)}%";
+
+                var pipelineSummary = activeSales
+                    .GroupBy(x => string.IsNullOrEmpty(x.Status) ? "New Inquiry" : x.Status)
+                    .Select(g => new { SalesStage = g.Key, TotalLeads = g.Count(), PipelineValue = $"₱{g.Sum(item => item.EstimatedCost):N2}" }).ToList();
+
+                dgvPipelineSummary.DataSource = pipelineSummary;
+
+                var leaders = activeSales.Where(x => !string.IsNullOrEmpty(x.HandledBy))
+                    .GroupBy(x => x.HandledBy)
+                    .Select(g => new { Salesperson = g.Key, ActiveLeads = g.Count(c => c.Status != "Closed Won" && c.Status != "Closed Lost"), DealsWon = g.Count(c => c.Status == "Closed Won") })
+                    .OrderByDescending(x => x.DealsWon).ThenByDescending(x => x.ActiveLeads).ToList();
+
+                dgvTopSalespeople.DataSource = leaders;
+            }
+            catch { }
+        }
+
+        // --- DATA BINDING ---
         private async Task LoadDataFromApiAsync()
         {
             try
             {
                 _allSales = await _apiService.GetSalesAsync(CurrentCompanyId) ?? new List<SalesLead>();
                 _allRepairs = await _apiService.GetRepairsAsync(CurrentCompanyId) ?? new List<RepairTicket>();
-                FilterAndBindGrid();
+
+                if (currentMainTab == "Business Intelligence" && currentSubTab == "Dashboard") RefreshDashboardMetrics();
+                else FilterAndBindGrid();
             }
             catch (Exception)
             {
@@ -270,7 +416,6 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
             {
                 var query = _allSales.Where(x => x.Status != "Archived").AsQueryable();
 
-                // Match the exact sub-tab statuses
                 if (currentSubTab == "New Inquiry") query = query.Where(x => x.Status == "New Inquiry");
                 else if (currentSubTab == "Test Drive Scheduled") query = query.Where(x => x.Status == "Test Drive Scheduled");
                 else if (currentSubTab == "Negotiation") query = query.Where(x => x.Status == "Negotiation");
@@ -295,7 +440,6 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
             {
                 var query = _allRepairs.Where(x => x.Status != "Archived").AsQueryable();
 
-                // Match the exact sub-tab statuses
                 if (currentSubTab == "New Diagnose") query = query.Where(x => x.Status == "New Diagnose" || x.Status == "Diagnose");
                 else if (currentSubTab == "In Repair") query = query.Where(x => x.Status == "In Repair");
                 else if (currentSubTab == "Waiting for Parts") query = query.Where(x => x.Status == "Waiting for Parts");
@@ -367,6 +511,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
             else if (currentMainTab == "Service and Repair") ShowRepairModal(_allRepairs.FirstOrDefault(x => x.TicketId == id));
         }
 
+        // --- POPUP MODALS ---
         private async void ShowSalesModal(SalesLead? existing)
         {
             using Form f = CreateBaseModal(existing == null ? "New Sales Lead" : "Edit Sales Lead", 720);
