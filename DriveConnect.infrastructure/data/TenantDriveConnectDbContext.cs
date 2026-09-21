@@ -84,9 +84,7 @@ public class TenantDriveConnectDbContext : DbContext
         {
             entity.ToTable("Feedback");
             entity.HasKey(x => x.FeedbackId);
-            entity.Property(x => x.FirstName).HasMaxLength(100).IsRequired();
-            entity.Property(x => x.MiddleName).HasMaxLength(100);
-            entity.Property(x => x.LastName).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.CustomerName).HasMaxLength(200).IsRequired();
             entity.Property(x => x.PhoneNumber).HasMaxLength(50).IsRequired();
             entity.Property(x => x.Type).HasMaxLength(50).IsRequired();
             entity.Property(x => x.Comment).HasMaxLength(1000).IsRequired();
@@ -98,9 +96,7 @@ public class TenantDriveConnectDbContext : DbContext
         {
             entity.ToTable("Complaints");
             entity.HasKey(x => x.ComplaintId);
-            entity.Property(x => x.FirstName).HasMaxLength(100).IsRequired();
-            entity.Property(x => x.MiddleName).HasMaxLength(100);
-            entity.Property(x => x.LastName).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.CustomerName).HasMaxLength(200).IsRequired();
             entity.Property(x => x.PhoneNumber).HasMaxLength(50).IsRequired();
             entity.Property(x => x.Category).HasMaxLength(50).IsRequired();
             entity.Property(x => x.Description).HasMaxLength(1000).IsRequired();
@@ -114,9 +110,7 @@ public class TenantDriveConnectDbContext : DbContext
         {
             entity.ToTable("InteractionLogs");
             entity.HasKey(x => x.InteractionId);
-            entity.Property(x => x.FirstName).HasMaxLength(100).IsRequired();
-            entity.Property(x => x.MiddleName).HasMaxLength(100);
-            entity.Property(x => x.LastName).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.CustomerName).HasMaxLength(200).IsRequired();
             entity.Property(x => x.PhoneNumber).HasMaxLength(50).IsRequired();
             entity.Property(x => x.InteractionType).HasMaxLength(50).IsRequired();
             entity.Property(x => x.Subject).HasMaxLength(200).IsRequired();
@@ -128,9 +122,7 @@ public class TenantDriveConnectDbContext : DbContext
         {
             entity.ToTable("VehicleWarranties");
             entity.HasKey(x => x.WarrantyId);
-            entity.Property(x => x.FirstName).HasMaxLength(100).IsRequired();
-            entity.Property(x => x.MiddleName).HasMaxLength(100);
-            entity.Property(x => x.LastName).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.CustomerName).HasMaxLength(200).IsRequired();
             entity.Property(x => x.PhoneNumber).HasMaxLength(50).IsRequired();
             entity.Property(x => x.VehicleModel).HasMaxLength(150).IsRequired();
             entity.Property(x => x.Coverage).HasMaxLength(500).IsRequired();
@@ -141,9 +133,7 @@ public class TenantDriveConnectDbContext : DbContext
         {
             entity.ToTable("WarrantyClaims");
             entity.HasKey(x => x.ClaimId);
-            entity.Property(x => x.FirstName).HasMaxLength(100).IsRequired();
-            entity.Property(x => x.MiddleName).HasMaxLength(100);
-            entity.Property(x => x.LastName).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.CustomerName).HasMaxLength(200).IsRequired();
             entity.Property(x => x.PhoneNumber).HasMaxLength(50).IsRequired();
             entity.Property(x => x.VehicleModel).HasMaxLength(150).IsRequired();
             entity.Property(x => x.Problem).HasMaxLength(1000).IsRequired();
@@ -156,9 +146,7 @@ public class TenantDriveConnectDbContext : DbContext
         {
             entity.ToTable("MaintenanceRecords");
             entity.HasKey(x => x.MaintenanceId);
-            entity.Property(x => x.FirstName).HasMaxLength(100).IsRequired();
-            entity.Property(x => x.MiddleName).HasMaxLength(100);
-            entity.Property(x => x.LastName).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.CustomerName).HasMaxLength(200).IsRequired();
             entity.Property(x => x.PhoneNumber).HasMaxLength(50).IsRequired();
             entity.Property(x => x.VehicleModel).HasMaxLength(150).IsRequired();
             entity.Property(x => x.ServiceType).HasMaxLength(100).IsRequired();
