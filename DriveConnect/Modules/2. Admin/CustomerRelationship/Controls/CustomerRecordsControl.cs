@@ -43,6 +43,10 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
         private Label lblKpiActiveRepairs = new Label();
         private Label lblKpiRepaired = new Label();
         private Label lblKpiPickedUp = new Label();
+        private Label lblKpiActiveWarranties = new Label();
+        private Label lblKpiOpenClaims = new Label();
+        private Label lblKpiOpenComplaints = new Label();
+        private Label lblKpiScheduledMaintenance = new Label();
         private DataGridView dgvKpiStages = new DataGridView();
         private DataGridView dgvKpiStaff = new DataGridView();
 
@@ -475,14 +479,15 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                 Dock = DockStyle.Top,
                 Height = 245,
                 ColumnCount = 4,
-                RowCount = 2,
+                RowCount = 3,
                 Padding = new Padding(0, 0, 0, 10)
             };
 
             for (int i = 0; i < 4; i++)
                 cards.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25F));
-            cards.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
-            cards.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+            cards.RowStyles.Add(new RowStyle(SizeType.Percent, 33.33F));
+            cards.RowStyles.Add(new RowStyle(SizeType.Percent, 33.33F));
+            cards.RowStyles.Add(new RowStyle(SizeType.Percent, 33.34F));
 
             cards.Controls.Add(CreateStatCard("Active Leads", lblKpiActiveLeads, Color.FromArgb(124, 58, 237)), 0, 0);
             cards.Controls.Add(CreateStatCard("Closed Won", lblKpiClosedWon, Color.FromArgb(16, 185, 129)), 1, 0);
@@ -492,6 +497,10 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
             cards.Controls.Add(CreateStatCard("Active Repairs", lblKpiActiveRepairs, Color.FromArgb(124, 58, 237)), 1, 1);
             cards.Controls.Add(CreateStatCard("Repaired", lblKpiRepaired, Color.FromArgb(16, 185, 129)), 2, 1);
             cards.Controls.Add(CreateStatCard("Picked Up", lblKpiPickedUp, Color.FromArgb(59, 130, 246)), 3, 1);
+            cards.Controls.Add(CreateStatCard("Active Warranties", lblKpiActiveWarranties, Color.FromArgb(16, 185, 129)), 0, 2);
+            cards.Controls.Add(CreateStatCard("Open Warranty Claims", lblKpiOpenClaims, Color.FromArgb(245, 158, 11)), 1, 2);
+            cards.Controls.Add(CreateStatCard("Open Complaints", lblKpiOpenComplaints, Color.FromArgb(239, 68, 68)), 2, 2);
+            cards.Controls.Add(CreateStatCard("Scheduled Maintenance", lblKpiScheduledMaintenance, Color.FromArgb(59, 130, 246)), 3, 2);
 
             TableLayoutPanel tables = new TableLayoutPanel
             {
@@ -541,6 +550,10 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                 lblKpiActiveRepairs.Text = activeRepairs.Count.ToString();
                 lblKpiRepaired.Text = activeRepairs.Count(x => x.Status == "Repaired").ToString();
                 lblKpiPickedUp.Text = activeRepairs.Count(x => x.PickupStatus == "Picked Up").ToString();
+                lblKpiActiveWarranties.Text = _allWarranties.Count(x => x.Status == "Active").ToString();
+                lblKpiOpenClaims.Text = _allWarrantyClaims.Count(x => x.Status != "Resolved" && x.Status != "Rejected").ToString();
+                lblKpiOpenComplaints.Text = _allComplaints.Count(x => x.Status != "Resolved" && x.Status != "Closed").ToString();
+                lblKpiScheduledMaintenance.Text = _allMaintenance.Count(x => x.Status == "Scheduled" || x.Status == "Rescheduled").ToString();
 
                 dgvKpiStages.DataSource = activeSales
                     .GroupBy(x => string.IsNullOrWhiteSpace(x.Status) ? "New Inquiry" : x.Status)
@@ -599,6 +612,10 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                 "Lead Report",
                 "Staff Performance",
                 "Repair Report",
+                "Feedback Report",
+                "Complaint Report",
+                "Warranty Report",
+                "Maintenance Report",
                 "Archived Sales",
                 "Archived Repairs"
             });
@@ -740,6 +757,79 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                 FormatCurrencyColumn("EstimatedCost");
                 lblReportSummary.Text = $"Repair records: {rows.Count} | Estimated cost: ₱{rows.Sum(x => x.EstimatedCost):N2}";
             }
+            else if (report == "Feedback Report")
+            {
+                var rows = _allFeedback
+                    .Where(x => x.CreatedAt >= from && x.CreatedAt <= to)
+                    .Select(x => new
+                    {
+                        ID = x.FeedbackId,
+                        Customer = x.CustomerName,
+                        Type = x.Type,
+                        Rating = x.Rating,
+                        Status = x.Status,
+                        HandledBy = x.HandledBy,
+                        Date = x.CreatedAt.ToLocalTime().ToString("MMM dd, yyyy")
+                    }).ToList();
+
+                dgvReport.DataSource = rows;
+                lblReportSummary.Text = $"Feedback records: {rows.Count} | Average rating: {(rows.Count > 0 ? rows.Average(x => x.Rating).ToString("N1") : "0.0")} / 5";
+            }
+            else if (report == "Complaint Report")
+            {
+                var rows = _allComplaints
+                    .Where(x => x.CreatedAt >= from && x.CreatedAt <= to)
+                    .Select(x => new
+                    {
+                        ID = x.ComplaintId,
+                        Customer = x.CustomerName,
+                        Category = x.Category,
+                        Priority = x.Priority,
+                        Status = x.Status,
+                        HandledBy = x.HandledBy,
+                        Date = x.CreatedAt.ToLocalTime().ToString("MMM dd, yyyy")
+                    }).ToList();
+
+                dgvReport.DataSource = rows;
+                lblReportSummary.Text = $"Complaint records: {rows.Count} | Open: {rows.Count(x => x.Status != "Resolved" && x.Status != "Closed")}";
+            }
+            else if (report == "Warranty Report")
+            {
+                var rows = _allWarranties
+                    .Where(x => x.WarrantyStart >= from && x.WarrantyStart <= to)
+                    .Select(x => new
+                    {
+                        ID = x.WarrantyId,
+                        Customer = x.CustomerName,
+                        Vehicle = x.VehicleModel,
+                        WarrantyStart = x.WarrantyStart.ToLocalTime().ToString("MMM dd, yyyy"),
+                        WarrantyEnd = x.WarrantyEnd.ToLocalTime().ToString("MMM dd, yyyy"),
+                        Coverage = x.Coverage,
+                        Status = x.Status
+                    }).ToList();
+
+                dgvReport.DataSource = rows;
+                lblReportSummary.Text = $"Warranty records: {rows.Count} | Active: {rows.Count(x => x.Status == "Active")}";
+            }
+            else if (report == "Maintenance Report")
+            {
+                var rows = _allMaintenance
+                    .Where(x => x.ServiceDate >= from && x.ServiceDate <= to)
+                    .Select(x => new
+                    {
+                        ID = x.MaintenanceId,
+                        Customer = x.CustomerName,
+                        Vehicle = x.VehicleModel,
+                        ServiceType = x.ServiceType,
+                        PlanCoverage = x.PlanCoverage,
+                        AssignedStaff = x.AssignedStaff,
+                        Status = x.Status,
+                        ServiceDate = x.ServiceDate.ToLocalTime().ToString("MMM dd, yyyy")
+                    }).ToList();
+
+                dgvReport.DataSource = rows;
+                lblReportSummary.Text = $"Maintenance records: {rows.Count} | Scheduled: {rows.Count(x => x.Status == "Scheduled" || x.Status == "Rescheduled")}";
+            }
             else if (report == "Archived Sales")
             {
                 var rows = _allSales
@@ -793,22 +883,29 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
             panelBI_Graphs.Dock = DockStyle.Fill;
             panelBI_Graphs.BackColor = Color.Transparent;
 
+            panelBI_Graphs.AutoScroll = true;
+
             TableLayoutPanel layout = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 ColumnCount = 2,
-                RowCount = 2,
-                Padding = new Padding(0)
+                RowCount = 4,
+                Padding = new Padding(0),
+                AutoScroll = true
             };
             layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
             layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
-            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
-            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+            for (int i = 0; i < 4; i++)
+                layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 250F));
 
             layout.Controls.Add(CreateGraphCard("Sales Pipeline by Stage", "graphPipeline"), 0, 0);
             layout.Controls.Add(CreateGraphCard("Closed Deals by Staff", "graphStaff"), 1, 0);
             layout.Controls.Add(CreateGraphCard("Repair Status", "graphRepair"), 0, 1);
             layout.Controls.Add(CreateGraphCard("Sales Value by Month", "graphMonthly"), 1, 1);
+            layout.Controls.Add(CreateGraphCard("Customer Feedback Ratings", "graphFeedback"), 0, 2);
+            layout.Controls.Add(CreateGraphCard("Complaint Status", "graphComplaint"), 1, 2);
+            layout.Controls.Add(CreateGraphCard("Warranty Status", "graphWarranty"), 0, 3);
+            layout.Controls.Add(CreateGraphCard("Maintenance Status", "graphMaintenance"), 1, 3);
 
             panelBI_Graphs.Controls.Add(layout);
         }
@@ -824,6 +921,11 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                 Dock = DockStyle.Fill,
                 BackColor = Color.White,
                 AutoScroll = true
+            };
+            graph.Resize += (s, e) =>
+            {
+                if (graph.ClientSize.Width > 0 && graph.ClientSize.Height > 0)
+                    DrawSimpleBars(graph, GetGraphData(graph.Name));
             };
             card.Controls.Add(graph);
             return card;
@@ -878,6 +980,39 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                     .ToList();
             }
 
+            if (graphName == "graphFeedback")
+            {
+                return _allFeedback
+                    .GroupBy(x => x.Rating)
+                    .OrderBy(g => g.Key)
+                    .Select(g => new KeyValuePair<string, decimal>($"{g.Key} Star", g.Count()))
+                    .ToList();
+            }
+
+            if (graphName == "graphComplaint")
+            {
+                return _allComplaints
+                    .GroupBy(x => string.IsNullOrWhiteSpace(x.Status) ? "New" : x.Status)
+                    .Select(g => new KeyValuePair<string, decimal>(g.Key, g.Count()))
+                    .ToList();
+            }
+
+            if (graphName == "graphWarranty")
+            {
+                return _allWarranties
+                    .GroupBy(x => string.IsNullOrWhiteSpace(x.Status) ? "Unknown" : x.Status)
+                    .Select(g => new KeyValuePair<string, decimal>(g.Key, g.Count()))
+                    .ToList();
+            }
+
+            if (graphName == "graphMaintenance")
+            {
+                return _allMaintenance
+                    .GroupBy(x => string.IsNullOrWhiteSpace(x.Status) ? "Scheduled" : x.Status)
+                    .Select(g => new KeyValuePair<string, decimal>(g.Key, g.Count()))
+                    .ToList();
+            }
+
             var monthly = _allSales
                 .Where(x => x.Status == "Closed Won")
                 .GroupBy(x => new { x.CreatedAt.Year, x.CreatedAt.Month })
@@ -910,6 +1045,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
 
             decimal max = data.Max(x => x.Value);
             if (max <= 0) max = 1;
+            bool currencyGraph = graph.Name == "graphPipeline" || graph.Name == "graphMonthly";
 
             int y = 10;
             foreach (var item in data)
@@ -934,7 +1070,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
 
                 Label value = new Label
                 {
-                    Text = item.Value % 1 == 0 ? item.Value.ToString("N0") : $"₱{item.Value:N2}",
+                    Text = currencyGraph ? $"₱{item.Value:N2}" : item.Value.ToString("N0"),
                     Location = new Point(bar.Right + 8, y),
                     AutoSize = true,
                     Height = 28,
@@ -946,6 +1082,8 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                 graph.Controls.Add(value);
                 y += 40;
             }
+
+            graph.AutoScrollMinSize = new Size(0, y + 10);
         }
 
         // --- DATA BINDING ---
