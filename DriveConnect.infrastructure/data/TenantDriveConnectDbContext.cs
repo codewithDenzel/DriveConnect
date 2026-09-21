@@ -1,5 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
-using DriveConnect.domain.Entities;
+﻿using DriveConnect.domain.Entities;
+using Microsoft.EntityFrameworkCore;
+using System.Reflection.Emit;
 
 namespace DriveConnect.infrastructure.Data;
 
@@ -11,9 +12,13 @@ public class TenantDriveConnectDbContext : DbContext
     public DbSet<SalesLead> SalesLeads => Set<SalesLead>();
     public DbSet<RepairTicket> RepairTickets => Set<RepairTicket>();
 
+
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
+
+        
 
         // 1. Configuration for Car Sales (dbo.Inquiries)
         builder.Entity<SalesLead>(entity =>

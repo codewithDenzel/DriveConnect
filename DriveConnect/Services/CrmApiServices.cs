@@ -10,7 +10,7 @@ namespace DriveConnect.winforms.Services
     public class CrmApiService
     {
         // Make sure this port matches your running API port
-        private readonly HttpClient _http = new HttpClient { BaseAddress = new Uri("https://localhost:7142") };
+        private readonly HttpClient _http = new HttpClient { BaseAddress = new Uri("https://localhost:7162") };
 
         public async Task<List<SalesLead>> GetSalesAsync(int companyId) => await _http.GetFromJsonAsync<List<SalesLead>>($"/tenant/{companyId}/sales") ?? new();
         public async Task<HttpResponseMessage> CreateSalesAsync(int companyId, SalesLead lead) => await _http.PostAsJsonAsync($"/tenant/{companyId}/sales", lead);

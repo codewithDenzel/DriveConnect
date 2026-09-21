@@ -2,843 +2,529 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Forms;
+using DriveConnect.domain.Entities;
 using DriveConnect.winforms.Services;
-using DriveConnect.domain.Entities; // Required for SalesLead and RepairTicket
 
 namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
 {
     public partial class CustomerRecordsControl : UserControl
     {
-        // SIDE NAVIGATION BUTTONS
-        private Button btnNavDashboard = null!;
-        private Button btnNavSales = null!;
-        private Button btnNavService = null!;
-        private Button btnNavPromotions = null!;
-        private Button btnNavHistory = null!;
-        private Button btnNavReports = null!;
-        private Button btnNavArchived = null!;
+        // --- CORE UI PANELS ---
+        private Panel sidebarPanel = new Panel();
+        private Panel mainContentPanel = new Panel();
+        private Panel topActionBar = new Panel();
+        private FlowLayoutPanel subTabPanel = new FlowLayoutPanel();
+        private Panel gridWrapper = new Panel();
+        private Label lblPlaceholderMessage = new Label();
 
-        // PANELS
-        private Panel contentPanel = null!;
-        private Panel panelDashboard = null!;
-        private Panel panelSales = null!;
-        private Panel panelService = null!;
-        private Panel panelPromotions = null!;
-        private Panel panelHistory = null!;
-        private Panel panelReports = null!;
-        private Panel panelArchived = null!;
+        // --- CONTROLS ---
+        private DataGridView gridView = new DataGridView();
+        private TextBox txtSearch = new TextBox();
+        private Button btnNewRecord = new Button();
 
-        // DASHBOARD CONTROLS
-        private Label lblTotalLeads = null!;
-        private Label lblPipelineValue = null!;
-        private Label lblConversionRate = null!;
-        private Label lblActivePromos = null!;
-        private DataGridView dgvPipelineSummary = null!;
-        private DataGridView dgvTopSalespeople = null!;
-
-        // SALES TAB CONTROLS
-        private TextBox txtSalesFirstName = null!;
-        private TextBox txtSalesMiddleName = null!;
-        private TextBox txtSalesLastName = null!;
-        private TextBox txtSalesPhone = null!;
-        private TextBox txtSalesEmail = null!;
-        private TextBox txtSalesCarModel = null!;
-        private TextBox txtSalesCost = null!;
-        private TextBox txtSalesHandledBy = null!;
-        private ComboBox cbSalesLeadStatus = null!;
-        private Button btnSalesCreate = null!;
-        private Button btnSalesUpdate = null!;
-        private Button btnSalesArchive = null!;
-        private Button btnSalesClear = null!;
-        private DataGridView dgvSalesLeads = null!;
-
-        // REPAIR TAB CONTROLS
-        private TextBox txtRepairFirstName = null!;
-        private TextBox txtRepairMiddleName = null!;
-        private TextBox txtRepairLastName = null!;
-        private TextBox txtRepairPhone = null!;
-        private TextBox txtRepairEmail = null!;
-        private TextBox txtRepairCarModel = null!;
-        private TextBox txtRepairConcern = null!;
-        private TextBox txtRepairCost = null!;
-        private ComboBox cbRepairStatus = null!;
-        private ComboBox cbPickupStatus = null!;
-        private TextBox txtHandledBy = null!;
-        private Button btnRepairCreate = null!;
-        private Button btnRepairUpdate = null!;
-        private Button btnRepairArchive = null!;
-        private DataGridView dgvRepairTickets = null!;
-
-        // ARCHIVED TAB CONTROLS
-        private DataGridView dgvArchived = null!;
+        // --- STATE & DATA ---
+        private string currentMainTab = "Car Sales and Leads";
+        private string currentSubTab = "New Inquiry";
+        private List<SalesLead> _allSales = new List<SalesLead>();
+        private List<RepairTicket> _allRepairs = new List<RepairTicket>();
 
         private readonly CrmApiService _apiService = new CrmApiService();
         private const int CurrentCompanyId = 1;
 
-        // Trackers for Updates/Deletes
-        private int selectedRepairId = 0;
-        private int selectedSalesId = 0;
-
-        // Separated Lists
-        private List<SalesLead> _allSales = new List<SalesLead>();
-        private List<RepairTicket> _allRepairs = new List<RepairTicket>();
-
-        // DTO for binding combined archived records
-        private class ArchivedRecordDto
-        {
-            public int ID { get; set; }
-            public string Type { get; set; } = string.Empty;
-            public string FullName { get; set; } = string.Empty;
-            public string CarModel { get; set; } = string.Empty;
-            public string Status { get; set; } = string.Empty;
-            public string ArchivedOn { get; set; } = string.Empty;
-        }
-
         public CustomerRecordsControl()
         {
             InitializeComponent();
-            BuildResponsiveUI();
-            LoadData();
+            this.Controls.Clear();
+            SetupLightModernUI();
+            _ = LoadDataFromApiAsync();
         }
 
-        private void BuildResponsiveUI()
+        private void SetupLightModernUI()
         {
-            this.BackColor = Color.FromArgb(243, 244, 246);
             this.Dock = DockStyle.Fill;
+            this.BackColor = Color.FromArgb(243, 244, 246);
+            this.Font = new Font("Segoe UI", 10F, FontStyle.Regular);
 
-            Panel sidebar = new Panel { Dock = DockStyle.Left, Width = 270, BackColor = Color.FromArgb(17, 24, 39) };
-            Label lblAppLogo = new Label { Text = "DriveConnect CRM", Dock = DockStyle.Top, Height = 70, Font = new Font("Segoe UI", 14F, FontStyle.Bold), ForeColor = Color.White, TextAlign = ContentAlignment.MiddleCenter };
-            sidebar.Controls.Add(lblAppLogo);
+            sidebarPanel.Dock = DockStyle.Left;
+            sidebarPanel.Width = 260;
+            sidebarPanel.BackColor = Color.FromArgb(255, 255, 255);
+            sidebarPanel.Padding = new Padding(0, 20, 0, 0);
 
-            btnNavDashboard = CreateNavButton("📊  Dashboard", 80);
-            btnNavSales = CreateNavButton("🚗  Car Sales & Leads", 135);
-            btnNavService = CreateNavButton("🔧  Service & Repair", 190);
-            btnNavPromotions = CreateNavButton("📢  Promotions", 245);
-            btnNavHistory = CreateNavButton("🕒  Customer History", 300);
-            btnNavReports = CreateNavButton("📄  Reports", 355);
-            btnNavArchived = CreateNavButton("📁  Archived", 410);
+            Panel sidebarBorder = new Panel { Dock = DockStyle.Right, Width = 1, BackColor = Color.FromArgb(229, 231, 235) };
+            sidebarPanel.Controls.Add(sidebarBorder);
 
-            btnNavDashboard.Click += (s, e) => SwitchTab(panelDashboard, btnNavDashboard);
-            btnNavSales.Click += (s, e) => SwitchTab(panelSales, btnNavSales);
-            btnNavService.Click += (s, e) => SwitchTab(panelService, btnNavService);
-            btnNavPromotions.Click += (s, e) => SwitchTab(panelPromotions, btnNavPromotions);
-            btnNavHistory.Click += (s, e) => SwitchTab(panelHistory, btnNavHistory);
-            btnNavReports.Click += (s, e) => SwitchTab(panelReports, btnNavReports);
-            btnNavArchived.Click += (s, e) => SwitchTab(panelArchived, btnNavArchived);
+            Label lblLogo = new Label { Text = "DriveConnect CRM", Dock = DockStyle.Top, Height = 60, Font = new Font("Segoe UI", 16F, FontStyle.Bold), ForeColor = Color.FromArgb(17, 24, 39), TextAlign = ContentAlignment.MiddleCenter };
+            sidebarPanel.Controls.Add(lblLogo);
 
-            sidebar.Controls.AddRange(new Control[] { btnNavDashboard, btnNavSales, btnNavService, btnNavPromotions, btnNavHistory, btnNavReports, btnNavArchived });
+            AddSidebarMenuButton("Archived", 430);
+            AddSidebarMenuButton("Reports", 370);
+            AddSidebarMenuButton("Customer History", 310);
+            AddSidebarMenuButton("Promotions", 250);
+            AddSidebarMenuButton("Service and Repair", 190);
+            AddSidebarMenuButton("Car Sales and Leads", 130);
+            AddSidebarMenuButton("Dashboard", 70);
 
-            contentPanel = new Panel { Dock = DockStyle.Fill, BackColor = Color.FromArgb(243, 244, 246), Padding = new Padding(20) };
+            mainContentPanel.Dock = DockStyle.Fill;
+            mainContentPanel.Padding = new Padding(30);
 
-            panelDashboard = BuildDashboardView();
-            panelSales = BuildSalesView();
-            panelService = BuildServiceView();
-            panelPromotions = BuildPromotionsView();
-            panelHistory = BuildHistoryView();
-            panelReports = BuildReportsView();
-            panelArchived = BuildArchivedView();
+            topActionBar.Dock = DockStyle.Top;
+            topActionBar.Height = 50;
 
-            contentPanel.Controls.Add(panelDashboard);
-            contentPanel.Controls.Add(panelSales);
-            contentPanel.Controls.Add(panelService);
-            contentPanel.Controls.Add(panelPromotions);
-            contentPanel.Controls.Add(panelHistory);
-            contentPanel.Controls.Add(panelReports);
-            contentPanel.Controls.Add(panelArchived);
+            btnNewRecord.Text = "+ New Record";
+            btnNewRecord.Width = 140;
+            btnNewRecord.Height = 40;
+            btnNewRecord.Location = new Point(0, 0);
+            btnNewRecord.BackColor = Color.FromArgb(79, 70, 229);
+            btnNewRecord.ForeColor = Color.White;
+            btnNewRecord.FlatStyle = FlatStyle.Flat;
+            btnNewRecord.FlatAppearance.BorderSize = 0;
+            btnNewRecord.Font = new Font("Segoe UI Semibold", 9.5F);
+            btnNewRecord.Cursor = Cursors.Hand;
+            btnNewRecord.Click += BtnNewRecord_Click;
 
-            this.Controls.Add(contentPanel);
-            this.Controls.Add(sidebar);
+            txtSearch.PlaceholderText = "Search by Name, Phone, or Model...";
+            txtSearch.Width = 350;
+            txtSearch.Height = 40;
+            txtSearch.Location = new Point(160, 8);
+            txtSearch.BorderStyle = BorderStyle.FixedSingle;
+            txtSearch.TextChanged += (s, e) => FilterAndBindGrid();
 
-            SwitchTab(panelDashboard, btnNavDashboard);
+            topActionBar.Controls.Add(btnNewRecord);
+            topActionBar.Controls.Add(txtSearch);
+
+            subTabPanel.Dock = DockStyle.Top;
+            subTabPanel.Height = 60;
+            subTabPanel.Padding = new Padding(0, 15, 0, 0);
+
+            gridWrapper.Dock = DockStyle.Fill;
+            gridWrapper.BackColor = Color.White;
+            gridWrapper.Padding = new Padding(1);
+            gridWrapper.Paint += (s, e) => ControlPaint.DrawBorder(e.Graphics, gridWrapper.ClientRectangle, Color.FromArgb(229, 231, 235), ButtonBorderStyle.Solid);
+
+            lblPlaceholderMessage.Dock = DockStyle.Fill;
+            lblPlaceholderMessage.TextAlign = ContentAlignment.MiddleCenter;
+            lblPlaceholderMessage.Font = new Font("Segoe UI", 12F, FontStyle.Italic);
+            lblPlaceholderMessage.ForeColor = Color.FromArgb(156, 163, 175);
+            lblPlaceholderMessage.Visible = false;
+            gridWrapper.Controls.Add(lblPlaceholderMessage);
+
+            gridView.Dock = DockStyle.Fill;
+            gridView.BackgroundColor = Color.White;
+            gridView.BorderStyle = BorderStyle.None;
+            gridView.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
+            gridView.GridColor = Color.FromArgb(243, 244, 246);
+            gridView.AllowUserToAddRows = false;
+            gridView.ReadOnly = true;
+            gridView.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            gridView.RowHeadersVisible = false;
+            gridView.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+            gridView.CellDoubleClick += GridView_CellDoubleClick;
+
+            gridView.DefaultCellStyle = new DataGridViewCellStyle { Padding = new Padding(12, 8, 12, 8), Font = new Font("Segoe UI", 9.5F), ForeColor = Color.FromArgb(55, 65, 81), SelectionBackColor = Color.FromArgb(238, 242, 255), SelectionForeColor = Color.FromArgb(79, 70, 229) };
+            gridView.ColumnHeadersDefaultCellStyle = new DataGridViewCellStyle { BackColor = Color.FromArgb(249, 250, 251), Font = new Font("Segoe UI Semibold", 9.5F), ForeColor = Color.FromArgb(107, 114, 128), Padding = new Padding(12) };
+            gridView.EnableHeadersVisualStyles = false;
+            gridView.RowTemplate.Height = 45;
+
+            gridWrapper.Controls.Add(gridView);
+
+            mainContentPanel.Controls.Add(gridWrapper);
+            mainContentPanel.Controls.Add(subTabPanel);
+            mainContentPanel.Controls.Add(topActionBar);
+
+            gridWrapper.BringToFront();
+            subTabPanel.SendToBack();
+            topActionBar.SendToBack();
+
+            this.Controls.Add(mainContentPanel);
+            this.Controls.Add(sidebarPanel);
+            mainContentPanel.BringToFront();
+
+            SwitchMainTab("Car Sales and Leads");
         }
 
-        private Button CreateNavButton(string text, int top)
+        private void AddSidebarMenuButton(string text, int top)
         {
-            var btn = new Button
-            {
-                Text = text,
-                Left = 10,
-                Top = top,
-                Width = 250,
-                Height = 45,
-                FlatStyle = FlatStyle.Flat,
-                Font = new Font("Segoe UI Semibold", 10F, FontStyle.Bold),
-                ForeColor = Color.FromArgb(156, 163, 175),
-                BackColor = Color.Transparent,
-                TextAlign = ContentAlignment.MiddleLeft,
-                Padding = new Padding(15, 0, 0, 0),
-                Cursor = Cursors.Hand,
-                UseMnemonic = false
-            };
+            Button btn = new Button { Text = "   " + text, Top = top, Left = 15, Width = 230, Height = 45, FlatStyle = FlatStyle.Flat, ForeColor = Color.FromArgb(107, 114, 128), Font = new Font("Segoe UI Semibold", 10.5F), TextAlign = ContentAlignment.MiddleLeft, Cursor = Cursors.Hand };
             btn.FlatAppearance.BorderSize = 0;
-            return btn;
+            btn.Click += (s, e) => SwitchMainTab(text);
+            sidebarPanel.Controls.Add(btn);
         }
 
-        private void SwitchTab(Panel selectedPanel, Button selectedNavBtn)
+        private void SwitchMainTab(string tabName)
         {
-            panelDashboard.Visible = false; panelSales.Visible = false; panelService.Visible = false;
-            panelPromotions.Visible = false; panelHistory.Visible = false; panelReports.Visible = false; panelArchived.Visible = false;
+            currentMainTab = tabName;
 
-            btnNavDashboard.BackColor = Color.Transparent; btnNavDashboard.ForeColor = Color.FromArgb(156, 163, 175);
-            btnNavSales.BackColor = Color.Transparent; btnNavSales.ForeColor = Color.FromArgb(156, 163, 175);
-            btnNavService.BackColor = Color.Transparent; btnNavService.ForeColor = Color.FromArgb(156, 163, 175);
-            btnNavPromotions.BackColor = Color.Transparent; btnNavPromotions.ForeColor = Color.FromArgb(156, 163, 175);
-            btnNavHistory.BackColor = Color.Transparent; btnNavHistory.ForeColor = Color.FromArgb(156, 163, 175);
-            btnNavReports.BackColor = Color.Transparent; btnNavReports.ForeColor = Color.FromArgb(156, 163, 175);
-            btnNavArchived.BackColor = Color.Transparent; btnNavArchived.ForeColor = Color.FromArgb(156, 163, 175);
-
-            selectedPanel.Visible = true;
-            selectedNavBtn.BackColor = Color.FromArgb(124, 58, 237);
-            selectedNavBtn.ForeColor = Color.White;
-        }
-
-        private Panel BuildDashboardView()
-        {
-            Panel main = new Panel { Dock = DockStyle.Fill, BackColor = Color.Transparent };
-
-            TableLayoutPanel topCardsGrid = new TableLayoutPanel { Dock = DockStyle.Top, Height = 130, ColumnCount = 4, RowCount = 1, Padding = new Padding(0, 0, 0, 15) };
-            for (int i = 0; i < 4; i++) topCardsGrid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25F));
-
-            topCardsGrid.Controls.Add(CreateStatCard("Active Sales Leads", lblTotalLeads = new Label { Text = "0" }, Color.FromArgb(124, 58, 237)), 0, 0);
-            topCardsGrid.Controls.Add(CreateStatCard("Total Pipeline Value", lblPipelineValue = new Label { Text = "₱0.00" }, Color.FromArgb(16, 185, 129)), 1, 0);
-            topCardsGrid.Controls.Add(CreateStatCard("Lead Conversion Rate", lblConversionRate = new Label { Text = "0%" }, Color.FromArgb(59, 130, 246)), 2, 0);
-            topCardsGrid.Controls.Add(CreateStatCard("Active Promotions", lblActivePromos = new Label { Text = "0" }, Color.FromArgb(245, 158, 11)), 3, 0);
-
-            TableLayoutPanel bottomSplit = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 1 };
-            bottomSplit.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
-            bottomSplit.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
-
-            Panel leftCard = CreateCardPanel();
-            AddHeader(leftCard, "Dashboard Overview", "High-level CRM sales performance & active pipelines");
-
-            dgvPipelineSummary = CreateGridView();
-            dgvPipelineSummary.Dock = DockStyle.Fill;
-            leftCard.Controls.Add(dgvPipelineSummary);
-
-            Panel rightCard = CreateCardPanel();
-            AddHeader(rightCard, "Sales Team Leaderboard", "Top performing salespeople by closed deals");
-
-            dgvTopSalespeople = CreateGridView();
-            dgvTopSalespeople.Dock = DockStyle.Fill;
-            rightCard.Controls.Add(dgvTopSalespeople);
-
-            bottomSplit.Controls.Add(leftCard, 0, 0);
-            bottomSplit.Controls.Add(rightCard, 1, 0);
-            main.Controls.Add(bottomSplit);
-            main.Controls.Add(topCardsGrid);
-            return main;
-        }
-
-        private Panel CreateStatCard(string title, Label valLabel, Color accentColor)
-        {
-            Panel card = new Panel { Dock = DockStyle.Fill, BackColor = Color.White, Margin = new Padding(5) };
-            card.Paint += (s, e) => ControlPaint.DrawBorder(e.Graphics, card.ClientRectangle, Color.FromArgb(229, 231, 235), ButtonBorderStyle.Solid);
-            Label lblT = new Label { Text = title, Left = 15, Top = 15, AutoSize = true, Font = new Font("Segoe UI", 9F), ForeColor = Color.FromArgb(107, 114, 128) };
-            valLabel.Left = 15; valLabel.Top = 45; valLabel.Width = 220; valLabel.Height = 40;
-            valLabel.Font = new Font("Segoe UI", 16F, FontStyle.Bold); valLabel.ForeColor = accentColor;
-            card.Controls.Add(lblT); card.Controls.Add(valLabel);
-            return card;
-        }
-
-        private Panel BuildSalesView()
-        {
-            TableLayoutPanel split = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 1 };
-            split.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 450F));
-            split.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
-
-            Panel formPanel = CreateCardPanel();
-            AddHeader(formPanel, "New Car Sales Inquiry", "Capture prospective car buyers and leads");
-
-            int top = 85;
-            AddLabelAndControl(formPanel, "First Name", txtSalesFirstName = CreateTextBox(), ref top);
-            AddLabelAndControl(formPanel, "Middle Name", txtSalesMiddleName = CreateTextBox(), ref top);
-            AddLabelAndControl(formPanel, "Last Name", txtSalesLastName = CreateTextBox(), ref top);
-            AddLabelAndControl(formPanel, "Phone Number", txtSalesPhone = CreateTextBox(), ref top);
-            AddLabelAndControl(formPanel, "Email Address", txtSalesEmail = CreateTextBox(), ref top);
-            AddLabelAndControl(formPanel, "Interested Model", txtSalesCarModel = CreateTextBox(), ref top);
-            AddLabelAndControl(formPanel, "Est. Deal Value (₱)", txtSalesCost = CreateTextBox("0.00"), ref top);
-
-            cbSalesLeadStatus = CreateComboBox(new[] { "New Inquiry", "Test Drive Scheduled", "Negotiation", "Closed Won", "Closed Lost" });
-            AddLabelAndControl(formPanel, "Sales Stage", cbSalesLeadStatus, ref top);
-
-            AddLabelAndControl(formPanel, "Handled By", txtSalesHandledBy = CreateTextBox("Staff name diri"), ref top);
-
-            top += 15;
-            btnSalesCreate = CreateButton("Save Lead", Color.FromArgb(124, 58, 237), 20, top, 95);
-            btnSalesCreate.Click += BtnSalesCreate_Click;
-
-            btnSalesUpdate = CreateButton("Update", Color.FromArgb(79, 70, 229), 125, top, 85);
-            btnSalesUpdate.Click += BtnSalesUpdate_Click;
-
-            btnSalesArchive = CreateButton("Archive", Color.FromArgb(220, 38, 38), 220, top, 85);
-            btnSalesArchive.Click += BtnSalesArchive_Click;
-
-            btnSalesClear = CreateButton("Clear", Color.FromArgb(107, 114, 128), 315, top, 85);
-            btnSalesClear.Click += (s, e) => ClearSalesInputs();
-
-            formPanel.Controls.AddRange(new Control[] { btnSalesCreate, btnSalesUpdate, btnSalesArchive, btnSalesClear });
-
-            Panel tablePanel = CreateCardPanel();
-            AddHeader(tablePanel, "Queue", "Active car purchasing opportunities");
-
-            dgvSalesLeads = CreateGridView();
-            dgvSalesLeads.Dock = DockStyle.Fill;
-            dgvSalesLeads.CellClick += DgvSalesLeads_CellClick;
-            tablePanel.Controls.Add(dgvSalesLeads);
-
-            split.Controls.Add(formPanel, 0, 0);
-            split.Controls.Add(tablePanel, 1, 0);
-            return split;
-        }
-
-        private Panel BuildServiceView()
-        {
-            TableLayoutPanel split = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 1 };
-
-            split.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 450F));
-            split.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
-
-            Panel formPanel = CreateCardPanel();
-            AddHeader(formPanel, "Service & Repair Ticket", "Track vehicle maintenance and customer issues");
-
-            int top = 85;
-            AddLabelAndControl(formPanel, "First Name", txtRepairFirstName = CreateTextBox(), ref top);
-            AddLabelAndControl(formPanel, "Middle Name", txtRepairMiddleName = CreateTextBox(), ref top);
-            AddLabelAndControl(formPanel, "Last Name", txtRepairLastName = CreateTextBox(), ref top);
-            AddLabelAndControl(formPanel, "Phone Number", txtRepairPhone = CreateTextBox(), ref top);
-            AddLabelAndControl(formPanel, "Email Address", txtRepairEmail = CreateTextBox(), ref top);
-            AddLabelAndControl(formPanel, "Vehicle Model", txtRepairCarModel = CreateTextBox(), ref top);
-            AddLabelAndControl(formPanel, "Issue / Concern", txtRepairConcern = CreateTextBox(), ref top);
-            AddLabelAndControl(formPanel, "Est. Cost (₱)", txtRepairCost = CreateTextBox("0.00"), ref top);
-
-            cbRepairStatus = CreateComboBox(new[] { "Diagnose", "In Repair", "Waiting for Parts", "Repaired" });
-            AddLabelAndControl(formPanel, "Repair Status", cbRepairStatus, ref top);
-
-            cbPickupStatus = CreateComboBox(new[] { "Pending", "Ready for Pickup", "Picked Up" });
-            AddLabelAndControl(formPanel, "Pickup Status", cbPickupStatus, ref top);
-
-            AddLabelAndControl(formPanel, "Handled By", txtHandledBy = CreateTextBox("ngan sa Sales Staff"), ref top);
-
-            top += 15;
-            btnRepairCreate = CreateButton("Save Ticket", Color.FromArgb(124, 58, 237), 20, top, 95);
-            btnRepairCreate.Click += BtnRepairCreate_Click;
-
-            btnRepairUpdate = CreateButton("Update", Color.FromArgb(79, 70, 229), 125, top, 85);
-            btnRepairUpdate.Click += BtnRepairUpdate_Click;
-
-            btnRepairArchive = CreateButton("Archive", Color.FromArgb(220, 38, 38), 220, top, 85);
-            btnRepairArchive.Click += BtnRepairArchive_Click;
-
-            Button btnClear = CreateButton("Clear", Color.FromArgb(107, 114, 128), 315, top, 85);
-            btnClear.Click += (s, e) => ClearRepairInputs();
-
-            formPanel.Controls.AddRange(new Control[] { btnRepairCreate, btnRepairUpdate, btnRepairArchive, btnClear });
-
-            Panel tablePanel = CreateCardPanel();
-            AddHeader(tablePanel, "Active Repair Work Orders", "Current vehicles undergoing maintenance");
-
-            dgvRepairTickets = CreateGridView();
-            dgvRepairTickets.Dock = DockStyle.Fill;
-            dgvRepairTickets.CellClick += DgvRepairTickets_CellClick;
-            tablePanel.Controls.Add(dgvRepairTickets);
-
-            split.Controls.Add(formPanel, 0, 0);
-            split.Controls.Add(tablePanel, 1, 0);
-            return split;
-        }
-
-        private Panel BuildArchivedView()
-        {
-            Panel main = new Panel { Dock = DockStyle.Fill, BackColor = Color.Transparent };
-            Panel card = CreateCardPanel();
-            AddHeader(card, "Archived Records", "Historical log of archived sales leads and repair tickets");
-
-            dgvArchived = CreateGridView();
-            dgvArchived.Dock = DockStyle.Fill;
-            card.Controls.Add(dgvArchived);
-
-            main.Controls.Add(card);
-            return main;
-        }
-
-        private Panel BuildPromotionsView() { Panel p = new Panel { Dock = DockStyle.Fill, BackColor = Color.Transparent }; Panel c = CreateCardPanel(); AddHeader(c, "Promotions & Offers", "Manage discount campaigns."); p.Controls.Add(c); return p; }
-        private Panel BuildHistoryView() { Panel p = new Panel { Dock = DockStyle.Fill, BackColor = Color.Transparent }; Panel c = CreateCardPanel(); AddHeader(c, "Customer History", "View past interactions."); p.Controls.Add(c); return p; }
-        private Panel BuildReportsView() { Panel p = new Panel { Dock = DockStyle.Fill, BackColor = Color.Transparent }; Panel c = CreateCardPanel(); AddHeader(c, "System Reports", "Generate analytics."); p.Controls.Add(c); return p; }
-
-        private Panel CreateCardPanel()
-        {
-            Panel p = new Panel { Dock = DockStyle.Fill, BackColor = Color.White, Margin = new Padding(5), Padding = new Padding(15, 80, 15, 15) };
-            p.Paint += (s, e) => ControlPaint.DrawBorder(e.Graphics, p.ClientRectangle, Color.FromArgb(229, 231, 235), ButtonBorderStyle.Solid);
-            return p;
-        }
-
-        private void AddHeader(Panel parent, string title, string subtitle)
-        {
-            Label lblT = new Label { Text = title, Left = 20, Top = 20, AutoSize = true, Font = new Font("Segoe UI Semibold", 13F, FontStyle.Bold), ForeColor = Color.FromArgb(124, 58, 237) };
-            Label lblS = new Label { Text = subtitle, Left = 20, Top = 50, AutoSize = true, Font = new Font("Segoe UI", 9F), ForeColor = Color.FromArgb(107, 114, 128) };
-            parent.Controls.Add(lblT); parent.Controls.Add(lblS);
-        }
-
-        private TextBox CreateTextBox(string def = "") => new TextBox { Text = def, Font = new Font("Segoe UI", 9.5F), BorderStyle = BorderStyle.FixedSingle, BackColor = Color.FromArgb(250, 250, 250) };
-        private ComboBox CreateComboBox(string[] items) { var cb = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Font = new Font("Segoe UI", 9.5F), FlatStyle = FlatStyle.Flat }; cb.Items.AddRange(items); cb.SelectedIndex = 0; return cb; }
-        private Button CreateButton(string text, Color bg, int left, int top, int width) => new Button { Text = text, Left = left, Top = top, Width = width, Height = 38, BackColor = bg, ForeColor = Color.White, FlatStyle = FlatStyle.Flat, Font = new Font("Segoe UI Semibold", 9F, FontStyle.Bold), Cursor = Cursors.Hand };
-
-        private DataGridView CreateGridView()
-        {
-            var gv = new DataGridView
+            foreach (Control c in sidebarPanel.Controls)
             {
-                BackgroundColor = Color.White,
-                BorderStyle = BorderStyle.None,
-                CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal,
-                GridColor = Color.FromArgb(243, 244, 246),
-                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.DisplayedCells,
-                SelectionMode = DataGridViewSelectionMode.FullRowSelect,
-                MultiSelect = false,
-                ReadOnly = true,
-                RowHeadersVisible = false,
-                AllowUserToAddRows = false,
-                EnableHeadersVisualStyles = false,
-                RowTemplate = { Height = 35 }
+                if (c is Button b)
+                {
+                    if (b.Text.Trim() == tabName) { b.BackColor = Color.FromArgb(243, 244, 246); b.ForeColor = Color.FromArgb(79, 70, 229); }
+                    else { b.BackColor = Color.White; b.ForeColor = Color.FromArgb(107, 114, 128); }
+                }
+            }
+
+            if (currentMainTab == "Car Sales and Leads") currentSubTab = "New Inquiry";
+            else if (currentMainTab == "Service and Repair") currentSubTab = "New Diagnose";
+            else if (currentMainTab == "Archived") currentSubTab = "Archived Sales";
+
+            BuildSubTabs();
+        }
+
+        private void BuildSubTabs()
+        {
+            subTabPanel.Controls.Clear();
+            txtSearch.Clear();
+            gridView.DataSource = null;
+
+            if (currentMainTab == "Car Sales and Leads")
+            {
+                btnNewRecord.Visible = true;
+                txtSearch.Visible = true;
+                gridView.Visible = true;
+                lblPlaceholderMessage.Visible = false;
+
+                AddSubTab("New Inquiry");
+                AddSubTab("Test Drive Scheduled");
+                AddSubTab("Negotiation");
+                AddSubTab("Closed Deals");
+
+                FilterAndBindGrid();
+            }
+            else if (currentMainTab == "Service and Repair")
+            {
+                btnNewRecord.Visible = true;
+                txtSearch.Visible = true;
+                gridView.Visible = true;
+                lblPlaceholderMessage.Visible = false;
+
+                AddSubTab("New Diagnose");
+                AddSubTab("In Repair");
+                AddSubTab("Waiting for Parts");
+                AddSubTab("Repaired");
+                AddSubTab("Ready for Pickup");
+                AddSubTab("Picked Up");
+
+                FilterAndBindGrid();
+            }
+            else if (currentMainTab == "Archived")
+            {
+                btnNewRecord.Visible = false;
+                txtSearch.Visible = true;
+                gridView.Visible = true;
+                lblPlaceholderMessage.Visible = false;
+
+                AddSubTab("Archived Sales");
+                AddSubTab("Archived Repairs");
+
+                FilterAndBindGrid();
+            }
+            else
+            {
+                currentSubTab = "";
+                btnNewRecord.Visible = false;
+                txtSearch.Visible = false;
+                gridView.Visible = false;
+
+                lblPlaceholderMessage.Text = $"{currentMainTab} features are currently under development.";
+                lblPlaceholderMessage.Visible = true;
+            }
+        }
+
+        private void AddSubTab(string text)
+        {
+            Button btn = new Button { Text = text, AutoSize = true, MinimumSize = new Size(120, 35), FlatStyle = FlatStyle.Flat, Font = new Font("Segoe UI Semibold", 9.5F), Cursor = Cursors.Hand, Margin = new Padding(0, 0, 10, 0) };
+            btn.FlatAppearance.BorderSize = 0;
+
+            if (text == currentSubTab) { btn.BackColor = Color.FromArgb(224, 231, 255); btn.ForeColor = Color.FromArgb(67, 56, 202); }
+            else { btn.BackColor = Color.Transparent; btn.ForeColor = Color.FromArgb(107, 114, 128); }
+
+            btn.Click += (s, e) => {
+                currentSubTab = text;
+                BuildSubTabs();
             };
-            gv.ColumnHeadersDefaultCellStyle = new DataGridViewCellStyle { BackColor = Color.FromArgb(249, 250, 251), ForeColor = Color.FromArgb(75, 85, 99), Font = new Font("Segoe UI", 9F, FontStyle.Bold), Padding = new Padding(10, 5, 10, 5) };
-            gv.DefaultCellStyle = new DataGridViewCellStyle { BackColor = Color.White, ForeColor = Color.FromArgb(31, 41, 55), Font = new Font("Segoe UI", 9F), SelectionBackColor = Color.FromArgb(237, 233, 254), SelectionForeColor = Color.FromArgb(124, 58, 237), Padding = new Padding(10, 0, 10, 0) };
-            return gv;
+            subTabPanel.Controls.Add(btn);
         }
 
-        private void AddLabelAndControl(Panel parent, string text, Control ctrl, ref int top)
-        {
-            Label lbl = new Label { Text = text, Left = 20, Top = top, AutoSize = true, Font = new Font("Segoe UI Semibold", 8.5F, FontStyle.Bold), ForeColor = Color.FromArgb(55, 65, 81) };
-            ctrl.Left = 20;
-            ctrl.Top = top + 22;
-            ctrl.Width = 380;
-            parent.Controls.Add(lbl);
-            parent.Controls.Add(ctrl);
-            top += 60;
-        }
-
-        private bool ConfirmAction(string message, string title)
-        {
-            DialogResult result = MessageBox.Show(message, title, MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-            return result == DialogResult.Yes;
-        }
-
-        private async void LoadData()
+        private async Task LoadDataFromApiAsync()
         {
             try
             {
-                _allSales = await _apiService.GetSalesAsync(CurrentCompanyId);
-                _allRepairs = await _apiService.GetRepairsAsync(CurrentCompanyId);
+                _allSales = await _apiService.GetSalesAsync(CurrentCompanyId) ?? new List<SalesLead>();
+                _allRepairs = await _apiService.GetRepairsAsync(CurrentCompanyId) ?? new List<RepairTicket>();
+                FilterAndBindGrid();
+            }
+            catch (Exception)
+            {
+                // Ignore silent API fetch fail on initial load if API isn't booted yet
+            }
+        }
 
-                // --- DATA FILTERING ---
-                var activeSales = _allSales.FindAll(x => x.Status != "Archived");
-                var archivedSales = _allSales.FindAll(x => x.Status == "Archived");
+        private void FilterAndBindGrid()
+        {
+            string q = txtSearch.Text.ToLower();
+            gridView.DataSource = null;
 
-                var activeRepairs = _allRepairs.FindAll(x => x.Status != "Archived");
-                var archivedRepairs = _allRepairs.FindAll(x => x.Status == "Archived");
+            if (currentMainTab == "Car Sales and Leads")
+            {
+                var query = _allSales.Where(x => x.Status != "Archived").AsQueryable();
 
-                // --- BIND SALES GRID ---
-                var salesDisplayList = activeSales.Select(x => new {
-                    x.InquiryId,
-                    FullName = $"{x.FirstName} {x.MiddleName} {x.LastName}".Replace("  ", " ").Trim(),
-                    x.PhoneNumber,
-                    x.EmailAddress,
-                    x.CarModel,
-                    x.Status,
-                    EstimatedCost = $"₱{x.EstimatedCost:N2}",
-                    x.HandledBy,
-                    CreatedAt = x.CreatedAt.ToString("MMM dd, yyyy hh:mm tt"),
-                    CompletedAt = x.CompletedAt?.ToString("MMM dd, yyyy hh:mm tt") ?? "-"
-                }).ToList();
+                // Match the exact sub-tab statuses
+                if (currentSubTab == "New Inquiry") query = query.Where(x => x.Status == "New Inquiry");
+                else if (currentSubTab == "Test Drive Scheduled") query = query.Where(x => x.Status == "Test Drive Scheduled");
+                else if (currentSubTab == "Negotiation") query = query.Where(x => x.Status == "Negotiation");
+                else if (currentSubTab == "Closed Deals") query = query.Where(x => x.Status == "Closed Won" || x.Status == "Closed Lost");
 
-                dgvSalesLeads.DataSource = null;
-                dgvSalesLeads.DataSource = salesDisplayList;
-                if (dgvSalesLeads.Columns.Count > 0)
-                {
-                    dgvSalesLeads.Columns["InquiryId"].HeaderText = "ID";
-                    dgvSalesLeads.Columns["FullName"].HeaderText = "Full Name";
-                    dgvSalesLeads.Columns["PhoneNumber"].HeaderText = "Phone";
-                    dgvSalesLeads.Columns["EmailAddress"].HeaderText = "Email";
-                    dgvSalesLeads.Columns["CarModel"].HeaderText = "Car Model";
-                    dgvSalesLeads.Columns["Status"].HeaderText = "Status";
-                    dgvSalesLeads.Columns["EstimatedCost"].HeaderText = "Est. Cost";
-                    dgvSalesLeads.Columns["HandledBy"].HeaderText = "Handled By";
-                    dgvSalesLeads.Columns["CreatedAt"].HeaderText = "Created At";
-                    dgvSalesLeads.Columns["CompletedAt"].HeaderText = "Completed At";
-                }
+                if (!string.IsNullOrWhiteSpace(q)) query = query.Where(x => (x.FirstName != null && x.FirstName.ToLower().Contains(q)) || (x.LastName != null && x.LastName.ToLower().Contains(q)) || (x.CarModel != null && x.CarModel.ToLower().Contains(q)));
 
-                // --- BIND REPAIR GRID ---
-                var repairDisplayList = activeRepairs.Select(x => new {
-                    x.TicketId,
-                    FullName = $"{x.FirstName} {x.MiddleName} {x.LastName}".Replace("  ", " ").Trim(),
-                    x.PhoneNumber,
-                    x.EmailAddress,
-                    x.CarModel,
-                    x.Concern,
-                    x.Status,
-                    EstimatedCost = $"₱{x.EstimatedCost:N2}",
-                    x.HandledBy,
-                    CreatedAt = x.CreatedAt.ToString("MMM dd, yyyy hh:mm tt"),
-                    CompletedAt = x.CompletedAt?.ToString("MMM dd, yyyy hh:mm tt") ?? "-",
-                    x.PickupStatus,
-                    PickedUpAt = x.PickedUpAt?.ToString("MMM dd, yyyy hh:mm tt") ?? "-"
-                }).ToList();
-
-                dgvRepairTickets.DataSource = null;
-                dgvRepairTickets.DataSource = repairDisplayList;
-                if (dgvRepairTickets.Columns.Count > 0)
-                {
-                    dgvRepairTickets.Columns["TicketId"].HeaderText = "ID";
-                    dgvRepairTickets.Columns["FullName"].HeaderText = "Full Name";
-                    dgvRepairTickets.Columns["PhoneNumber"].HeaderText = "Phone";
-                    dgvRepairTickets.Columns["EmailAddress"].HeaderText = "Email";
-                    dgvRepairTickets.Columns["CarModel"].HeaderText = "Car Model";
-                    dgvRepairTickets.Columns["Concern"].HeaderText = "Concern";
-                    dgvRepairTickets.Columns["Status"].HeaderText = "Status";
-                    dgvRepairTickets.Columns["EstimatedCost"].HeaderText = "Est. Cost";
-                    dgvRepairTickets.Columns["HandledBy"].HeaderText = "Handled By";
-                    dgvRepairTickets.Columns["CreatedAt"].HeaderText = "Created At";
-                    dgvRepairTickets.Columns["CompletedAt"].HeaderText = "Completed At";
-                    dgvRepairTickets.Columns["PickupStatus"].HeaderText = "Pickup Status";
-                    dgvRepairTickets.Columns["PickedUpAt"].HeaderText = "Picked Up At";
-                }
-
-                // --- BIND ARCHIVED GRID ---
-                var archivedCombinedList = new List<ArchivedRecordDto>();
-
-                archivedCombinedList.AddRange(archivedSales.Select(x => new ArchivedRecordDto
-                {
+                gridView.DataSource = query.Select(x => new {
                     ID = x.InquiryId,
-                    Type = "Sales",
-                    FullName = $"{x.FirstName} {x.MiddleName} {x.LastName}".Replace("  ", " ").Trim(),
-                    CarModel = x.CarModel ?? "",
-                    Status = x.Status ?? "",
-                    ArchivedOn = x.CompletedAt?.ToString("MMM dd, yyyy hh:mm tt") ?? "-"
-                }));
+                    Name = $"{x.FirstName} {x.MiddleName} {x.LastName}".Replace("  ", " ").Trim(),
+                    Phone = x.PhoneNumber,
+                    Model = x.CarModel,
+                    Stage = x.Status,
+                    Value = $"₱{x.EstimatedCost:N2}",
+                    HandledBy = x.HandledBy,
+                    DateAdded = x.CreatedAt.ToLocalTime().ToString("MMM dd, yyyy hh:mm tt")
+                }).ToList();
 
-                archivedCombinedList.AddRange(archivedRepairs.Select(x => new ArchivedRecordDto
-                {
+                if (gridView.Columns["DateAdded"] != null) gridView.Columns["DateAdded"].HeaderText = "Date & Time Added";
+            }
+            else if (currentMainTab == "Service and Repair")
+            {
+                var query = _allRepairs.Where(x => x.Status != "Archived").AsQueryable();
+
+                // Match the exact sub-tab statuses
+                if (currentSubTab == "New Diagnose") query = query.Where(x => x.Status == "New Diagnose" || x.Status == "Diagnose");
+                else if (currentSubTab == "In Repair") query = query.Where(x => x.Status == "In Repair");
+                else if (currentSubTab == "Waiting for Parts") query = query.Where(x => x.Status == "Waiting for Parts");
+                else if (currentSubTab == "Repaired") query = query.Where(x => x.Status == "Repaired" && x.PickupStatus != "Ready for Pickup" && x.PickupStatus != "Picked Up");
+                else if (currentSubTab == "Ready for Pickup") query = query.Where(x => x.PickupStatus == "Ready for Pickup");
+                else if (currentSubTab == "Picked Up") query = query.Where(x => x.PickupStatus == "Picked Up");
+
+                if (!string.IsNullOrWhiteSpace(q)) query = query.Where(x => (x.FirstName != null && x.FirstName.ToLower().Contains(q)) || (x.LastName != null && x.LastName.ToLower().Contains(q)) || (x.CarModel != null && x.CarModel.ToLower().Contains(q)));
+
+                gridView.DataSource = query.Select(x => new {
                     ID = x.TicketId,
-                    Type = "Repair",
-                    FullName = $"{x.FirstName} {x.MiddleName} {x.LastName}".Replace("  ", " ").Trim(),
-                    CarModel = x.CarModel ?? "",
-                    Status = x.Status ?? "",
-                    ArchivedOn = x.CompletedAt?.ToString("MMM dd, yyyy hh:mm tt") ?? "-"
-                }));
+                    Name = $"{x.FirstName} {x.MiddleName} {x.LastName}".Replace("  ", " ").Trim(),
+                    Model = x.CarModel,
+                    Issue = x.Concern,
+                    Value = $"₱{x.EstimatedCost:N2}",
+                    Status = x.Status,
+                    Pickup = x.PickupStatus,
+                    HandledBy = x.HandledBy,
+                    DateAdded = x.CreatedAt.ToLocalTime().ToString("MMM dd, yyyy hh:mm tt")
+                }).ToList();
 
-                dgvArchived.DataSource = null;
-                dgvArchived.DataSource = archivedCombinedList;
-                if (dgvArchived.Columns.Count > 0)
+                if (gridView.Columns["DateAdded"] != null) gridView.Columns["DateAdded"].HeaderText = "Date & Time Added";
+                if (gridView.Columns["Value"] != null) gridView.Columns["Value"].HeaderText = "Estimated Cost";
+            }
+            else if (currentMainTab == "Archived")
+            {
+                if (currentSubTab == "Archived Sales")
                 {
-                    dgvArchived.Columns["ID"].HeaderText = "ID";
-                    dgvArchived.Columns["Type"].HeaderText = "Record Type";
-                    dgvArchived.Columns["FullName"].HeaderText = "Full Name";
-                    dgvArchived.Columns["CarModel"].HeaderText = "Car Model";
-                    dgvArchived.Columns["Status"].HeaderText = "Status";
-                    dgvArchived.Columns["ArchivedOn"].HeaderText = "Archived On";
+                    gridView.DataSource = _allSales.Where(x => x.Status == "Archived").Select(x => new {
+                        ID = x.InquiryId,
+                        Name = $"{x.FirstName} {x.MiddleName} {x.LastName}".Replace("  ", " ").Trim(),
+                        Model = x.CarModel,
+                        Value = $"₱{x.EstimatedCost:N2}",
+                        ArchivedOn = x.CompletedAt?.ToLocalTime().ToString("MMM dd, yyyy") ?? "-",
+                        Time = x.CompletedAt?.ToLocalTime().ToString("hh:mm tt") ?? "-"
+                    }).ToList();
+                }
+                else
+                {
+                    gridView.DataSource = _allRepairs.Where(x => x.Status == "Archived").Select(x => new {
+                        ID = x.TicketId,
+                        Name = $"{x.FirstName} {x.MiddleName} {x.LastName}".Replace("  ", " ").Trim(),
+                        Model = x.CarModel,
+                        Issue = x.Concern,
+                        Value = $"₱{x.EstimatedCost:N2}",
+                        ArchivedOn = x.CompletedAt?.ToLocalTime().ToString("MMM dd, yyyy") ?? "-",
+                        Time = x.CompletedAt?.ToLocalTime().ToString("hh:mm tt") ?? "-"
+                    }).ToList();
                 }
 
-                // --- DASHBOARD METRICS ---
-                var activeSalesLeads = activeSales.Where(x => x.Status != "Closed Won" && x.Status != "Closed Lost").ToList();
-                lblTotalLeads.Text = activeSalesLeads.Count.ToString();
-                lblPipelineValue.Text = $"₱{activeSalesLeads.Sum(x => x.EstimatedCost):N2}";
-
-                int closedWon = activeSales.Count(x => x.Status == "Closed Won");
-                lblConversionRate.Text = $"{(activeSales.Count > 0 ? Math.Round(((decimal)closedWon / activeSales.Count) * 100, 1) : 0)}%";
-                lblActivePromos.Text = "0";
-
-                var pipelineSummary = activeSales
-                    .GroupBy(x => string.IsNullOrEmpty(x.Status) ? "New Inquiry" : x.Status)
-                    .Select(g => new {
-                        SalesStage = g.Key,
-                        TotalLeads = g.Count(),
-                        PipelineValue = $"₱{g.Sum(item => item.EstimatedCost):N2}"
-                    })
-                    .ToList();
-
-                dgvPipelineSummary.DataSource = null;
-                dgvPipelineSummary.DataSource = pipelineSummary;
-
-                var leaders = activeSales.Where(x => !string.IsNullOrEmpty(x.HandledBy))
-                    .GroupBy(x => x.HandledBy)
-                    .Select(g => new {
-                        Salesperson = g.Key,
-                        ActiveLeads = g.Count(c => c.Status != "Closed Won" && c.Status != "Closed Lost"),
-                        DealsWon = g.Count(c => c.Status == "Closed Won")
-                    })
-                    .OrderByDescending(x => x.DealsWon).ThenByDescending(x => x.ActiveLeads).ToList();
-
-                dgvTopSalespeople.DataSource = null;
-                dgvTopSalespeople.DataSource = leaders;
-            }
-            catch { }
-        }
-
-        private bool ValidateSalesInputs()
-        {
-            if (string.IsNullOrWhiteSpace(txtSalesFirstName.Text) ||
-                string.IsNullOrWhiteSpace(txtSalesLastName.Text) ||
-                string.IsNullOrWhiteSpace(txtSalesPhone.Text) ||
-                string.IsNullOrWhiteSpace(txtSalesEmail.Text) ||
-                string.IsNullOrWhiteSpace(txtSalesCarModel.Text) ||
-                string.IsNullOrWhiteSpace(txtSalesCost.Text) ||
-                string.IsNullOrWhiteSpace(txtSalesHandledBy.Text))
-            {
-                MessageBox.Show("Please fill in all required fields to proceed.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return false;
-            }
-            return true;
-        }
-
-        private bool ValidateRepairInputs()
-        {
-            if (string.IsNullOrWhiteSpace(txtRepairFirstName.Text) ||
-                string.IsNullOrWhiteSpace(txtRepairLastName.Text) ||
-                string.IsNullOrWhiteSpace(txtRepairPhone.Text) ||
-                string.IsNullOrWhiteSpace(txtRepairEmail.Text) ||
-                string.IsNullOrWhiteSpace(txtRepairCarModel.Text) ||
-                string.IsNullOrWhiteSpace(txtRepairConcern.Text) ||
-                string.IsNullOrWhiteSpace(txtRepairCost.Text) ||
-                string.IsNullOrWhiteSpace(txtHandledBy.Text))
-            {
-                MessageBox.Show("Please fill in all required fields to proceed.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return false;
-            }
-            return true;
-        }
-
-        private async void BtnSalesCreate_Click(object? sender, EventArgs e)
-        {
-            if (!ValidateSalesInputs()) return;
-            if (!ConfirmAction("Are you sure you want to save this new lead?", "Save Lead")) return;
-
-            decimal.TryParse(txtSalesCost.Text, out decimal cost);
-            string currentStatus = "New Inquiry";
-
-            var lead = new SalesLead
-            {
-                FirstName = txtSalesFirstName.Text,
-                MiddleName = txtSalesMiddleName.Text,
-                LastName = txtSalesLastName.Text,
-                PhoneNumber = txtSalesPhone.Text,
-                EmailAddress = txtSalesEmail.Text,
-                CarModel = txtSalesCarModel.Text,
-                EstimatedCost = cost,
-                Status = currentStatus,
-                HandledBy = txtSalesHandledBy.Text,
-                CreatedAt = DateTime.UtcNow
-            };
-
-            if ((await _apiService.CreateSalesAsync(CurrentCompanyId, lead)).IsSuccessStatusCode)
-            {
-                MessageBox.Show("Lead created!", "DriveConnect CRM", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                ClearSalesInputs(); LoadData();
+                if (gridView.Columns["ArchivedOn"] != null) gridView.Columns["ArchivedOn"].HeaderText = "Date Archived";
+                if (gridView.Columns["Time"] != null) gridView.Columns["Time"].HeaderText = "Time";
+                if (gridView.Columns["Value"] != null) gridView.Columns["Value"].HeaderText = "Estimated Cost";
             }
         }
 
-        private async void BtnSalesUpdate_Click(object? sender, EventArgs e)
+        private void BtnNewRecord_Click(object? sender, EventArgs e)
         {
-            if (selectedSalesId == 0) return;
-            if (!ValidateSalesInputs()) return;
-            if (!ConfirmAction("Are you sure you want to update this lead?", "Update Lead")) return;
-
-            decimal.TryParse(txtSalesCost.Text, out decimal cost);
-            string currentStatus = cbSalesLeadStatus.SelectedItem?.ToString() ?? "New Inquiry";
-            DateTime? completedAtDate = (currentStatus == "Closed Won" || currentStatus == "Closed Lost") ? DateTime.UtcNow : (DateTime?)null;
-
-            var update = new SalesLead
-            {
-                InquiryId = selectedSalesId,
-                FirstName = txtSalesFirstName.Text,
-                MiddleName = txtSalesMiddleName.Text,
-                LastName = txtSalesLastName.Text,
-                PhoneNumber = txtSalesPhone.Text,
-                EmailAddress = txtSalesEmail.Text,
-                CarModel = txtSalesCarModel.Text,
-                EstimatedCost = cost,
-                Status = currentStatus,
-                HandledBy = txtSalesHandledBy.Text,
-                CompletedAt = completedAtDate
-            };
-
-            if ((await _apiService.UpdateSalesAsync(CurrentCompanyId, selectedSalesId, update)).IsSuccessStatusCode)
-            {
-                MessageBox.Show("Lead updated!", "DriveConnect CRM", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                ClearSalesInputs(); LoadData();
-            }
+            if (currentMainTab == "Car Sales and Leads") ShowSalesModal(null);
+            else if (currentMainTab == "Service and Repair") ShowRepairModal(null);
         }
 
-        private async void BtnSalesArchive_Click(object? sender, EventArgs e)
+        private void GridView_CellDoubleClick(object? sender, DataGridViewCellEventArgs e)
         {
-            if (selectedSalesId == 0) return;
-            if (!ConfirmAction("Are you sure you want to ARCHIVE this lead? It will be moved to the Archived tab.", "Archive Lead")) return;
+            if (e.RowIndex < 0) return;
+            int id = (int)gridView.Rows[e.RowIndex].Cells["ID"].Value;
 
-            var existingRecord = _allSales.Find(x => x.InquiryId == selectedSalesId);
-            if (existingRecord == null) return;
-
-            existingRecord.Status = "Archived";
-            existingRecord.CompletedAt = DateTime.UtcNow;
-
-            if ((await _apiService.UpdateSalesAsync(CurrentCompanyId, selectedSalesId, existingRecord)).IsSuccessStatusCode)
-            {
-                MessageBox.Show("Lead archived successfully!", "DriveConnect CRM", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                ClearSalesInputs(); LoadData();
-            }
+            if (currentMainTab == "Car Sales and Leads") ShowSalesModal(_allSales.FirstOrDefault(x => x.InquiryId == id));
+            else if (currentMainTab == "Service and Repair") ShowRepairModal(_allRepairs.FirstOrDefault(x => x.TicketId == id));
         }
 
-        private void DgvSalesLeads_CellClick(object? sender, DataGridViewCellEventArgs e)
+        private async void ShowSalesModal(SalesLead? existing)
         {
-            if (e.RowIndex >= 0)
-            {
-                var idObj = dgvSalesLeads.Rows[e.RowIndex].Cells["InquiryId"].Value;
-                if (idObj != null && int.TryParse(idObj.ToString(), out int id))
+            using Form f = CreateBaseModal(existing == null ? "New Sales Lead" : "Edit Sales Lead", 720);
+
+            int y = 70;
+            TextBox txtF = AddFormField(f, "First Name", existing?.FirstName, ref y);
+            TextBox txtM = AddFormField(f, "Middle Name", existing?.MiddleName, ref y);
+            TextBox txtL = AddFormField(f, "Last Name", existing?.LastName, ref y);
+            TextBox txtP = AddFormField(f, "Phone Number", existing?.PhoneNumber, ref y);
+            TextBox txtE = AddFormField(f, "Email Address", existing?.EmailAddress, ref y);
+            TextBox txtModel = AddFormField(f, "Interested Model", existing?.CarModel, ref y);
+            TextBox txtC = AddFormField(f, "Est. Deal Value (₱)", existing?.EstimatedCost.ToString("F2") ?? "0.00", ref y);
+            TextBox txtH = AddFormField(f, "Handled By", existing?.HandledBy, ref y);
+            ComboBox cbS = AddFormCombo(f, "Sales Stage", new[] { "New Inquiry", "Test Drive Scheduled", "Negotiation", "Closed Won", "Closed Lost", "Archived" }, existing?.Status ?? "New Inquiry", ref y);
+
+            Button btnSave = AddFormSubmitButton(f, existing == null ? "Save Lead" : "Update Lead", y);
+            btnSave.Click += async (s, ev) => {
+                if (existing == null && cbS.SelectedItem?.ToString() != "New Inquiry")
                 {
-                    selectedSalesId = id;
-                    var item = _allSales.Find(x => x.InquiryId == id);
-                    if (item != null)
-                    {
-                        txtSalesFirstName.Text = item.FirstName ?? "";
-                        txtSalesMiddleName.Text = item.MiddleName ?? "";
-                        txtSalesLastName.Text = item.LastName ?? "";
-                        txtSalesPhone.Text = item.PhoneNumber ?? "";
-                        txtSalesEmail.Text = item.EmailAddress ?? "";
-                        txtSalesCarModel.Text = item.CarModel ?? "";
-                        txtSalesCost.Text = item.EstimatedCost.ToString("F2");
-                        txtSalesHandledBy.Text = item.HandledBy ?? "";
-                        if (cbSalesLeadStatus.Items.Contains(item.Status ?? "")) cbSalesLeadStatus.SelectedItem = item.Status;
-                    }
+                    MessageBox.Show("Adding data should be new inquiry", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
                 }
-            }
-        }
 
-        private void ClearSalesInputs()
-        {
-            selectedSalesId = 0;
-            txtSalesFirstName.Text = ""; txtSalesMiddleName.Text = ""; txtSalesLastName.Text = ""; txtSalesPhone.Text = ""; txtSalesEmail.Text = "";
-            txtSalesCarModel.Text = ""; txtSalesCost.Text = "0.00"; cbSalesLeadStatus.SelectedIndex = 0;
-        }
+                if (string.IsNullOrWhiteSpace(txtF.Text) || !System.Text.RegularExpressions.Regex.IsMatch(txtF.Text, @"^[a-zA-Z\s]+$")) { MessageBox.Show("Valid First Name is required (letters only).", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
+                if (!string.IsNullOrWhiteSpace(txtM.Text) && !System.Text.RegularExpressions.Regex.IsMatch(txtM.Text, @"^[a-zA-Z\s]+$")) { MessageBox.Show("Middle Name must contain letters only.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
+                if (string.IsNullOrWhiteSpace(txtL.Text) || !System.Text.RegularExpressions.Regex.IsMatch(txtL.Text, @"^[a-zA-Z\s]+$")) { MessageBox.Show("Valid Last Name is required (letters only).", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
+                if (string.IsNullOrWhiteSpace(txtP.Text) || !System.Text.RegularExpressions.Regex.IsMatch(txtP.Text, @"^\d{11}$")) { MessageBox.Show("Phone Number must be exactly 11 digits (numbers only).", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
+                if (!string.IsNullOrWhiteSpace(txtE.Text) && !System.Text.RegularExpressions.Regex.IsMatch(txtE.Text, @"^[^@\s]+@[^@\s]+\.[^@\s]+$")) { MessageBox.Show("Please enter a valid email address.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
+                if (string.IsNullOrWhiteSpace(txtH.Text)) { MessageBox.Show("Handled By is required.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
 
-        private async void BtnRepairCreate_Click(object? sender, EventArgs e)
-        {
-            if (!ValidateRepairInputs()) return;
-            if (!ConfirmAction("Are you sure you want to create this new service ticket?", "Save Ticket")) return;
+                decimal.TryParse(txtC.Text, out decimal cost);
 
-            decimal.TryParse(txtRepairCost.Text, out decimal cost);
-            string currentStatus = "Diagnose";
-            string currentPickup = "Pending";
+                var payload = existing ?? new SalesLead { CreatedAt = DateTime.UtcNow };
+                payload.FirstName = txtF.Text;
+                payload.MiddleName = txtM.Text;
+                payload.LastName = txtL.Text;
+                payload.PhoneNumber = txtP.Text;
+                payload.EmailAddress = txtE.Text;
+                payload.CarModel = txtModel.Text;
+                payload.EstimatedCost = cost;
+                payload.HandledBy = txtH.Text;
+                payload.Status = cbS.SelectedItem?.ToString();
 
-            var repair = new RepairTicket
-            {
-                FirstName = txtRepairFirstName.Text,
-                MiddleName = txtRepairMiddleName.Text,
-                LastName = txtRepairLastName.Text,
-                PhoneNumber = txtRepairPhone.Text,
-                EmailAddress = txtRepairEmail.Text,
-                CarModel = txtRepairCarModel.Text,
-                Concern = txtRepairConcern.Text,
-                EstimatedCost = cost,
-                Status = currentStatus,
-                PickupStatus = currentPickup,
-                HandledBy = txtHandledBy.Text,
-                CreatedAt = DateTime.UtcNow
+                if (payload.Status == "Closed Won" || payload.Status == "Closed Lost" || payload.Status == "Archived") payload.CompletedAt = DateTime.UtcNow;
+
+                if (existing == null) await _apiService.CreateSalesAsync(CurrentCompanyId, payload);
+                else await _apiService.UpdateSalesAsync(CurrentCompanyId, payload.InquiryId, payload);
+
+                f.DialogResult = DialogResult.OK;
             };
 
-            if ((await _apiService.CreateRepairAsync(CurrentCompanyId, repair)).IsSuccessStatusCode)
-            {
-                MessageBox.Show("Ticket created!", "DriveConnect CRM", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                ClearRepairInputs(); LoadData();
-            }
+            if (f.ShowDialog() == DialogResult.OK) await LoadDataFromApiAsync();
         }
 
-        private async void BtnRepairUpdate_Click(object? sender, EventArgs e)
+        private async void ShowRepairModal(RepairTicket? existing)
         {
-            if (selectedRepairId == 0) return;
-            if (!ValidateRepairInputs()) return;
-            if (!ConfirmAction("Are you sure you want to update this service ticket?", "Update Ticket")) return;
+            using Form f = CreateBaseModal(existing == null ? "New Repair Ticket" : "Edit Repair Ticket", 830);
 
-            decimal.TryParse(txtRepairCost.Text, out decimal cost);
+            int y = 70;
+            TextBox txtF = AddFormField(f, "First Name", existing?.FirstName, ref y);
+            TextBox txtM = AddFormField(f, "Middle Name", existing?.MiddleName, ref y);
+            TextBox txtL = AddFormField(f, "Last Name", existing?.LastName, ref y);
+            TextBox txtP = AddFormField(f, "Phone Number", existing?.PhoneNumber, ref y);
+            TextBox txtModel = AddFormField(f, "Vehicle Model", existing?.CarModel, ref y);
+            TextBox txtConcern = AddFormField(f, "Issue / Concern", existing?.Concern, ref y);
+            TextBox txtC = AddFormField(f, "Estimated Cost", existing?.EstimatedCost.ToString("F2") ?? "0.00", ref y);
+            TextBox txtH = AddFormField(f, "Handled By", existing?.HandledBy, ref y);
+            ComboBox cbS = AddFormCombo(f, "Repair Status", new[] { "New Diagnose", "In Repair", "Waiting for Parts", "Repaired", "Archived" }, existing?.Status ?? "New Diagnose", ref y);
+            ComboBox cbP = AddFormCombo(f, "Pickup Status", new[] { "Pending", "Ready for Pickup", "Picked Up" }, existing?.PickupStatus ?? "Pending", ref y);
 
-            string currentStatus = cbRepairStatus.SelectedItem?.ToString() ?? "Diagnose";
-            DateTime? completedAtDate = (currentStatus == "Repaired") ? DateTime.UtcNow : (DateTime?)null;
-
-            string currentPickup = cbPickupStatus.SelectedItem?.ToString() ?? "Pending";
-            DateTime? pickedUpAtDate = (currentPickup == "Picked Up") ? DateTime.UtcNow : (DateTime?)null;
-
-            var update = new RepairTicket
-            {
-                TicketId = selectedRepairId,
-                FirstName = txtRepairFirstName.Text,
-                MiddleName = txtRepairMiddleName.Text,
-                LastName = txtRepairLastName.Text,
-                PhoneNumber = txtRepairPhone.Text,
-                EmailAddress = txtRepairEmail.Text,
-                CarModel = txtRepairCarModel.Text,
-                Concern = txtRepairConcern.Text,
-                EstimatedCost = cost,
-                Status = currentStatus,
-                PickupStatus = currentPickup,
-                HandledBy = txtHandledBy.Text,
-                CompletedAt = completedAtDate,
-                PickedUpAt = pickedUpAtDate
-            };
-
-            if ((await _apiService.UpdateRepairAsync(CurrentCompanyId, selectedRepairId, update)).IsSuccessStatusCode)
-            {
-                MessageBox.Show("Ticket updated!", "DriveConnect CRM", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                ClearRepairInputs(); LoadData();
-            }
-        }
-
-        private async void BtnRepairArchive_Click(object? sender, EventArgs e)
-        {
-            if (selectedRepairId == 0) return;
-            if (!ConfirmAction("Are you sure you want to ARCHIVE this ticket? It will be moved to the Archived tab.", "Archive Ticket")) return;
-
-            var existingRecord = _allRepairs.Find(x => x.TicketId == selectedRepairId);
-            if (existingRecord == null) return;
-
-            existingRecord.Status = "Archived";
-            existingRecord.CompletedAt = DateTime.UtcNow;
-
-            if ((await _apiService.UpdateRepairAsync(CurrentCompanyId, selectedRepairId, existingRecord)).IsSuccessStatusCode)
-            {
-                MessageBox.Show("Ticket archived successfully!", "DriveConnect CRM", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                ClearRepairInputs(); LoadData();
-            }
-        }
-
-        private void DgvRepairTickets_CellClick(object? sender, DataGridViewCellEventArgs e)
-        {
-            if (e.RowIndex >= 0)
-            {
-                var idObj = dgvRepairTickets.Rows[e.RowIndex].Cells["TicketId"].Value;
-                if (idObj != null && int.TryParse(idObj.ToString(), out int id))
+            Button btnSave = AddFormSubmitButton(f, existing == null ? "Save Ticket" : "Update Ticket", y);
+            btnSave.Click += async (s, ev) => {
+                if (existing == null && cbS.SelectedItem?.ToString() != "New Diagnose")
                 {
-                    selectedRepairId = id;
-                    var item = _allRepairs.Find(x => x.TicketId == id);
-                    if (item != null)
-                    {
-                        txtRepairFirstName.Text = item.FirstName ?? "";
-                        txtRepairMiddleName.Text = item.MiddleName ?? "";
-                        txtRepairLastName.Text = item.LastName ?? "";
-                        txtRepairPhone.Text = item.PhoneNumber ?? "";
-                        txtRepairEmail.Text = item.EmailAddress ?? "";
-                        txtRepairCarModel.Text = item.CarModel ?? "";
-                        txtRepairConcern.Text = item.Concern ?? "";
-                        txtRepairCost.Text = item.EstimatedCost.ToString("F2");
-                        txtHandledBy.Text = item.HandledBy ?? "";
-                        if (cbRepairStatus.Items.Contains(item.Status ?? "")) cbRepairStatus.SelectedItem = item.Status;
-                        if (cbPickupStatus.Items.Contains(item.PickupStatus ?? "")) cbPickupStatus.SelectedItem = item.PickupStatus;
-                    }
+                    MessageBox.Show("New tickets should be Diagnosed first", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
                 }
-            }
+
+                if (existing == null && cbP.SelectedItem?.ToString() != "Pending")
+                {
+                    MessageBox.Show("New tickets can only be pending.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                if (string.IsNullOrWhiteSpace(txtF.Text) || !System.Text.RegularExpressions.Regex.IsMatch(txtF.Text, @"^[a-zA-Z\s]+$")) { MessageBox.Show("Valid First Name is required (letters only).", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
+                if (!string.IsNullOrWhiteSpace(txtM.Text) && !System.Text.RegularExpressions.Regex.IsMatch(txtM.Text, @"^[a-zA-Z\s]+$")) { MessageBox.Show("Middle Name must contain letters only.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
+                if (string.IsNullOrWhiteSpace(txtL.Text) || !System.Text.RegularExpressions.Regex.IsMatch(txtL.Text, @"^[a-zA-Z\s]+$")) { MessageBox.Show("Valid Last Name is required (letters only).", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
+                if (string.IsNullOrWhiteSpace(txtP.Text) || !System.Text.RegularExpressions.Regex.IsMatch(txtP.Text, @"^\d{11}$")) { MessageBox.Show("Phone Number must be exactly 11 digits (numbers only).", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
+                if (string.IsNullOrWhiteSpace(txtConcern.Text)) { MessageBox.Show("Issue / Concern is required.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
+                if (string.IsNullOrWhiteSpace(txtH.Text)) { MessageBox.Show("Handled By is required.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning); return; }
+
+                decimal.TryParse(txtC.Text, out decimal cost);
+
+                var payload = existing ?? new RepairTicket { CreatedAt = DateTime.UtcNow };
+                payload.FirstName = txtF.Text;
+                payload.MiddleName = txtM.Text;
+                payload.LastName = txtL.Text;
+                payload.PhoneNumber = txtP.Text;
+                payload.CarModel = txtModel.Text;
+                payload.Concern = txtConcern.Text;
+                payload.EstimatedCost = cost;
+                payload.HandledBy = txtH.Text;
+                payload.Status = cbS.SelectedItem?.ToString();
+                payload.PickupStatus = cbP.SelectedItem?.ToString();
+
+                if (payload.Status == "Repaired" || payload.Status == "Archived") payload.CompletedAt = DateTime.UtcNow;
+                if (payload.PickupStatus == "Picked Up") payload.PickedUpAt = DateTime.UtcNow;
+
+                if (existing == null) await _apiService.CreateRepairAsync(CurrentCompanyId, payload);
+                else await _apiService.UpdateRepairAsync(CurrentCompanyId, payload.TicketId, payload);
+
+                f.DialogResult = DialogResult.OK;
+            };
+
+            if (f.ShowDialog() == DialogResult.OK) await LoadDataFromApiAsync();
         }
 
-        private void ClearRepairInputs()
+        private Form CreateBaseModal(string title, int clientHeight)
         {
-            selectedRepairId = 0; txtRepairFirstName.Text = ""; txtRepairMiddleName.Text = ""; txtRepairLastName.Text = ""; txtRepairPhone.Text = ""; txtRepairEmail.Text = "";
-            txtRepairCarModel.Text = ""; txtRepairConcern.Text = ""; txtRepairCost.Text = "0.00";
-            cbRepairStatus.SelectedIndex = 0; cbPickupStatus.SelectedIndex = 0;
+            Form f = new Form
+            {
+                Text = title,
+                ClientSize = new Size(450, clientHeight),
+                StartPosition = FormStartPosition.CenterParent,
+                FormBorderStyle = FormBorderStyle.FixedDialog,
+                MaximizeBox = false,
+                MinimizeBox = false,
+                BackColor = Color.White,
+                AutoScroll = true
+            };
+            Label lbl = new Label { Text = title, Font = new Font("Segoe UI", 16, FontStyle.Bold), ForeColor = Color.FromArgb(17, 24, 39), AutoSize = true, Location = new Point(30, 20) };
+            f.Controls.Add(lbl);
+            return f;
+        }
+
+        private TextBox AddFormField(Form parent, string labelText, string? val, ref int yPos)
+        {
+            Label l = new Label { Text = labelText, Location = new Point(30, yPos), AutoSize = true, Font = new Font("Segoe UI Semibold", 9F), ForeColor = Color.FromArgb(75, 85, 99) };
+            TextBox t = new TextBox { Text = val, Location = new Point(30, yPos + 22), Width = 370, Font = new Font("Segoe UI", 10F), BorderStyle = BorderStyle.FixedSingle };
+            parent.Controls.Add(l); parent.Controls.Add(t);
+            yPos += 60; return t;
+        }
+
+        private ComboBox AddFormCombo(Form parent, string labelText, string[] items, string val, ref int yPos)
+        {
+            Label l = new Label { Text = labelText, Location = new Point(30, yPos), AutoSize = true, Font = new Font("Segoe UI Semibold", 9F), ForeColor = Color.FromArgb(75, 85, 99) };
+            ComboBox c = new ComboBox { Location = new Point(30, yPos + 22), Width = 370, Font = new Font("Segoe UI", 10F), DropDownStyle = ComboBoxStyle.DropDownList };
+            c.Items.AddRange(items); c.SelectedItem = val;
+            parent.Controls.Add(l); parent.Controls.Add(c);
+            yPos += 60; return c;
+        }
+
+        private Button AddFormSubmitButton(Form parent, string text, int yPos)
+        {
+            Button b = new Button { Text = text, Location = new Point(30, yPos + 10), Width = 370, Height = 45, BackColor = Color.FromArgb(79, 70, 229), ForeColor = Color.White, FlatStyle = FlatStyle.Flat, Font = new Font("Segoe UI Semibold", 10F), Cursor = Cursors.Hand };
+            b.FlatAppearance.BorderSize = 0;
+            parent.Controls.Add(b);
+            return b;
         }
     }
 }
