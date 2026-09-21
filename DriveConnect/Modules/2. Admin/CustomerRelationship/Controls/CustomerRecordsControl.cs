@@ -640,10 +640,11 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
             Panel filterBar = new Panel
             {
                 Dock = DockStyle.Top,
-                Height = 75,
+                Height = 70,
                 BackColor = Color.White,
-                Padding = new Padding(15)
+                Padding = new Padding(12)
             };
+
             filterBar.Paint += (s, e) => ControlPaint.DrawBorder(
                 e.Graphics,
                 filterBar.ClientRectangle,
@@ -651,7 +652,9 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                 ButtonBorderStyle.Solid);
 
             cbReportType.DropDownStyle = ComboBoxStyle.DropDownList;
-            cbReportType.Width = 160;
+            cbReportType.Width = 180;
+            cbReportType.Height = 32;
+            cbReportType.Items.Clear();
             cbReportType.Items.AddRange(new object[]
             {
                 "Sales Report",
@@ -666,22 +669,24 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                 "Archived Repairs"
             });
             cbReportType.SelectedIndex = 0;
-            cbReportType.Location = new Point(15, 17);
+            cbReportType.Location = new Point(12, 18);
 
             dtReportFrom.Format = DateTimePickerFormat.Short;
             dtReportFrom.Value = DateTime.Today.AddMonths(-1);
-            dtReportFrom.Width = 110;
-            dtReportFrom.Location = new Point(190, 17);
+            dtReportFrom.Width = 125;
+            dtReportFrom.Height = 32;
+            dtReportFrom.Location = new Point(205, 18);
 
             dtReportTo.Format = DateTimePickerFormat.Short;
             dtReportTo.Value = DateTime.Today;
-            dtReportTo.Width = 110;
-            dtReportTo.Location = new Point(315, 17);
+            dtReportTo.Width = 125;
+            dtReportTo.Height = 32;
+            dtReportTo.Location = new Point(345, 18);
 
             btnGenerateReport.Text = "Generate Report";
             btnGenerateReport.Width = 135;
-            btnGenerateReport.Height = 30;
-            btnGenerateReport.Location = new Point(440, 15);
+            btnGenerateReport.Height = 32;
+            btnGenerateReport.Location = new Point(485, 17);
             btnGenerateReport.BackColor = Color.FromArgb(79, 70, 229);
             btnGenerateReport.ForeColor = Color.White;
             btnGenerateReport.FlatStyle = FlatStyle.Flat;
@@ -694,18 +699,65 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
             filterBar.Controls.Add(btnGenerateReport);
 
             Panel reportCard = CreateCardPanel();
-            reportCard.Padding = new Padding(15, 55, 15, 45);
-            AddHeader(reportCard, "Business Intelligence Reports", "Select a report and date range, then generate the table below.");
+            reportCard.Padding = new Padding(10);
+
+            TableLayoutPanel reportLayout = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 1,
+                RowCount = 3,
+                Margin = new Padding(0),
+                Padding = new Padding(0)
+            };
+
+            reportLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+            reportLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 62F));
+            reportLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+            reportLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 35F));
+
+            Panel reportHeader = new Panel
+            {
+                Dock = DockStyle.Fill,
+                Margin = new Padding(0)
+            };
+
+            Label reportTitle = new Label
+            {
+                Text = "Business Intelligence Reports",
+                Location = new Point(10, 2),
+                AutoSize = true,
+                Font = new Font("Segoe UI Semibold", 13F, FontStyle.Bold),
+                ForeColor = Color.FromArgb(124, 58, 237)
+            };
+
+            Label reportSubtitle = new Label
+            {
+                Text = "Select a report and date range, then generate the table below.",
+                Location = new Point(10, 32),
+                AutoSize = true,
+                Font = new Font("Segoe UI", 9F),
+                ForeColor = Color.FromArgb(107, 114, 128)
+            };
+
+            reportHeader.Controls.Add(reportTitle);
+            reportHeader.Controls.Add(reportSubtitle);
 
             dgvReport = CreateDashboardGridView();
-            reportCard.Controls.Add(dgvReport);
+            dgvReport.Dock = DockStyle.Fill;
+            dgvReport.Margin = new Padding(0);
 
             lblReportSummary.AutoSize = false;
-            lblReportSummary.Dock = DockStyle.Bottom;
+            lblReportSummary.Dock = DockStyle.Fill;
             lblReportSummary.Height = 35;
             lblReportSummary.TextAlign = ContentAlignment.MiddleLeft;
             lblReportSummary.ForeColor = Color.FromArgb(107, 114, 128);
-            reportCard.Controls.Add(lblReportSummary);
+            lblReportSummary.Margin = new Padding(0);
+
+            reportLayout.Controls.Add(reportHeader, 0, 0);
+            reportLayout.Controls.Add(dgvReport, 0, 1);
+            reportLayout.Controls.Add(lblReportSummary, 0, 2);
+
+            reportCard.Controls.Add(reportLayout);
 
             panelBI_Reports.Controls.Add(reportCard);
             panelBI_Reports.Controls.Add(filterBar);
