@@ -246,7 +246,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                     return;
                 }
 
-                if (currentSubTab == "Sales & Lead History")
+                if (currentSubTab == "Sales and Lead History")
                 {
                     gridView.DataSource = _allSales.Select(x => new
                     {
@@ -262,7 +262,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                     return;
                 }
 
-                if (currentSubTab == "Service & Repair History")
+                if (currentSubTab == "Service and Repair History")
                 {
                     gridView.DataSource = _allRepairs.Select(x => new
                     {
