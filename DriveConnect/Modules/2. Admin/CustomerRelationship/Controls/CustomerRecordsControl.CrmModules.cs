@@ -493,9 +493,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
         {
             using Form f = CreateBaseModal(existing == null ? "New Feedback" : "Edit Feedback", 680);
             int y = 70;
-            TextBox first = AddFormField(f, "First Name", existing?.FirstName, ref y);
-            TextBox middle = AddFormField(f, "Middle Name (Optional)", existing?.MiddleName, ref y);
-            TextBox last = AddFormField(f, "Last Name", existing?.LastName, ref y);
+            TextBox customer = AddFormField(f, "Customer Name", FullName(existing?.FirstName, existing?.MiddleName, existing?.LastName), ref y);
             TextBox phone = AddFormField(f, "Phone Number", existing?.PhoneNumber, ref y);
             ComboBox type = AddFormCombo(f, "Feedback Type", new[] { "Sales Experience", "Test Drive Experience", "Service Experience", "Staff Service", "General Suggestion" }, existing?.Type ?? "General Suggestion", ref y);
             ComboBox rating = AddFormCombo(f, "Rating", new[] { "1", "2", "3", "4", "5" }, (existing?.Rating ?? 5).ToString(), ref y);
@@ -543,9 +541,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
         {
             using Form f = CreateBaseModal(existing == null ? "New Complaint" : "Edit Complaint", 820);
             int y = 70;
-            TextBox first = AddFormField(f, "First Name", existing?.FirstName, ref y);
-            TextBox middle = AddFormField(f, "Middle Name (Optional)", existing?.MiddleName, ref y);
-            TextBox last = AddFormField(f, "Last Name", existing?.LastName, ref y);
+            TextBox customer = AddFormField(f, "Customer Name", FullName(existing?.FirstName, existing?.MiddleName, existing?.LastName), ref y);
             TextBox phone = AddFormField(f, "Phone Number", existing?.PhoneNumber, ref y);
             ComboBox category = AddFormCombo(f, "Category", new[] { "Vehicle", "Service", "Staff", "Sales", "Other" }, existing?.Category ?? "Service", ref y);
             ComboBox priority = AddFormCombo(f, "Priority", new[] { "Low", "Medium", "High" }, existing?.Priority ?? "Medium", ref y);
@@ -601,9 +597,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
         {
             using Form f = CreateBaseModal(existing == null ? "New Interaction Log" : "Edit Interaction Log", 680);
             int y = 70;
-            TextBox first = AddFormField(f, "First Name", existing?.FirstName, ref y);
-            TextBox middle = AddFormField(f, "Middle Name (Optional)", existing?.MiddleName, ref y);
-            TextBox last = AddFormField(f, "Last Name", existing?.LastName, ref y);
+            TextBox customer = AddFormField(f, "Customer Name", FullName(existing?.FirstName, existing?.MiddleName, existing?.LastName), ref y);
             TextBox phone = AddFormField(f, "Phone Number", existing?.PhoneNumber, ref y);
             ComboBox type = AddFormCombo(f, "Interaction Type", new[] { "Call", "Message", "Meeting", "Appointment", "Follow-up" }, existing?.InteractionType ?? "Call", ref y);
             TextBox subject = AddFormField(f, "Subject", existing?.Subject, ref y);
@@ -650,9 +644,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
         {
             using Form f = CreateBaseModal(existing == null ? "Register Vehicle Warranty" : "Edit Vehicle Warranty", 760);
             int y = 70;
-            TextBox first = AddFormField(f, "First Name", existing?.FirstName, ref y);
-            TextBox middle = AddFormField(f, "Middle Name (Optional)", existing?.MiddleName, ref y);
-            TextBox last = AddFormField(f, "Last Name", existing?.LastName, ref y);
+            TextBox customer = AddFormField(f, "Customer Name", FullName(existing?.FirstName, existing?.MiddleName, existing?.LastName), ref y);
             TextBox phone = AddFormField(f, "Phone Number", existing?.PhoneNumber, ref y);
             TextBox vehicle = AddFormField(f, "Vehicle Model", existing?.VehicleModel, ref y);
             DateTimePicker purchase = AddFormDateField(f, "Purchase Date", existing?.PurchaseDate ?? DateTime.Today, ref y);
@@ -710,9 +702,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
             using Form f = CreateBaseModal(existing == null ? "New Warranty Claim" : "Edit Warranty Claim", 880);
             int y = 70;
             TextBox warrantyId = AddFormField(f, "Warranty ID", existing?.WarrantyId.ToString(), ref y);
-            TextBox first = AddFormField(f, "First Name", existing?.FirstName, ref y);
-            TextBox middle = AddFormField(f, "Middle Name (Optional)", existing?.MiddleName, ref y);
-            TextBox last = AddFormField(f, "Last Name", existing?.LastName, ref y);
+            TextBox customer = AddFormField(f, "Customer Name", FullName(existing?.FirstName, existing?.MiddleName, existing?.LastName), ref y);
             TextBox phone = AddFormField(f, "Phone Number", existing?.PhoneNumber, ref y);
             TextBox vehicle = AddFormField(f, "Vehicle Model", existing?.VehicleModel, ref y);
             TextBox problem = AddFormField(f, "Problem", existing?.Problem, ref y);
@@ -774,9 +764,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
         {
             using Form f = CreateBaseModal(existing == null ? "New Maintenance Record" : "Edit Maintenance Record", 860);
             int y = 70;
-            TextBox first = AddFormField(f, "First Name", existing?.FirstName, ref y);
-            TextBox middle = AddFormField(f, "Middle Name (Optional)", existing?.MiddleName, ref y);
-            TextBox last = AddFormField(f, "Last Name", existing?.LastName, ref y);
+            TextBox customer = AddFormField(f, "Customer Name", FullName(existing?.FirstName, existing?.MiddleName, existing?.LastName), ref y);
             TextBox phone = AddFormField(f, "Phone Number", existing?.PhoneNumber, ref y);
             TextBox vehicle = AddFormField(f, "Vehicle Model", existing?.VehicleModel, ref y);
             DateTimePicker serviceDate = AddFormDateField(f, "Service Date", existing?.ServiceDate ?? DateTime.Today, ref y);
