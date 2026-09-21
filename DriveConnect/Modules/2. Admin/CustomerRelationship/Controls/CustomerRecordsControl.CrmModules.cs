@@ -491,7 +491,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
 
         private async Task ShowFeedbackModalAsync(Feedback? existing)
         {
-            using Form f = CreateBaseModal(existing == null ? "New Feedback" : "Edit Feedback", 560);
+            using Form f = CreateBaseModal(existing == null ? "New Feedback" : "Edit Feedback", 680);
             int y = 70;
             TextBox first = AddFormField(f, "First Name", existing?.FirstName, ref y);
             TextBox middle = AddFormField(f, "Middle Name (Optional)", existing?.MiddleName, ref y);
@@ -541,7 +541,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
 
         private async Task ShowComplaintModalAsync(Complaint? existing)
         {
-            using Form f = CreateBaseModal(existing == null ? "New Complaint" : "Edit Complaint", 700);
+            using Form f = CreateBaseModal(existing == null ? "New Complaint" : "Edit Complaint", 820);
             int y = 70;
             TextBox first = AddFormField(f, "First Name", existing?.FirstName, ref y);
             TextBox middle = AddFormField(f, "Middle Name (Optional)", existing?.MiddleName, ref y);
@@ -599,7 +599,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
 
         private async Task ShowInteractionModalAsync(InteractionLog? existing)
         {
-            using Form f = CreateBaseModal(existing == null ? "New Interaction Log" : "Edit Interaction Log", 560);
+            using Form f = CreateBaseModal(existing == null ? "New Interaction Log" : "Edit Interaction Log", 680);
             int y = 70;
             TextBox first = AddFormField(f, "First Name", existing?.FirstName, ref y);
             TextBox middle = AddFormField(f, "Middle Name (Optional)", existing?.MiddleName, ref y);
@@ -648,7 +648,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
 
         private async Task ShowWarrantyModalAsync(VehicleWarranty? existing)
         {
-            using Form f = CreateBaseModal(existing == null ? "Register Vehicle Warranty" : "Edit Vehicle Warranty", 650);
+            using Form f = CreateBaseModal(existing == null ? "Register Vehicle Warranty" : "Edit Vehicle Warranty", 760);
             int y = 70;
             TextBox first = AddFormField(f, "First Name", existing?.FirstName, ref y);
             TextBox middle = AddFormField(f, "Middle Name (Optional)", existing?.MiddleName, ref y);
@@ -707,7 +707,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
 
         private async Task ShowWarrantyClaimModalAsync(WarrantyClaim? existing)
         {
-            using Form f = CreateBaseModal(existing == null ? "New Warranty Claim" : "Edit Warranty Claim", 720);
+            using Form f = CreateBaseModal(existing == null ? "New Warranty Claim" : "Edit Warranty Claim", 880);
             int y = 70;
             TextBox warrantyId = AddFormField(f, "Warranty ID", existing?.WarrantyId.ToString(), ref y);
             TextBox first = AddFormField(f, "First Name", existing?.FirstName, ref y);
@@ -772,7 +772,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
 
         private async Task ShowMaintenanceModalAsync(MaintenanceRecord? existing)
         {
-            using Form f = CreateBaseModal(existing == null ? "New Maintenance Record" : "Edit Maintenance Record", 700);
+            using Form f = CreateBaseModal(existing == null ? "New Maintenance Record" : "Edit Maintenance Record", 860);
             int y = 70;
             TextBox first = AddFormField(f, "First Name", existing?.FirstName, ref y);
             TextBox middle = AddFormField(f, "Middle Name (Optional)", existing?.MiddleName, ref y);
