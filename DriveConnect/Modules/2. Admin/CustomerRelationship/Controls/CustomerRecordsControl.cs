@@ -400,8 +400,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                 Dock = DockStyle.Fill,
                 BackColor = Color.White,
                 Margin = new Padding(5),
-                Padding = new Padding(12, 10, 12, 8),
-                MinimumSize = new Size(0, 68)
+                Padding = new Padding(10)
             };
 
             card.Paint += (s, e) => ControlPaint.DrawBorder(
@@ -410,27 +409,41 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                 Color.FromArgb(229, 231, 235),
                 ButtonBorderStyle.Solid);
 
+            TableLayoutPanel content = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 1,
+                RowCount = 2,
+                Margin = new Padding(0),
+                Padding = new Padding(0)
+            };
+
+            content.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+            content.RowStyles.Add(new RowStyle(SizeType.Absolute, 24F));
+            content.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+
             Label lblT = new Label
             {
                 Text = title,
-                Dock = DockStyle.Top,
-                Height = 22,
+                Dock = DockStyle.Fill,
                 AutoEllipsis = true,
                 Font = new Font("Segoe UI", 9F),
                 ForeColor = Color.FromArgb(107, 114, 128),
-                TextAlign = ContentAlignment.MiddleLeft
+                TextAlign = ContentAlignment.MiddleLeft,
+                Margin = new Padding(0)
             };
 
-            valLabel.Dock = DockStyle.Top;
-            valLabel.Height = 28;
+            valLabel.Dock = DockStyle.Fill;
             valLabel.Text = "0";
             valLabel.Font = new Font("Segoe UI", 15F, FontStyle.Bold);
             valLabel.ForeColor = accentColor;
             valLabel.TextAlign = ContentAlignment.MiddleLeft;
             valLabel.AutoEllipsis = true;
+            valLabel.Margin = new Padding(0, 2, 0, 0);
 
-            card.Controls.Add(valLabel);
-            card.Controls.Add(lblT);
+            content.Controls.Add(lblT, 0, 0);
+            content.Controls.Add(valLabel, 0, 1);
+            card.Controls.Add(content);
 
             return card;
         }
@@ -505,21 +518,22 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
             panelBI_KPI.Dock = DockStyle.Fill;
             panelBI_KPI.BackColor = Color.Transparent;
             panelBI_KPI.AutoScroll = true;
+            panelBI_KPI.Padding = new Padding(0);
 
             TableLayoutPanel cards = new TableLayoutPanel
             {
                 Dock = DockStyle.Top,
-                Height = 270,
+                Height = 285,
                 ColumnCount = 4,
                 RowCount = 3,
-                Padding = new Padding(0, 0, 0, 12)
+                Padding = new Padding(0, 0, 0, 8)
             };
 
             for (int i = 0; i < 4; i++)
                 cards.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25F));
-            cards.RowStyles.Add(new RowStyle(SizeType.Percent, 33.33F));
-            cards.RowStyles.Add(new RowStyle(SizeType.Percent, 33.33F));
-            cards.RowStyles.Add(new RowStyle(SizeType.Percent, 33.34F));
+            cards.RowStyles.Add(new RowStyle(SizeType.Absolute, 88F));
+            cards.RowStyles.Add(new RowStyle(SizeType.Absolute, 88F));
+            cards.RowStyles.Add(new RowStyle(SizeType.Absolute, 88F));
 
             cards.Controls.Add(CreateStatCard("Active Leads", lblKpiActiveLeads, Color.FromArgb(124, 58, 237)), 0, 0);
             cards.Controls.Add(CreateStatCard("Closed Won", lblKpiClosedWon, Color.FromArgb(16, 185, 129)), 1, 0);
