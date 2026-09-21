@@ -30,7 +30,7 @@ public class TenantDriveConnectDbContext : DbContext
         // 1. Configuration for Car Sales (dbo.Inquiries)
         builder.Entity<SalesLead>(entity =>
         {
-            entity.ToTable("Inquiries"); // Keeps your requested table name
+            entity.ToTable("SalesLeads"); // Keeps your requested table name
             entity.HasKey(x => x.InquiryId);
 
             entity.Property(x => x.FirstName).HasMaxLength(100).IsRequired();

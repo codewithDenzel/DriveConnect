@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace DriveConnect.domain.Entities
 {
-    [Table("Inquiries")]
+    [Table("SalesLeads")]
     public class SalesLead
     {
         [Key]
