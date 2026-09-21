@@ -230,7 +230,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
 
             Panel subContainer = new Panel { AutoSize = true, Width = 270, Dock = DockStyle.Top, Visible = false };
 
-            string cleanMainTitle = mainTitle.Replace("📊 ", "").Replace("🚗 ", "").Replace("🔧 ", "").Replace("📢 ", "").Replace("🕒 ", "").Replace("📁 ", "").Trim();
+            string cleanMainTitle = mainTitle.Replace("📊 ", "").Replace("🚗 ", "").Replace("🔧 ", "").Replace("📢 ", "").Replace("🕒 ", "").Replace("💬 ", "").Replace("⚠ ", "").Replace("🛡 ", "").Replace("🧰 ", "").Replace("📁 ", "").Trim();
 
             for (int i = subTitles.Length - 1; i >= 0; i--)
             {
