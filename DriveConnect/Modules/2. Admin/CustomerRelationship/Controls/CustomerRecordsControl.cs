@@ -395,12 +395,43 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
 
         private Panel CreateStatCard(string title, Label valLabel, Color accentColor)
         {
-            Panel card = new Panel { Dock = DockStyle.Fill, BackColor = Color.White, Margin = new Padding(5) };
-            card.Paint += (s, e) => ControlPaint.DrawBorder(e.Graphics, card.ClientRectangle, Color.FromArgb(229, 231, 235), ButtonBorderStyle.Solid);
-            Label lblT = new Label { Text = title, Left = 15, Top = 15, AutoSize = true, Font = new Font("Segoe UI", 9F), ForeColor = Color.FromArgb(107, 114, 128) };
-            valLabel.Left = 15; valLabel.Top = 45; valLabel.Width = 220; valLabel.Height = 40;
-            valLabel.Text = "0"; valLabel.Font = new Font("Segoe UI", 16F, FontStyle.Bold); valLabel.ForeColor = accentColor;
-            card.Controls.Add(lblT); card.Controls.Add(valLabel);
+            Panel card = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = Color.White,
+                Margin = new Padding(5),
+                Padding = new Padding(12, 10, 12, 8),
+                MinimumSize = new Size(0, 68)
+            };
+
+            card.Paint += (s, e) => ControlPaint.DrawBorder(
+                e.Graphics,
+                card.ClientRectangle,
+                Color.FromArgb(229, 231, 235),
+                ButtonBorderStyle.Solid);
+
+            Label lblT = new Label
+            {
+                Text = title,
+                Dock = DockStyle.Top,
+                Height = 22,
+                AutoEllipsis = true,
+                Font = new Font("Segoe UI", 9F),
+                ForeColor = Color.FromArgb(107, 114, 128),
+                TextAlign = ContentAlignment.MiddleLeft
+            };
+
+            valLabel.Dock = DockStyle.Top;
+            valLabel.Height = 28;
+            valLabel.Text = "0";
+            valLabel.Font = new Font("Segoe UI", 15F, FontStyle.Bold);
+            valLabel.ForeColor = accentColor;
+            valLabel.TextAlign = ContentAlignment.MiddleLeft;
+            valLabel.AutoEllipsis = true;
+
+            card.Controls.Add(valLabel);
+            card.Controls.Add(lblT);
+
             return card;
         }
 
@@ -473,14 +504,15 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
         {
             panelBI_KPI.Dock = DockStyle.Fill;
             panelBI_KPI.BackColor = Color.Transparent;
+            panelBI_KPI.AutoScroll = true;
 
             TableLayoutPanel cards = new TableLayoutPanel
             {
                 Dock = DockStyle.Top,
-                Height = 245,
+                Height = 270,
                 ColumnCount = 4,
                 RowCount = 3,
-                Padding = new Padding(0, 0, 0, 10)
+                Padding = new Padding(0, 0, 0, 12)
             };
 
             for (int i = 0; i < 4; i++)
