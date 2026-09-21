@@ -199,7 +199,9 @@ app.MapDelete("/tenant/{companyId:int}/repairs/{id:int}", async (int companyId, 
      using var tenantDb = await GetTenantDb(companyId, resolver, config);
      var existing = await tenantDb.Feedback.FindAsync(id);
      if (existing == null) return Results.NotFound();
-     existing.CustomerName = updated.CustomerName;
+     existing.FirstName = updated.FirstName;
+     existing.MiddleName = updated.MiddleName;
+     existing.LastName = updated.LastName;
      existing.PhoneNumber = updated.PhoneNumber;
      existing.Type = updated.Type;
      existing.Rating = updated.Rating;
@@ -231,7 +233,9 @@ app.MapDelete("/tenant/{companyId:int}/repairs/{id:int}", async (int companyId, 
      using var tenantDb = await GetTenantDb(companyId, resolver, config);
      var existing = await tenantDb.Complaints.FindAsync(id);
      if (existing == null) return Results.NotFound();
-     existing.CustomerName = updated.CustomerName;
+     existing.FirstName = updated.FirstName;
+     existing.MiddleName = updated.MiddleName;
+     existing.LastName = updated.LastName;
      existing.PhoneNumber = updated.PhoneNumber;
      existing.Category = updated.Category;
      existing.Description = updated.Description;
@@ -266,7 +270,9 @@ app.MapDelete("/tenant/{companyId:int}/repairs/{id:int}", async (int companyId, 
      using var tenantDb = await GetTenantDb(companyId, resolver, config);
      var existing = await tenantDb.InteractionLogs.FindAsync(id);
      if (existing == null) return Results.NotFound();
-     existing.CustomerName = updated.CustomerName;
+     existing.FirstName = updated.FirstName;
+     existing.MiddleName = updated.MiddleName;
+     existing.LastName = updated.LastName;
      existing.PhoneNumber = updated.PhoneNumber;
      existing.InteractionType = updated.InteractionType;
      existing.Subject = updated.Subject;
@@ -295,7 +301,9 @@ app.MapDelete("/tenant/{companyId:int}/repairs/{id:int}", async (int companyId, 
      using var tenantDb = await GetTenantDb(companyId, resolver, config);
      var existing = await tenantDb.VehicleWarranties.FindAsync(id);
      if (existing == null) return Results.NotFound();
-     existing.CustomerName = updated.CustomerName;
+     existing.FirstName = updated.FirstName;
+     existing.MiddleName = updated.MiddleName;
+     existing.LastName = updated.LastName;
      existing.PhoneNumber = updated.PhoneNumber;
      existing.VehicleModel = updated.VehicleModel;
      existing.PurchaseDate = updated.PurchaseDate;
@@ -328,7 +336,9 @@ app.MapDelete("/tenant/{companyId:int}/repairs/{id:int}", async (int companyId, 
      var existing = await tenantDb.WarrantyClaims.FindAsync(id);
      if (existing == null) return Results.NotFound();
      existing.WarrantyId = updated.WarrantyId;
-     existing.CustomerName = updated.CustomerName;
+     existing.FirstName = updated.FirstName;
+     existing.MiddleName = updated.MiddleName;
+     existing.LastName = updated.LastName;
      existing.PhoneNumber = updated.PhoneNumber;
      existing.VehicleModel = updated.VehicleModel;
      existing.Problem = updated.Problem;
@@ -360,7 +370,9 @@ app.MapDelete("/tenant/{companyId:int}/repairs/{id:int}", async (int companyId, 
      using var tenantDb = await GetTenantDb(companyId, resolver, config);
      var existing = await tenantDb.MaintenanceRecords.FindAsync(id);
      if (existing == null) return Results.NotFound();
-     existing.CustomerName = updated.CustomerName;
+     existing.FirstName = updated.FirstName;
+     existing.MiddleName = updated.MiddleName;
+     existing.LastName = updated.LastName;
      existing.PhoneNumber = updated.PhoneNumber;
      existing.VehicleModel = updated.VehicleModel;
      existing.ServiceDate = updated.ServiceDate;
