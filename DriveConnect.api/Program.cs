@@ -144,7 +144,236 @@ app.MapDelete("/tenant/{companyId:int}/repairs/{id:int}", async (int companyId, 
     return Results.NoContent();
 });
 
-app.Run();
+// --- CRM HISTORY AND CUSTOMER ENGAGEMENT ENDPOINTS ---
+
+ app.MapGet("/tenant/{companyId:int}/promotions", async (int companyId, ITenantDatabaseResolver resolver, IConfiguration config) =>
+ {
+     using var tenantDb = await GetTenantDb(companyId, resolver, config);
+     return Results.Ok(await tenantDb.Promotions.AsNoTracking().ToListAsync());
+ });
+
+ app.MapPost("/tenant/{companyId:int}/promotions", async (int companyId, Promotion item, ITenantDatabaseResolver resolver, IConfiguration config) =>
+ {
+     using var tenantDb = await GetTenantDb(companyId, resolver, config);
+     if (item.CreatedAt == default) item.CreatedAt = DateTime.UtcNow;
+     tenantDb.Promotions.Add(item);
+     await tenantDb.SaveChangesAsync();
+     return Results.Created($"/tenant/{companyId}/promotions/{item.PromotionId}", item);
+ });
+
+ app.MapPut("/tenant/{companyId:int}/promotions/{id:int}", async (int companyId, int id, Promotion updated, ITenantDatabaseResolver resolver, IConfiguration config) =>
+ {
+     using var tenantDb = await GetTenantDb(companyId, resolver, config);
+     var existing = await tenantDb.Promotions.FindAsync(id);
+     if (existing == null) return Results.NotFound();
+     existing.Title = updated.Title;
+     existing.Description = updated.Description;
+     existing.DiscountType = updated.DiscountType;
+     existing.DiscountValue = updated.DiscountValue;
+     existing.StartDate = updated.StartDate;
+     existing.EndDate = updated.EndDate;
+     existing.CreatedBy = updated.CreatedBy;
+     existing.ApprovedBy = updated.ApprovedBy;
+     existing.Status = updated.Status;
+     await tenantDb.SaveChangesAsync();
+     return Results.Ok(existing);
+ });
+
+ app.MapGet("/tenant/{companyId:int}/feedback", async (int companyId, ITenantDatabaseResolver resolver, IConfiguration config) =>
+ {
+     using var tenantDb = await GetTenantDb(companyId, resolver, config);
+     return Results.Ok(await tenantDb.Feedback.AsNoTracking().ToListAsync());
+ });
+
+ app.MapPost("/tenant/{companyId:int}/feedback", async (int companyId, Feedback item, ITenantDatabaseResolver resolver, IConfiguration config) =>
+ {
+     using var tenantDb = await GetTenantDb(companyId, resolver, config);
+     if (item.CreatedAt == default) item.CreatedAt = DateTime.UtcNow;
+     tenantDb.Feedback.Add(item);
+     await tenantDb.SaveChangesAsync();
+     return Results.Created($"/tenant/{companyId}/feedback/{item.FeedbackId}", item);
+ });
+
+ app.MapPut("/tenant/{companyId:int}/feedback/{id:int}", async (int companyId, int id, Feedback updated, ITenantDatabaseResolver resolver, IConfiguration config) =>
+ {
+     using var tenantDb = await GetTenantDb(companyId, resolver, config);
+     var existing = await tenantDb.Feedback.FindAsync(id);
+     if (existing == null) return Results.NotFound();
+     existing.CustomerName = updated.CustomerName;
+     existing.PhoneNumber = updated.PhoneNumber;
+     existing.Type = updated.Type;
+     existing.Rating = updated.Rating;
+     existing.Comment = updated.Comment;
+     existing.HandledBy = updated.HandledBy;
+     existing.Status = updated.Status;
+     existing.ReviewedAt = updated.Status == "Reviewed" ? (updated.ReviewedAt ?? DateTime.UtcNow) : null;
+     await tenantDb.SaveChangesAsync();
+     return Results.Ok(existing);
+ });
+
+ app.MapGet("/tenant/{companyId:int}/complaints", async (int companyId, ITenantDatabaseResolver resolver, IConfiguration config) =>
+ {
+     using var tenantDb = await GetTenantDb(companyId, resolver, config);
+     return Results.Ok(await tenantDb.Complaints.AsNoTracking().ToListAsync());
+ });
+
+ app.MapPost("/tenant/{companyId:int}/complaints", async (int companyId, Complaint item, ITenantDatabaseResolver resolver, IConfiguration config) =>
+ {
+     using var tenantDb = await GetTenantDb(companyId, resolver, config);
+     if (item.CreatedAt == default) item.CreatedAt = DateTime.UtcNow;
+     tenantDb.Complaints.Add(item);
+     await tenantDb.SaveChangesAsync();
+     return Results.Created($"/tenant/{companyId}/complaints/{item.ComplaintId}", item);
+ });
+
+ app.MapPut("/tenant/{companyId:int}/complaints/{id:int}", async (int companyId, int id, Complaint updated, ITenantDatabaseResolver resolver, IConfiguration config) =>
+ {
+     using var tenantDb = await GetTenantDb(companyId, resolver, config);
+     var existing = await tenantDb.Complaints.FindAsync(id);
+     if (existing == null) return Results.NotFound();
+     existing.CustomerName = updated.CustomerName;
+     existing.PhoneNumber = updated.PhoneNumber;
+     existing.Category = updated.Category;
+     existing.Description = updated.Description;
+     existing.Priority = updated.Priority;
+     existing.HandledBy = updated.HandledBy;
+     existing.Status = updated.Status;
+     existing.Resolution = updated.Resolution;
+     existing.ResolvedAt = updated.Status == "Resolved" || updated.Status == "Closed"
+         ? (updated.ResolvedAt ?? DateTime.UtcNow)
+         : null;
+     await tenantDb.SaveChangesAsync();
+     return Results.Ok(existing);
+ });
+
+ app.MapGet("/tenant/{companyId:int}/interactions", async (int companyId, ITenantDatabaseResolver resolver, IConfiguration config) =>
+ {
+     using var tenantDb = await GetTenantDb(companyId, resolver, config);
+     return Results.Ok(await tenantDb.InteractionLogs.AsNoTracking().ToListAsync());
+ });
+
+ app.MapPost("/tenant/{companyId:int}/interactions", async (int companyId, InteractionLog item, ITenantDatabaseResolver resolver, IConfiguration config) =>
+ {
+     using var tenantDb = await GetTenantDb(companyId, resolver, config);
+     if (item.CreatedAt == default) item.CreatedAt = DateTime.UtcNow;
+     tenantDb.InteractionLogs.Add(item);
+     await tenantDb.SaveChangesAsync();
+     return Results.Created($"/tenant/{companyId}/interactions/{item.InteractionId}", item);
+ });
+
+ app.MapPut("/tenant/{companyId:int}/interactions/{id:int}", async (int companyId, int id, InteractionLog updated, ITenantDatabaseResolver resolver, IConfiguration config) =>
+ {
+     using var tenantDb = await GetTenantDb(companyId, resolver, config);
+     var existing = await tenantDb.InteractionLogs.FindAsync(id);
+     if (existing == null) return Results.NotFound();
+     existing.CustomerName = updated.CustomerName;
+     existing.PhoneNumber = updated.PhoneNumber;
+     existing.InteractionType = updated.InteractionType;
+     existing.Subject = updated.Subject;
+     existing.Notes = updated.Notes;
+     existing.HandledBy = updated.HandledBy;
+     await tenantDb.SaveChangesAsync();
+     return Results.Ok(existing);
+ });
+
+ app.MapGet("/tenant/{companyId:int}/warranties", async (int companyId, ITenantDatabaseResolver resolver, IConfiguration config) =>
+ {
+     using var tenantDb = await GetTenantDb(companyId, resolver, config);
+     return Results.Ok(await tenantDb.VehicleWarranties.AsNoTracking().ToListAsync());
+ });
+
+ app.MapPost("/tenant/{companyId:int}/warranties", async (int companyId, VehicleWarranty item, ITenantDatabaseResolver resolver, IConfiguration config) =>
+ {
+     using var tenantDb = await GetTenantDb(companyId, resolver, config);
+     tenantDb.VehicleWarranties.Add(item);
+     await tenantDb.SaveChangesAsync();
+     return Results.Created($"/tenant/{companyId}/warranties/{item.WarrantyId}", item);
+ });
+
+ app.MapPut("/tenant/{companyId:int}/warranties/{id:int}", async (int companyId, int id, VehicleWarranty updated, ITenantDatabaseResolver resolver, IConfiguration config) =>
+ {
+     using var tenantDb = await GetTenantDb(companyId, resolver, config);
+     var existing = await tenantDb.VehicleWarranties.FindAsync(id);
+     if (existing == null) return Results.NotFound();
+     existing.CustomerName = updated.CustomerName;
+     existing.PhoneNumber = updated.PhoneNumber;
+     existing.VehicleModel = updated.VehicleModel;
+     existing.PurchaseDate = updated.PurchaseDate;
+     existing.WarrantyStart = updated.WarrantyStart;
+     existing.WarrantyEnd = updated.WarrantyEnd;
+     existing.Coverage = updated.Coverage;
+     existing.Status = updated.Status;
+     await tenantDb.SaveChangesAsync();
+     return Results.Ok(existing);
+ });
+
+ app.MapGet("/tenant/{companyId:int}/warranty-claims", async (int companyId, ITenantDatabaseResolver resolver, IConfiguration config) =>
+ {
+     using var tenantDb = await GetTenantDb(companyId, resolver, config);
+     return Results.Ok(await tenantDb.WarrantyClaims.AsNoTracking().ToListAsync());
+ });
+
+ app.MapPost("/tenant/{companyId:int}/warranty-claims", async (int companyId, WarrantyClaim item, ITenantDatabaseResolver resolver, IConfiguration config) =>
+ {
+     using var tenantDb = await GetTenantDb(companyId, resolver, config);
+     if (item.DateReported == default) item.DateReported = DateTime.UtcNow;
+     tenantDb.WarrantyClaims.Add(item);
+     await tenantDb.SaveChangesAsync();
+     return Results.Created($"/tenant/{companyId}/warranty-claims/{item.ClaimId}", item);
+ });
+
+ app.MapPut("/tenant/{companyId:int}/warranty-claims/{id:int}", async (int companyId, int id, WarrantyClaim updated, ITenantDatabaseResolver resolver, IConfiguration config) =>
+ {
+     using var tenantDb = await GetTenantDb(companyId, resolver, config);
+     var existing = await tenantDb.WarrantyClaims.FindAsync(id);
+     if (existing == null) return Results.NotFound();
+     existing.WarrantyId = updated.WarrantyId;
+     existing.CustomerName = updated.CustomerName;
+     existing.PhoneNumber = updated.PhoneNumber;
+     existing.VehicleModel = updated.VehicleModel;
+     existing.Problem = updated.Problem;
+     existing.DateReported = updated.DateReported;
+     existing.HandledBy = updated.HandledBy;
+     existing.Status = updated.Status;
+     existing.Resolution = updated.Resolution;
+     existing.DateResolved = updated.Status == "Resolved" ? (updated.DateResolved ?? DateTime.UtcNow) : null;
+     await tenantDb.SaveChangesAsync();
+     return Results.Ok(existing);
+ });
+
+ app.MapGet("/tenant/{companyId:int}/maintenance", async (int companyId, ITenantDatabaseResolver resolver, IConfiguration config) =>
+ {
+     using var tenantDb = await GetTenantDb(companyId, resolver, config);
+     return Results.Ok(await tenantDb.MaintenanceRecords.AsNoTracking().ToListAsync());
+ });
+
+ app.MapPost("/tenant/{companyId:int}/maintenance", async (int companyId, MaintenanceRecord item, ITenantDatabaseResolver resolver, IConfiguration config) =>
+ {
+     using var tenantDb = await GetTenantDb(companyId, resolver, config);
+     tenantDb.MaintenanceRecords.Add(item);
+     await tenantDb.SaveChangesAsync();
+     return Results.Created($"/tenant/{companyId}/maintenance/{item.MaintenanceId}", item);
+ });
+
+ app.MapPut("/tenant/{companyId:int}/maintenance/{id:int}", async (int companyId, int id, MaintenanceRecord updated, ITenantDatabaseResolver resolver, IConfiguration config) =>
+ {
+     using var tenantDb = await GetTenantDb(companyId, resolver, config);
+     var existing = await tenantDb.MaintenanceRecords.FindAsync(id);
+     if (existing == null) return Results.NotFound();
+     existing.CustomerName = updated.CustomerName;
+     existing.PhoneNumber = updated.PhoneNumber;
+     existing.VehicleModel = updated.VehicleModel;
+     existing.ServiceDate = updated.ServiceDate;
+     existing.ServiceType = updated.ServiceType;
+     existing.PlanCoverage = updated.PlanCoverage;
+     existing.AssignedStaff = updated.AssignedStaff;
+     existing.Status = updated.Status;
+     existing.Notes = updated.Notes;
+     await tenantDb.SaveChangesAsync();
+     return Results.Ok(existing);
+ });
+ 
+ app.Run();
 
 // HELPER: Generates the connection dynamically without duplicating code everywhere
 async Task<TenantDriveConnectDbContext> GetTenantDb(int companyId, ITenantDatabaseResolver resolver, IConfiguration config)
