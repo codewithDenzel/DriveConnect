@@ -106,11 +106,23 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
             sidebarFlow.Controls.Add(CreateAccordion("nav_service", "🔧 Service and Repair",
                 new[] { "New Diagnose", "In Repair", "Waiting for Parts", "Repaired", "Ready for Pickup", "Picked Up" }));
 
-            sidebarFlow.Controls.Add(CreateAccordion("nav_promotions", "📢 Promotions",
+            sidebarFlow.Controls.Add(CreateAccordion("nav_promotions2", "📢 Promotions",
                 new[] { "Active Promos", "Drafts" }));
 
             sidebarFlow.Controls.Add(CreateAccordion("nav_history", "🕒 Customer History",
-                new[] { "Interaction Logs" }));
+                new[] { "Customer Profile", "Sales & Lead History", "Service & Repair History", "Interaction History", "Feedback History", "Complaint History", "Warranty History", "Maintenance History" }));
+
+            sidebarFlow.Controls.Add(CreateAccordion("nav_feedback", "💬 Feedback",
+                new[] { "New Feedback", "Reviewed Feedback" }));
+
+            sidebarFlow.Controls.Add(CreateAccordion("nav_complaints", "⚠ Complaints",
+                new[] { "New Complaints", "Investigating", "Resolved" }));
+
+            sidebarFlow.Controls.Add(CreateAccordion("nav_warranty", "🛡 Warranty",
+                new[] { "Active Warranties", "Warranty Claims" }));
+
+            sidebarFlow.Controls.Add(CreateAccordion("nav_maintenance", "🧰 Maintenance",
+                new[] { "Scheduled Maintenance", "Completed Maintenance" }));
 
             sidebarFlow.Controls.Add(CreateAccordion("nav_archived", "📁 Archived",
                 new[] { "Archived Sales", "Archived Repairs" }));
@@ -299,11 +311,11 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                 gridWrapper.Visible = true;
                 gridWrapper.BringToFront();
 
-                if (mainTab == "Car Sales and Leads" || mainTab == "Service and Repair" || mainTab == "Archived")
+                if (mainTab == "Car Sales and Leads" || mainTab == "Service and Repair" || mainTab == "Archived" || IsAdditionalDataTab(mainTab))
                 {
                     txtSearch.Visible = true;
                     gridView.Visible = true;
-                    btnNewRecord.Visible = (mainTab != "Archived");
+                    btnNewRecord.Visible = mainTab != "Archived" && CanCreateCurrentTab();
                     FilterAndBindGrid();
                 }
                 else
@@ -330,7 +342,6 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
             topCardsGrid.Controls.Add(CreateStatCard("Total Pipeline Value", lblPipelineValue, Color.FromArgb(16, 185, 129)), 1, 0);
             topCardsGrid.Controls.Add(CreateStatCard("Lead Conversion Rate", lblConversionRate, Color.FromArgb(59, 130, 246)), 2, 0);
             topCardsGrid.Controls.Add(CreateStatCard("Active Promotions", lblActivePromos, Color.FromArgb(245, 158, 11)), 3, 0);
-            lblActivePromos.Text = "0"; // Static for now until Promos entity is built
 
             TableLayoutPanel bottomSplit = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 1 };
             bottomSplit.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
@@ -402,6 +413,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                 var activeSales = _allSales.Where(x => x.Status != "Archived").ToList();
                 var activeLeads = activeSales.Where(x => x.Status != "Closed Won" && x.Status != "Closed Lost").ToList();
 
+                lblActivePromos.Text = _allPromotions.Count(x => x.Status == "Active").ToString();
                 lblTotalLeads.Text = activeLeads.Count.ToString();
                 lblPipelineValue.Text = $"₱{activeLeads.Sum(x => x.EstimatedCost):N2}";
 
@@ -918,6 +930,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
             {
                 _allSales = await _apiService.GetSalesAsync(CurrentCompanyId) ?? new List<SalesLead>();
                 _allRepairs = await _apiService.GetRepairsAsync(CurrentCompanyId) ?? new List<RepairTicket>();
+                await LoadAdditionalDataAsync();
 
                 if (currentMainTab == "Business Intelligence")
                 {
@@ -940,6 +953,12 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
         {
             string q = txtSearch.Text.ToLower();
             gridView.DataSource = null;
+
+            if (IsAdditionalDataTab(currentMainTab))
+            {
+                BindAdditionalGrid();
+                return;
+            }
 
             if (currentMainTab == "Car Sales and Leads")
             {
@@ -1025,15 +1044,34 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
             }
         }
 
-        private void BtnNewRecord_Click(object? sender, EventArgs e)
+        private async void BtnNewRecord_Click(object? sender, EventArgs e)
         {
             if (currentMainTab == "Car Sales and Leads") ShowSalesModal(null);
             else if (currentMainTab == "Service and Repair") ShowRepairModal(null);
+            else if (CanCreateCurrentTab() && currentMainTab == "Promotions") await ShowPromotionModalAsync(null);
+            else if (CanCreateCurrentTab() && currentMainTab == "Customer History" && currentSubTab == "Interaction History") await ShowInteractionModalAsync(null);
+            else if (CanCreateCurrentTab() && currentMainTab == "Feedback") await ShowFeedbackModalAsync(null);
+            else if (CanCreateCurrentTab() && currentMainTab == "Complaints") await ShowComplaintModalAsync(null);
+            else if (CanCreateCurrentTab() && currentMainTab == "Warranty")
+            {
+                if (currentSubTab == "Active Warranties") await ShowWarrantyModalAsync(null);
+                else await ShowWarrantyClaimModalAsync(null);
+            }
+            else if (CanCreateCurrentTab() && currentMainTab == "Maintenance") await ShowMaintenanceModalAsync(null);
         }
 
-        private void GridView_CellDoubleClick(object? sender, DataGridViewCellEventArgs e)
+        private async void GridView_CellDoubleClick(object? sender, DataGridViewCellEventArgs e)
         {
             if (e.RowIndex < 0) return;
+
+            if (IsAdditionalDataTab(currentMainTab))
+            {
+                if (gridView.Columns["ID"] == null || gridView.Rows[e.RowIndex].Cells["ID"].Value == null) return;
+                int additionalId = Convert.ToInt32(gridView.Rows[e.RowIndex].Cells["ID"].Value);
+                await HandleAdditionalRecordDoubleClickAsync(additionalId);
+                return;
+            }
+
             int id = (int)gridView.Rows[e.RowIndex].Cells["ID"].Value;
 
             if (currentMainTab == "Car Sales and Leads") ShowSalesModal(_allSales.FirstOrDefault(x => x.InquiryId == id));
@@ -1073,6 +1111,9 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
 
                 decimal.TryParse(txtC.Text, out decimal cost);
 
+                bool archive = existing != null && existing.Status != "Archived" && cbS.SelectedItem?.ToString() == "Archived";
+                if (!ConfirmAction(existing == null ? "Confirm adding this lead?" : archive ? "Confirm archiving this lead?" : "Confirm updating this lead?")) return;
+
                 var payload = existing ?? new SalesLead { CreatedAt = DateTime.UtcNow };
                 payload.FirstName = txtF.Text;
                 payload.MiddleName = txtM.Text;
@@ -1086,8 +1127,15 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
 
                 if (payload.Status == "Closed Won" || payload.Status == "Closed Lost" || payload.Status == "Archived") payload.CompletedAt = DateTime.UtcNow;
 
-                if (existing == null) await _apiService.CreateSalesAsync(CurrentCompanyId, payload);
-                else await _apiService.UpdateSalesAsync(CurrentCompanyId, payload.InquiryId, payload);
+                var response = existing == null
+                    ? await _apiService.CreateSalesAsync(CurrentCompanyId, payload)
+                    : await _apiService.UpdateSalesAsync(CurrentCompanyId, payload.InquiryId, payload);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    MessageBox.Show("The sales lead could not be saved.", "Save Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
 
                 f.DialogResult = DialogResult.OK;
             };
@@ -1134,6 +1182,9 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
 
                 decimal.TryParse(txtC.Text, out decimal cost);
 
+                bool archive = existing != null && existing.Status != "Archived" && cbS.SelectedItem?.ToString() == "Archived";
+                if (!ConfirmAction(existing == null ? "Confirm adding this repair ticket?" : archive ? "Confirm archiving this repair ticket?" : "Confirm updating this repair ticket?")) return;
+
                 var payload = existing ?? new RepairTicket { CreatedAt = DateTime.UtcNow };
                 payload.FirstName = txtF.Text;
                 payload.MiddleName = txtM.Text;
@@ -1149,8 +1200,15 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                 if (payload.Status == "Repaired" || payload.Status == "Archived") payload.CompletedAt = DateTime.UtcNow;
                 if (payload.PickupStatus == "Picked Up") payload.PickedUpAt = DateTime.UtcNow;
 
-                if (existing == null) await _apiService.CreateRepairAsync(CurrentCompanyId, payload);
-                else await _apiService.UpdateRepairAsync(CurrentCompanyId, payload.TicketId, payload);
+                var response = existing == null
+                    ? await _apiService.CreateRepairAsync(CurrentCompanyId, payload)
+                    : await _apiService.UpdateRepairAsync(CurrentCompanyId, payload.TicketId, payload);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    MessageBox.Show("The repair ticket could not be saved.", "Save Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
 
                 f.DialogResult = DialogResult.OK;
             };
