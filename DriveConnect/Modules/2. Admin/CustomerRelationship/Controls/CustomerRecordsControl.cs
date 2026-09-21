@@ -34,6 +34,26 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
         private DataGridView dgvPipelineSummary = new DataGridView();
         private DataGridView dgvTopSalespeople = new DataGridView();
 
+        // --- KPI UI CONTROLS ---
+        private Label lblKpiActiveLeads = new Label();
+        private Label lblKpiClosedWon = new Label();
+        private Label lblKpiClosedLost = new Label();
+        private Label lblKpiAverageDeal = new Label();
+        private Label lblKpiPipeline = new Label();
+        private Label lblKpiActiveRepairs = new Label();
+        private Label lblKpiRepaired = new Label();
+        private Label lblKpiPickedUp = new Label();
+        private DataGridView dgvKpiStages = new DataGridView();
+        private DataGridView dgvKpiStaff = new DataGridView();
+
+        // --- REPORT UI CONTROLS ---
+        private ComboBox cbReportType = new ComboBox();
+        private DateTimePicker dtReportFrom = new DateTimePicker();
+        private DateTimePicker dtReportTo = new DateTimePicker();
+        private Button btnGenerateReport = new Button();
+        private DataGridView dgvReport = new DataGridView();
+        private Label lblReportSummary = new Label();
+
         // --- CONTROLS ---
         private DataGridView gridView = new DataGridView();
         private TextBox txtSearch = new TextBox();
@@ -168,9 +188,9 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
 
             // Add BI Panels
             BuildDashboardView();
-            panelBI_KPI = CreatePlaceholderPanel("KPI Engine Placeholder");
-            panelBI_Graphs = CreatePlaceholderPanel("Graph Rendering Placeholder");
-            panelBI_Reports = CreatePlaceholderPanel("Reports Generator Placeholder");
+            BuildKpiView();
+            BuildReportsView();
+            BuildGraphsView();
 
             mainContentPanel.Controls.Add(panelBI_Dashboard);
             mainContentPanel.Controls.Add(panelBI_KPI);
@@ -255,9 +275,23 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                     panelBI_Dashboard.BringToFront();
                     RefreshDashboardMetrics();
                 }
-                else if (subTab == "KPI") { panelBI_KPI.Visible = true; panelBI_KPI.BringToFront(); }
-                else if (subTab == "Graphs") { panelBI_Graphs.Visible = true; panelBI_Graphs.BringToFront(); }
-                else if (subTab == "Reports") { panelBI_Reports.Visible = true; panelBI_Reports.BringToFront(); }
+                else if (subTab == "KPI")
+                {
+                    panelBI_KPI.Visible = true;
+                    panelBI_KPI.BringToFront();
+                    RefreshKpiView();
+                }
+                else if (subTab == "Graphs")
+                {
+                    panelBI_Graphs.Visible = true;
+                    panelBI_Graphs.BringToFront();
+                    RefreshGraphsView();
+                }
+                else if (subTab == "Reports")
+                {
+                    panelBI_Reports.Visible = true;
+                    panelBI_Reports.BringToFront();
+                }
             }
             else
             {
@@ -372,7 +406,9 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                 lblPipelineValue.Text = $"₱{activeLeads.Sum(x => x.EstimatedCost):N2}";
 
                 int closedWon = activeSales.Count(x => x.Status == "Closed Won");
-                lblConversionRate.Text = $"{(activeSales.Count > 0 ? Math.Round(((decimal)closedWon / activeSales.Count) * 100, 1) : 0)}%";
+                int closedLost = activeSales.Count(x => x.Status == "Closed Lost");
+                int resolvedLeads = closedWon + closedLost;
+                lblConversionRate.Text = $"{(resolvedLeads > 0 ? Math.Round(((decimal)closedWon / resolvedLeads) * 100, 1) : 0)}%";
 
                 var pipelineSummary = activeSales
                     .GroupBy(x => string.IsNullOrEmpty(x.Status) ? "New Inquiry" : x.Status)
@@ -390,6 +426,491 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
             catch { }
         }
 
+
+        // --- KPI VIEW ---
+        private void BuildKpiView()
+        {
+            panelBI_KPI.Dock = DockStyle.Fill;
+            panelBI_KPI.BackColor = Color.Transparent;
+
+            TableLayoutPanel cards = new TableLayoutPanel
+            {
+                Dock = DockStyle.Top,
+                Height = 245,
+                ColumnCount = 4,
+                RowCount = 2,
+                Padding = new Padding(0, 0, 0, 10)
+            };
+
+            for (int i = 0; i < 4; i++)
+                cards.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25F));
+            cards.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+            cards.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+
+            cards.Controls.Add(CreateStatCard("Active Leads", lblKpiActiveLeads, Color.FromArgb(124, 58, 237)), 0, 0);
+            cards.Controls.Add(CreateStatCard("Closed Won", lblKpiClosedWon, Color.FromArgb(16, 185, 129)), 1, 0);
+            cards.Controls.Add(CreateStatCard("Closed Lost", lblKpiClosedLost, Color.FromArgb(239, 68, 68)), 2, 0);
+            cards.Controls.Add(CreateStatCard("Average Closed Deal", lblKpiAverageDeal, Color.FromArgb(59, 130, 246)), 3, 0);
+            cards.Controls.Add(CreateStatCard("Open Pipeline", lblKpiPipeline, Color.FromArgb(245, 158, 11)), 0, 1);
+            cards.Controls.Add(CreateStatCard("Active Repairs", lblKpiActiveRepairs, Color.FromArgb(124, 58, 237)), 1, 1);
+            cards.Controls.Add(CreateStatCard("Repaired", lblKpiRepaired, Color.FromArgb(16, 185, 129)), 2, 1);
+            cards.Controls.Add(CreateStatCard("Picked Up", lblKpiPickedUp, Color.FromArgb(59, 130, 246)), 3, 1);
+
+            TableLayoutPanel tables = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 2,
+                RowCount = 1,
+                Padding = new Padding(0, 0, 0, 0)
+            };
+            tables.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+            tables.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+
+            Panel stageCard = CreateCardPanel();
+            AddHeader(stageCard, "Sales Stage KPI", "Number of leads in each sales stage");
+            dgvKpiStages = CreateDashboardGridView();
+            stageCard.Controls.Add(dgvKpiStages);
+
+            Panel staffCard = CreateCardPanel();
+            AddHeader(staffCard, "Staff KPI", "Sales activity grouped by handled staff");
+            dgvKpiStaff = CreateDashboardGridView();
+            staffCard.Controls.Add(dgvKpiStaff);
+
+            tables.Controls.Add(stageCard, 0, 0);
+            tables.Controls.Add(staffCard, 1, 0);
+
+            panelBI_KPI.Controls.Add(tables);
+            panelBI_KPI.Controls.Add(cards);
+        }
+
+        private void RefreshKpiView()
+        {
+            try
+            {
+                var activeSales = _allSales.Where(x => x.Status != "Archived").ToList();
+                var activeLeads = activeSales.Where(x => x.Status != "Closed Won" && x.Status != "Closed Lost").ToList();
+                var closedWon = activeSales.Where(x => x.Status == "Closed Won").ToList();
+                var closedLost = activeSales.Where(x => x.Status == "Closed Lost").ToList();
+
+                lblKpiActiveLeads.Text = activeLeads.Count.ToString();
+                lblKpiClosedWon.Text = closedWon.Count.ToString();
+                lblKpiClosedLost.Text = closedLost.Count.ToString();
+                lblKpiAverageDeal.Text = closedWon.Count > 0
+                    ? $"₱{closedWon.Average(x => x.EstimatedCost):N2}"
+                    : "₱0.00";
+                lblKpiPipeline.Text = $"₱{activeLeads.Sum(x => x.EstimatedCost):N2}";
+
+                var activeRepairs = _allRepairs.Where(x => x.Status != "Archived").ToList();
+                lblKpiActiveRepairs.Text = activeRepairs.Count.ToString();
+                lblKpiRepaired.Text = activeRepairs.Count(x => x.Status == "Repaired").ToString();
+                lblKpiPickedUp.Text = activeRepairs.Count(x => x.PickupStatus == "Picked Up").ToString();
+
+                dgvKpiStages.DataSource = activeSales
+                    .GroupBy(x => string.IsNullOrWhiteSpace(x.Status) ? "New Inquiry" : x.Status)
+                    .Select(g => new
+                    {
+                        SalesStage = g.Key,
+                        Leads = g.Count(),
+                        Value = $"₱{g.Sum(x => x.EstimatedCost):N2}"
+                    })
+                    .OrderBy(x => x.SalesStage)
+                    .ToList();
+
+                dgvKpiStaff.DataSource = activeSales
+                    .Where(x => !string.IsNullOrWhiteSpace(x.HandledBy))
+                    .GroupBy(x => x.HandledBy)
+                    .Select(g => new
+                    {
+                        Staff = g.Key,
+                        ActiveLeads = g.Count(x => x.Status != "Closed Won" && x.Status != "Closed Lost"),
+                        ClosedWon = g.Count(x => x.Status == "Closed Won")
+                    })
+                    .OrderByDescending(x => x.ClosedWon)
+                    .ThenByDescending(x => x.ActiveLeads)
+                    .ToList();
+            }
+            catch
+            {
+                // Keep the BI page usable if a data row is incomplete.
+            }
+        }
+
+        // --- REPORTS VIEW ---
+        private void BuildReportsView()
+        {
+            panelBI_Reports.Dock = DockStyle.Fill;
+            panelBI_Reports.BackColor = Color.Transparent;
+
+            Panel filterBar = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 75,
+                BackColor = Color.White,
+                Padding = new Padding(15)
+            };
+            filterBar.Paint += (s, e) => ControlPaint.DrawBorder(
+                e.Graphics,
+                filterBar.ClientRectangle,
+                Color.FromArgb(229, 231, 235),
+                ButtonBorderStyle.Solid);
+
+            cbReportType.DropDownStyle = ComboBoxStyle.DropDownList;
+            cbReportType.Width = 160;
+            cbReportType.Items.AddRange(new object[]
+            {
+                "Sales Report",
+                "Lead Report",
+                "Staff Performance",
+                "Repair Report",
+                "Archived Sales",
+                "Archived Repairs"
+            });
+            cbReportType.SelectedIndex = 0;
+            cbReportType.Location = new Point(15, 17);
+
+            dtReportFrom.Format = DateTimePickerFormat.Short;
+            dtReportFrom.Value = DateTime.Today.AddMonths(-1);
+            dtReportFrom.Width = 110;
+            dtReportFrom.Location = new Point(190, 17);
+
+            dtReportTo.Format = DateTimePickerFormat.Short;
+            dtReportTo.Value = DateTime.Today;
+            dtReportTo.Width = 110;
+            dtReportTo.Location = new Point(315, 17);
+
+            btnGenerateReport.Text = "Generate Report";
+            btnGenerateReport.Width = 135;
+            btnGenerateReport.Height = 30;
+            btnGenerateReport.Location = new Point(440, 15);
+            btnGenerateReport.BackColor = Color.FromArgb(79, 70, 229);
+            btnGenerateReport.ForeColor = Color.White;
+            btnGenerateReport.FlatStyle = FlatStyle.Flat;
+            btnGenerateReport.FlatAppearance.BorderSize = 0;
+            btnGenerateReport.Click += (s, e) => GenerateSelectedReport();
+
+            filterBar.Controls.Add(cbReportType);
+            filterBar.Controls.Add(dtReportFrom);
+            filterBar.Controls.Add(dtReportTo);
+            filterBar.Controls.Add(btnGenerateReport);
+
+            Panel reportCard = CreateCardPanel();
+            reportCard.Padding = new Padding(15, 55, 15, 45);
+            AddHeader(reportCard, "Business Intelligence Reports", "Select a report and date range, then generate the table below.");
+
+            dgvReport = CreateDashboardGridView();
+            reportCard.Controls.Add(dgvReport);
+
+            lblReportSummary.AutoSize = false;
+            lblReportSummary.Dock = DockStyle.Bottom;
+            lblReportSummary.Height = 35;
+            lblReportSummary.TextAlign = ContentAlignment.MiddleLeft;
+            lblReportSummary.ForeColor = Color.FromArgb(107, 114, 128);
+            reportCard.Controls.Add(lblReportSummary);
+
+            panelBI_Reports.Controls.Add(reportCard);
+            panelBI_Reports.Controls.Add(filterBar);
+
+            GenerateSelectedReport();
+        }
+
+        private void GenerateSelectedReport()
+        {
+            DateTime from = dtReportFrom.Value.Date;
+            DateTime to = dtReportTo.Value.Date.AddDays(1).AddTicks(-1);
+
+            if (from > to)
+            {
+                MessageBox.Show("The From date cannot be after the To date.", "Invalid Date Range", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            string report = cbReportType.SelectedItem?.ToString() ?? "Sales Report";
+
+            if (report == "Sales Report")
+            {
+                var rows = _allSales
+                    .Where(x => x.CreatedAt >= from && x.CreatedAt <= to && x.Status != "Archived")
+                    .Select(x => new
+                    {
+                        ID = x.InquiryId,
+                        Customer = ($"{x.FirstName} {x.LastName}").Trim(),
+                        Model = x.CarModel,
+                        Stage = x.Status,
+                        DealValue = x.EstimatedCost,
+                        HandledBy = x.HandledBy,
+                        Date = x.CreatedAt.ToLocalTime().ToString("MMM dd, yyyy")
+                    }).ToList();
+
+                dgvReport.DataSource = rows;
+                FormatCurrencyColumn("DealValue");
+                lblReportSummary.Text = $"Sales records: {rows.Count} | Value: ₱{rows.Sum(x => x.DealValue):N2}";
+            }
+            else if (report == "Lead Report")
+            {
+                var rows = _allSales
+                    .Where(x => x.CreatedAt >= from && x.CreatedAt <= to && x.Status != "Archived")
+                    .Select(x => new
+                    {
+                        ID = x.InquiryId,
+                        Customer = ($"{x.FirstName} {x.LastName}").Trim(),
+                        Model = x.CarModel,
+                        Stage = x.Status,
+                        HandledBy = x.HandledBy,
+                        Date = x.CreatedAt.ToLocalTime().ToString("MMM dd, yyyy")
+                    }).ToList();
+
+                dgvReport.DataSource = rows;
+                lblReportSummary.Text = $"Leads: {rows.Count}";
+            }
+            else if (report == "Staff Performance")
+            {
+                var rows = _allSales
+                    .Where(x => x.CreatedAt >= from && x.CreatedAt <= to && x.Status != "Archived" && !string.IsNullOrWhiteSpace(x.HandledBy))
+                    .GroupBy(x => x.HandledBy)
+                    .Select(g => new
+                    {
+                        Staff = g.Key,
+                        Leads = g.Count(),
+                        ClosedWon = g.Count(x => x.Status == "Closed Won"),
+                        ClosedLost = g.Count(x => x.Status == "Closed Lost"),
+                        ClosedValue = g.Where(x => x.Status == "Closed Won").Sum(x => x.EstimatedCost)
+                    })
+                    .OrderByDescending(x => x.ClosedWon)
+                    .ToList();
+
+                dgvReport.DataSource = rows;
+                FormatCurrencyColumn("ClosedValue");
+                lblReportSummary.Text = $"Staff records: {rows.Count}";
+            }
+            else if (report == "Repair Report")
+            {
+                var rows = _allRepairs
+                    .Where(x => x.CreatedAt >= from && x.CreatedAt <= to && x.Status != "Archived")
+                    .Select(x => new
+                    {
+                        ID = x.TicketId,
+                        Customer = ($"{x.FirstName} {x.LastName}").Trim(),
+                        Model = x.CarModel,
+                        Issue = x.Concern,
+                        Status = x.Status,
+                        Pickup = x.PickupStatus,
+                        EstimatedCost = x.EstimatedCost,
+                        HandledBy = x.HandledBy,
+                        Date = x.CreatedAt.ToLocalTime().ToString("MMM dd, yyyy")
+                    }).ToList();
+
+                dgvReport.DataSource = rows;
+                FormatCurrencyColumn("EstimatedCost");
+                lblReportSummary.Text = $"Repair records: {rows.Count} | Estimated cost: ₱{rows.Sum(x => x.EstimatedCost):N2}";
+            }
+            else if (report == "Archived Sales")
+            {
+                var rows = _allSales
+                    .Where(x => x.Status == "Archived" && x.CompletedAt.HasValue && x.CompletedAt.Value >= from && x.CompletedAt.Value <= to)
+                    .Select(x => new
+                    {
+                        ID = x.InquiryId,
+                        Customer = ($"{x.FirstName} {x.LastName}").Trim(),
+                        Model = x.CarModel,
+                        DealValue = x.EstimatedCost,
+                        ArchivedOn = x.CompletedAt.Value.ToLocalTime().ToString("MMM dd, yyyy"),
+                        HandledBy = x.HandledBy
+                    }).ToList();
+
+                dgvReport.DataSource = rows;
+                FormatCurrencyColumn("DealValue");
+                lblReportSummary.Text = $"Archived sales: {rows.Count}";
+            }
+            else
+            {
+                var rows = _allRepairs
+                    .Where(x => x.Status == "Archived" && x.CompletedAt.HasValue && x.CompletedAt.Value >= from && x.CompletedAt.Value <= to)
+                    .Select(x => new
+                    {
+                        ID = x.TicketId,
+                        Customer = ($"{x.FirstName} {x.LastName}").Trim(),
+                        Model = x.CarModel,
+                        Issue = x.Concern,
+                        EstimatedCost = x.EstimatedCost,
+                        ArchivedOn = x.CompletedAt.Value.ToLocalTime().ToString("MMM dd, yyyy"),
+                        HandledBy = x.HandledBy
+                    }).ToList();
+
+                dgvReport.DataSource = rows;
+                FormatCurrencyColumn("EstimatedCost");
+                lblReportSummary.Text = $"Archived repairs: {rows.Count}";
+            }
+        }
+
+        private void FormatCurrencyColumn(string columnName)
+        {
+            if (dgvReport.Columns[columnName] != null)
+            {
+                dgvReport.Columns[columnName].DefaultCellStyle.Format = "₱#,##0.00";
+            }
+        }
+
+        // --- GRAPHS VIEW ---
+        private void BuildGraphsView()
+        {
+            panelBI_Graphs.Dock = DockStyle.Fill;
+            panelBI_Graphs.BackColor = Color.Transparent;
+
+            TableLayoutPanel layout = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 2,
+                RowCount = 2,
+                Padding = new Padding(0)
+            };
+            layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+            layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
+            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+
+            layout.Controls.Add(CreateGraphCard("Sales Pipeline by Stage", "graphPipeline"), 0, 0);
+            layout.Controls.Add(CreateGraphCard("Closed Deals by Staff", "graphStaff"), 1, 0);
+            layout.Controls.Add(CreateGraphCard("Repair Status", "graphRepair"), 0, 1);
+            layout.Controls.Add(CreateGraphCard("Sales Value by Month", "graphMonthly"), 1, 1);
+
+            panelBI_Graphs.Controls.Add(layout);
+        }
+
+        private Panel CreateGraphCard(string title, string graphName)
+        {
+            Panel card = CreateCardPanel();
+            card.Padding = new Padding(15, 55, 15, 15);
+            AddHeader(card, title, "Current CRM data");
+            Panel graph = new Panel
+            {
+                Name = graphName,
+                Dock = DockStyle.Fill,
+                BackColor = Color.White,
+                AutoScroll = true
+            };
+            card.Controls.Add(graph);
+            return card;
+        }
+
+        private void RefreshGraphsView()
+        {
+            foreach (Control card in panelBI_Graphs.Controls)
+            {
+                if (card is TableLayoutPanel layout)
+                {
+                    foreach (Control item in layout.Controls)
+                    {
+                        if (item is Panel graphCard)
+                        {
+                            Panel? graph = graphCard.Controls.OfType<Panel>().FirstOrDefault();
+                            if (graph != null)
+                                DrawSimpleBars(graph, GetGraphData(graph.Name));
+                        }
+                    }
+                }
+            }
+        }
+
+        private List<KeyValuePair<string, decimal>> GetGraphData(string graphName)
+        {
+            if (graphName == "graphPipeline")
+            {
+                return _allSales
+                    .Where(x => x.Status != "Archived")
+                    .GroupBy(x => string.IsNullOrWhiteSpace(x.Status) ? "New Inquiry" : x.Status)
+                    .Select(g => new KeyValuePair<string, decimal>(g.Key, g.Sum(x => x.EstimatedCost)))
+                    .ToList();
+            }
+
+            if (graphName == "graphStaff")
+            {
+                return _allSales
+                    .Where(x => x.Status == "Closed Won" && !string.IsNullOrWhiteSpace(x.HandledBy))
+                    .GroupBy(x => x.HandledBy)
+                    .Select(g => new KeyValuePair<string, decimal>(g.Key!, g.Count()))
+                    .OrderByDescending(x => x.Value)
+                    .ToList();
+            }
+
+            if (graphName == "graphRepair")
+            {
+                return _allRepairs
+                    .Where(x => x.Status != "Archived")
+                    .GroupBy(x => string.IsNullOrWhiteSpace(x.Status) ? "New Diagnose" : x.Status)
+                    .Select(g => new KeyValuePair<string, decimal>(g.Key, g.Count()))
+                    .ToList();
+            }
+
+            var monthly = _allSales
+                .Where(x => x.Status == "Closed Won")
+                .GroupBy(x => new { x.CreatedAt.Year, x.CreatedAt.Month })
+                .OrderBy(g => g.Key.Year)
+                .ThenBy(g => g.Key.Month)
+                .TakeLast(6)
+                .Select(g => new KeyValuePair<string, decimal>(
+                    new DateTime(g.Key.Year, g.Key.Month, 1).ToString("MMM yyyy"),
+                    g.Sum(x => x.EstimatedCost)))
+                .ToList();
+
+            return monthly;
+        }
+
+        private void DrawSimpleBars(Panel graph, List<KeyValuePair<string, decimal>> data)
+        {
+            graph.Controls.Clear();
+
+            if (data.Count == 0)
+            {
+                graph.Controls.Add(new Label
+                {
+                    Text = "No data available",
+                    Dock = DockStyle.Fill,
+                    TextAlign = ContentAlignment.MiddleCenter,
+                    ForeColor = Color.FromArgb(156, 163, 175)
+                });
+                return;
+            }
+
+            decimal max = data.Max(x => x.Value);
+            if (max <= 0) max = 1;
+
+            int y = 10;
+            foreach (var item in data)
+            {
+                Label label = new Label
+                {
+                    Text = item.Key,
+                    Location = new Point(5, y),
+                    Width = 125,
+                    Height = 28,
+                    TextAlign = ContentAlignment.MiddleLeft,
+                    ForeColor = Color.FromArgb(75, 85, 99)
+                };
+
+                Panel bar = new Panel
+                {
+                    Location = new Point(135, y + 5),
+                    Width = Math.Max(5, (int)((graph.ClientSize.Width - 220) * (double)(item.Value / max))),
+                    Height = 18,
+                    BackColor = Color.FromArgb(124, 58, 237)
+                };
+
+                Label value = new Label
+                {
+                    Text = item.Value % 1 == 0 ? item.Value.ToString("N0") : $"₱{item.Value:N2}",
+                    Location = new Point(bar.Right + 8, y),
+                    AutoSize = true,
+                    Height = 28,
+                    ForeColor = Color.FromArgb(55, 65, 81)
+                };
+
+                graph.Controls.Add(label);
+                graph.Controls.Add(bar);
+                graph.Controls.Add(value);
+                y += 40;
+            }
+        }
+
         // --- DATA BINDING ---
         private async Task LoadDataFromApiAsync()
         {
@@ -398,8 +919,16 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                 _allSales = await _apiService.GetSalesAsync(CurrentCompanyId) ?? new List<SalesLead>();
                 _allRepairs = await _apiService.GetRepairsAsync(CurrentCompanyId) ?? new List<RepairTicket>();
 
-                if (currentMainTab == "Business Intelligence" && currentSubTab == "Dashboard") RefreshDashboardMetrics();
-                else FilterAndBindGrid();
+                if (currentMainTab == "Business Intelligence")
+                {
+                    RefreshDashboardMetrics();
+                    RefreshKpiView();
+                    RefreshGraphsView();
+                }
+                else
+                {
+                    FilterAndBindGrid();
+                }
             }
             catch (Exception)
             {
