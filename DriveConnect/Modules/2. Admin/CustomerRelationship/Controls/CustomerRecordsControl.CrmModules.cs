@@ -83,12 +83,12 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
 
                 string q = txtSearch.Text.Trim().ToLower();
                 if (!string.IsNullOrWhiteSpace(q))
-                    query = query.Where(x => (FullName(x.FirstName, x.MiddleName, x.LastName) ?? "").ToLower().Contains(q) || (x.PhoneNumber ?? "").Contains(q) || (x.Comment ?? "").ToLower().Contains(q));
+                    query = query.Where(x => (x.CustomerName ?? "").ToLower().Contains(q) || (x.PhoneNumber ?? "").Contains(q) || (x.Comment ?? "").ToLower().Contains(q));
 
                 gridView.DataSource = query.Select(x => new
                 {
                     ID = x.FeedbackId,
-                    Customer = FullName(x.FirstName, x.MiddleName, x.LastName),
+                    Customer = x.CustomerName,
                     Phone = x.PhoneNumber,
                     Type = x.Type,
                     Rating = x.Rating,
@@ -109,12 +109,12 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
 
                 string q = txtSearch.Text.Trim().ToLower();
                 if (!string.IsNullOrWhiteSpace(q))
-                    query = query.Where(x => (FullName(x.FirstName, x.MiddleName, x.LastName) ?? "").ToLower().Contains(q) || (x.PhoneNumber ?? "").Contains(q) || (x.Description ?? "").ToLower().Contains(q));
+                    query = query.Where(x => (x.CustomerName ?? "").ToLower().Contains(q) || (x.PhoneNumber ?? "").Contains(q) || (x.Description ?? "").ToLower().Contains(q));
 
                 gridView.DataSource = query.Select(x => new
                 {
                     ID = x.ComplaintId,
-                    Customer = FullName(x.FirstName, x.MiddleName, x.LastName),
+                    Customer = x.CustomerName,
                     Phone = x.PhoneNumber,
                     Category = x.Category,
                     Priority = x.Priority,
@@ -134,12 +134,12 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                     var query = _allWarranties.Where(x => x.Status == "Active").AsEnumerable();
                     string q = txtSearch.Text.Trim().ToLower();
                     if (!string.IsNullOrWhiteSpace(q))
-                        query = query.Where(x => (FullName(x.FirstName, x.MiddleName, x.LastName) ?? "").ToLower().Contains(q) || (x.PhoneNumber ?? "").Contains(q) || (x.VehicleModel ?? "").ToLower().Contains(q));
+                        query = query.Where(x => (x.CustomerName ?? "").ToLower().Contains(q) || (x.PhoneNumber ?? "").Contains(q) || (x.VehicleModel ?? "").ToLower().Contains(q));
 
                     gridView.DataSource = query.Select(x => new
                     {
                         ID = x.WarrantyId,
-                        Customer = FullName(x.FirstName, x.MiddleName, x.LastName),
+                        Customer = x.CustomerName,
                         Phone = x.PhoneNumber,
                         Vehicle = x.VehicleModel,
                         PurchaseDate = x.PurchaseDate.ToLocalTime().ToString("MMM dd, yyyy"),
@@ -154,13 +154,13 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                     var query = _allWarrantyClaims.AsEnumerable();
                     string q = txtSearch.Text.Trim().ToLower();
                     if (!string.IsNullOrWhiteSpace(q))
-                        query = query.Where(x => (FullName(x.FirstName, x.MiddleName, x.LastName) ?? "").ToLower().Contains(q) || (x.PhoneNumber ?? "").Contains(q) || (x.VehicleModel ?? "").ToLower().Contains(q));
+                        query = query.Where(x => (x.CustomerName ?? "").ToLower().Contains(q) || (x.PhoneNumber ?? "").Contains(q) || (x.VehicleModel ?? "").ToLower().Contains(q));
 
                     gridView.DataSource = query.Select(x => new
                     {
                         ID = x.ClaimId,
                         WarrantyID = x.WarrantyId,
-                        Customer = FullName(x.FirstName, x.MiddleName, x.LastName),
+                        Customer = x.CustomerName,
                         Phone = x.PhoneNumber,
                         Vehicle = x.VehicleModel,
                         Problem = x.Problem,
@@ -181,12 +181,12 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
 
                 string q = txtSearch.Text.Trim().ToLower();
                 if (!string.IsNullOrWhiteSpace(q))
-                    query = query.Where(x => (FullName(x.FirstName, x.MiddleName, x.LastName) ?? "").ToLower().Contains(q) || (x.PhoneNumber ?? "").Contains(q) || (x.VehicleModel ?? "").ToLower().Contains(q));
+                    query = query.Where(x => (x.CustomerName ?? "").ToLower().Contains(q) || (x.PhoneNumber ?? "").Contains(q) || (x.VehicleModel ?? "").ToLower().Contains(q));
 
                 gridView.DataSource = query.Select(x => new
                 {
                     ID = x.MaintenanceId,
-                    Customer = FullName(x.FirstName, x.MiddleName, x.LastName),
+                    Customer = x.CustomerName,
                     Phone = x.PhoneNumber,
                     Vehicle = x.VehicleModel,
                     ServiceDate = x.ServiceDate.ToLocalTime().ToString("MMM dd, yyyy"),
@@ -219,11 +219,11 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                         Phone = x.PhoneNumber ?? "",
                         Repairs = 1
                     }));
-                    sources.AddRange(_allFeedback.Select(x => new CustomerHistoryProfileRow { Customer = FullName(x.FirstName, x.MiddleName, x.LastName) ?? "", Phone = x.PhoneNumber ?? "", Feedback = 1 }));
-                    sources.AddRange(_allComplaints.Select(x => new CustomerHistoryProfileRow { Customer = FullName(x.FirstName, x.MiddleName, x.LastName) ?? "", Phone = x.PhoneNumber ?? "", Complaints = 1 }));
-                    sources.AddRange(_allWarranties.Select(x => new CustomerHistoryProfileRow { Customer = FullName(x.FirstName, x.MiddleName, x.LastName) ?? "", Phone = x.PhoneNumber ?? "", Warranties = 1 }));
-                    sources.AddRange(_allMaintenance.Select(x => new CustomerHistoryProfileRow { Customer = FullName(x.FirstName, x.MiddleName, x.LastName) ?? "", Phone = x.PhoneNumber ?? "", Maintenance = 1 }));
-                    sources.AddRange(_allInteractions.Select(x => new CustomerHistoryProfileRow { Customer = FullName(x.FirstName, x.MiddleName, x.LastName) ?? "", Phone = x.PhoneNumber ?? "" }));
+                    sources.AddRange(_allFeedback.Select(x => new CustomerHistoryProfileRow { Customer = x.CustomerName ?? "", Phone = x.PhoneNumber ?? "", Feedback = 1 }));
+                    sources.AddRange(_allComplaints.Select(x => new CustomerHistoryProfileRow { Customer = x.CustomerName ?? "", Phone = x.PhoneNumber ?? "", Complaints = 1 }));
+                    sources.AddRange(_allWarranties.Select(x => new CustomerHistoryProfileRow { Customer = x.CustomerName ?? "", Phone = x.PhoneNumber ?? "", Warranties = 1 }));
+                    sources.AddRange(_allMaintenance.Select(x => new CustomerHistoryProfileRow { Customer = x.CustomerName ?? "", Phone = x.PhoneNumber ?? "", Maintenance = 1 }));
+                    sources.AddRange(_allInteractions.Select(x => new CustomerHistoryProfileRow { Customer = x.CustomerName ?? "", Phone = x.PhoneNumber ?? "" }));
 
                     var grouped = sources
                         .Where(x => !string.IsNullOrWhiteSpace(x.Customer))
@@ -282,11 +282,11 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                 if (currentSubTab == "Interaction History")
                 {
                     gridView.DataSource = _allInteractions
-                        .Where(x => string.IsNullOrWhiteSpace(q) || (FullName(x.FirstName, x.MiddleName, x.LastName) ?? "").ToLower().Contains(q) || (x.PhoneNumber ?? "").Contains(q) || (x.Subject ?? "").ToLower().Contains(q))
+                        .Where(x => string.IsNullOrWhiteSpace(q) || (x.CustomerName ?? "").ToLower().Contains(q) || (x.PhoneNumber ?? "").Contains(q) || (x.Subject ?? "").ToLower().Contains(q))
                         .Select(x => new
                         {
                             ID = x.InteractionId,
-                            Customer = FullName(x.FirstName, x.MiddleName, x.LastName),
+                            Customer = x.CustomerName,
                             Phone = x.PhoneNumber,
                             Type = x.InteractionType,
                             Subject = x.Subject,
@@ -303,7 +303,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                         .Select(x => new
                         {
                             ID = x.FeedbackId,
-                            Customer = FullName(x.FirstName, x.MiddleName, x.LastName),
+                            Customer = x.CustomerName,
                             Phone = x.PhoneNumber,
                             Type = x.Type,
                             Rating = x.Rating,
@@ -320,7 +320,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                         .Select(x => new
                         {
                             ID = x.ComplaintId,
-                            Customer = FullName(x.FirstName, x.MiddleName, x.LastName),
+                            Customer = x.CustomerName,
                             Phone = x.PhoneNumber,
                             Category = x.Category,
                             Priority = x.Priority,
@@ -338,7 +338,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                         .Select(x => new
                         {
                             ID = x.WarrantyId,
-                            Customer = FullName(x.FirstName, x.MiddleName, x.LastName),
+                            Customer = x.CustomerName,
                             Phone = x.PhoneNumber,
                             Vehicle = x.VehicleModel,
                             WarrantyStart = x.WarrantyStart.ToLocalTime().ToString("MMM dd, yyyy"),
@@ -356,7 +356,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                         .Select(x => new
                         {
                             ID = x.MaintenanceId,
-                            Customer = FullName(x.FirstName, x.MiddleName, x.LastName),
+                            Customer = x.CustomerName,
                             Phone = x.PhoneNumber,
                             Vehicle = x.VehicleModel,
                             ServiceDate = x.ServiceDate.ToLocalTime().ToString("MMM dd, yyyy"),
@@ -419,9 +419,19 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                 await ShowMaintenanceModalAsync(_allMaintenance.FirstOrDefault(x => x.MaintenanceId == id));
         }
 
-        private static string FullName(string? firstName, string? middleName, string? lastName)
+        private static string GetNamePart(string? fullName, int part)
         {
-            return $"{firstName} {middleName} {lastName}".Replace("  ", " ").Trim();
+            var parts = (fullName ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length == 0) return "";
+            if (part == 0) return parts[0];
+            if (part == 1) return parts.Length > 2 ? string.Join(" ", parts.Skip(1).Take(parts.Length - 2)) : "";
+            return parts.Length > 1 ? parts[^1] : "";
+        }
+
+        private static string BuildFullName(string first, string middle, string last)
+        {
+            return string.Join(" ", new[] { first.Trim(), middle.Trim(), last.Trim() }
+                .Where(x => !string.IsNullOrWhiteSpace(x)));
         }
 
         private bool ConfirmAction(string message)
@@ -493,7 +503,9 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
         {
             using Form f = CreateBaseModal(existing == null ? "New Feedback" : "Edit Feedback", 680);
             int y = 70;
-            TextBox customer = AddFormField(f, "Customer Name", FullName(existing?.FirstName, existing?.MiddleName, existing?.LastName), ref y);
+            TextBox first = AddFormField(f, "First Name", GetNamePart(existing?.CustomerName, 0), ref y);
+            TextBox middle = AddFormField(f, "Middle Name (Optional)", GetNamePart(existing?.CustomerName, 1), ref y);
+            TextBox last = AddFormField(f, "Last Name", GetNamePart(existing?.CustomerName, 2), ref y);
             TextBox phone = AddFormField(f, "Phone Number", existing?.PhoneNumber, ref y);
             ComboBox type = AddFormCombo(f, "Feedback Type", new[] { "Sales Experience", "Test Drive Experience", "Service Experience", "Staff Service", "General Suggestion" }, existing?.Type ?? "General Suggestion", ref y);
             ComboBox rating = AddFormCombo(f, "Rating", new[] { "1", "2", "3", "4", "5" }, (existing?.Rating ?? 5).ToString(), ref y);
@@ -504,17 +516,15 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
             Button save = AddFormSubmitButton(f, existing == null ? "Save Feedback" : "Update Feedback", y);
             save.Click += async (s, e) =>
             {
-                if (string.IsNullOrWhiteSpace(first.Text) || string.IsNullOrWhiteSpace(last.Text) || string.IsNullOrWhiteSpace(phone.Text) || string.IsNullOrWhiteSpace(comment.Text))
+                if ((string.IsNullOrWhiteSpace(first.Text) || string.IsNullOrWhiteSpace(last.Text)) || string.IsNullOrWhiteSpace(phone.Text) || string.IsNullOrWhiteSpace(comment.Text))
                 {
-                    MessageBox.Show("First Name, Last Name, Phone Number, and Comment are required.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    MessageBox.Show("Customer Name, Phone Number, and Comment are required.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
                 if (!ConfirmAction(existing == null ? "Confirm adding this feedback?" : "Confirm updating this feedback?")) return;
 
                 var payload = existing ?? new Feedback { CreatedAt = DateTime.UtcNow };
-                payload.FirstName = first.Text;
-                payload.MiddleName = middle.Text;
-                payload.LastName = last.Text;
+                payload.CustomerName = BuildFullName(first.Text, middle.Text, last.Text);
                 payload.PhoneNumber = phone.Text;
                 payload.Type = type.Text;
                 payload.Rating = int.TryParse(rating.Text, out int r) ? r : 5;
@@ -541,7 +551,9 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
         {
             using Form f = CreateBaseModal(existing == null ? "New Complaint" : "Edit Complaint", 820);
             int y = 70;
-            TextBox customer = AddFormField(f, "Customer Name", FullName(existing?.FirstName, existing?.MiddleName, existing?.LastName), ref y);
+            TextBox first = AddFormField(f, "First Name", GetNamePart(existing?.CustomerName, 0), ref y);
+            TextBox middle = AddFormField(f, "Middle Name (Optional)", GetNamePart(existing?.CustomerName, 1), ref y);
+            TextBox last = AddFormField(f, "Last Name", GetNamePart(existing?.CustomerName, 2), ref y);
             TextBox phone = AddFormField(f, "Phone Number", existing?.PhoneNumber, ref y);
             ComboBox category = AddFormCombo(f, "Category", new[] { "Vehicle", "Service", "Staff", "Sales", "Other" }, existing?.Category ?? "Service", ref y);
             ComboBox priority = AddFormCombo(f, "Priority", new[] { "Low", "Medium", "High" }, existing?.Priority ?? "Medium", ref y);
@@ -553,9 +565,9 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
             Button save = AddFormSubmitButton(f, existing == null ? "Save Complaint" : "Update Complaint", y);
             save.Click += async (s, e) =>
             {
-                if (string.IsNullOrWhiteSpace(first.Text) || string.IsNullOrWhiteSpace(last.Text) || string.IsNullOrWhiteSpace(phone.Text) || string.IsNullOrWhiteSpace(description.Text) || string.IsNullOrWhiteSpace(handledBy.Text))
+                if ((string.IsNullOrWhiteSpace(first.Text) || string.IsNullOrWhiteSpace(last.Text)) || string.IsNullOrWhiteSpace(phone.Text) || string.IsNullOrWhiteSpace(description.Text) || string.IsNullOrWhiteSpace(handledBy.Text))
                 {
-                    MessageBox.Show("First Name, Last Name, Phone Number, Complaint, and Handled By are required.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    MessageBox.Show("Customer Name, Phone Number, Complaint, and Handled By are required.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
                 if ((status.Text == "Resolved" || status.Text == "Closed") && string.IsNullOrWhiteSpace(resolution.Text))
@@ -567,9 +579,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                 if (!ConfirmAction(existing == null ? "Confirm adding this complaint?" : "Confirm updating this complaint?")) return;
 
                 var payload = existing ?? new Complaint { CreatedAt = DateTime.UtcNow };
-                payload.FirstName = first.Text;
-                payload.MiddleName = middle.Text;
-                payload.LastName = last.Text;
+                payload.CustomerName = BuildFullName(first.Text, middle.Text, last.Text);
                 payload.PhoneNumber = phone.Text;
                 payload.Category = category.Text;
                 payload.Priority = priority.Text;
@@ -597,7 +607,9 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
         {
             using Form f = CreateBaseModal(existing == null ? "New Interaction Log" : "Edit Interaction Log", 680);
             int y = 70;
-            TextBox customer = AddFormField(f, "Customer Name", FullName(existing?.FirstName, existing?.MiddleName, existing?.LastName), ref y);
+            TextBox first = AddFormField(f, "First Name", GetNamePart(existing?.CustomerName, 0), ref y);
+            TextBox middle = AddFormField(f, "Middle Name (Optional)", GetNamePart(existing?.CustomerName, 1), ref y);
+            TextBox last = AddFormField(f, "Last Name", GetNamePart(existing?.CustomerName, 2), ref y);
             TextBox phone = AddFormField(f, "Phone Number", existing?.PhoneNumber, ref y);
             ComboBox type = AddFormCombo(f, "Interaction Type", new[] { "Call", "Message", "Meeting", "Appointment", "Follow-up" }, existing?.InteractionType ?? "Call", ref y);
             TextBox subject = AddFormField(f, "Subject", existing?.Subject, ref y);
@@ -607,18 +619,16 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
             Button save = AddFormSubmitButton(f, existing == null ? "Save Interaction" : "Update Interaction", y);
             save.Click += async (s, e) =>
             {
-                if (string.IsNullOrWhiteSpace(first.Text) || string.IsNullOrWhiteSpace(last.Text) || string.IsNullOrWhiteSpace(phone.Text) || string.IsNullOrWhiteSpace(subject.Text) || string.IsNullOrWhiteSpace(handledBy.Text))
+                if ((string.IsNullOrWhiteSpace(first.Text) || string.IsNullOrWhiteSpace(last.Text)) || string.IsNullOrWhiteSpace(phone.Text) || string.IsNullOrWhiteSpace(subject.Text) || string.IsNullOrWhiteSpace(handledBy.Text))
                 {
-                    MessageBox.Show("First Name, Last Name, Phone Number, Subject, and Handled By are required.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    MessageBox.Show("Customer Name, Phone Number, Subject, and Handled By are required.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
 
                 if (!ConfirmAction(existing == null ? "Confirm adding this interaction?" : "Confirm updating this interaction?")) return;
 
                 var payload = existing ?? new InteractionLog { CreatedAt = DateTime.UtcNow };
-                payload.FirstName = first.Text;
-                payload.MiddleName = middle.Text;
-                payload.LastName = last.Text;
+                payload.CustomerName = BuildFullName(first.Text, middle.Text, last.Text);
                 payload.PhoneNumber = phone.Text;
                 payload.InteractionType = type.Text;
                 payload.Subject = subject.Text;
@@ -644,7 +654,9 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
         {
             using Form f = CreateBaseModal(existing == null ? "Register Vehicle Warranty" : "Edit Vehicle Warranty", 760);
             int y = 70;
-            TextBox customer = AddFormField(f, "Customer Name", FullName(existing?.FirstName, existing?.MiddleName, existing?.LastName), ref y);
+            TextBox first = AddFormField(f, "First Name", GetNamePart(existing?.CustomerName, 0), ref y);
+            TextBox middle = AddFormField(f, "Middle Name (Optional)", GetNamePart(existing?.CustomerName, 1), ref y);
+            TextBox last = AddFormField(f, "Last Name", GetNamePart(existing?.CustomerName, 2), ref y);
             TextBox phone = AddFormField(f, "Phone Number", existing?.PhoneNumber, ref y);
             TextBox vehicle = AddFormField(f, "Vehicle Model", existing?.VehicleModel, ref y);
             DateTimePicker purchase = AddFormDateField(f, "Purchase Date", existing?.PurchaseDate ?? DateTime.Today, ref y);
@@ -656,9 +668,9 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
             Button save = AddFormSubmitButton(f, existing == null ? "Save Warranty" : "Update Warranty", y);
             save.Click += async (s, e) =>
             {
-                if (string.IsNullOrWhiteSpace(first.Text) || string.IsNullOrWhiteSpace(last.Text) || string.IsNullOrWhiteSpace(phone.Text) || string.IsNullOrWhiteSpace(vehicle.Text) || string.IsNullOrWhiteSpace(coverage.Text))
+                if ((string.IsNullOrWhiteSpace(first.Text) || string.IsNullOrWhiteSpace(last.Text)) || string.IsNullOrWhiteSpace(phone.Text) || string.IsNullOrWhiteSpace(vehicle.Text) || string.IsNullOrWhiteSpace(coverage.Text))
                 {
-                    MessageBox.Show("First Name, Last Name, Phone Number, Vehicle Model, and Coverage are required.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    MessageBox.Show("Customer Name, Phone Number, Vehicle Model, and Coverage are required.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
 
@@ -671,9 +683,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                 if (!ConfirmAction(existing == null ? "Confirm adding this warranty?" : "Confirm updating this warranty?")) return;
 
                 var payload = existing ?? new VehicleWarranty();
-                payload.FirstName = first.Text;
-                payload.MiddleName = middle.Text;
-                payload.LastName = last.Text;
+                payload.CustomerName = BuildFullName(first.Text, middle.Text, last.Text);
                 payload.PhoneNumber = phone.Text;
                 payload.VehicleModel = vehicle.Text;
                 payload.PurchaseDate = purchase.Value.Date;
@@ -702,7 +712,9 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
             using Form f = CreateBaseModal(existing == null ? "New Warranty Claim" : "Edit Warranty Claim", 880);
             int y = 70;
             TextBox warrantyId = AddFormField(f, "Warranty ID", existing?.WarrantyId.ToString(), ref y);
-            TextBox customer = AddFormField(f, "Customer Name", FullName(existing?.FirstName, existing?.MiddleName, existing?.LastName), ref y);
+            TextBox first = AddFormField(f, "First Name", GetNamePart(existing?.CustomerName, 0), ref y);
+            TextBox middle = AddFormField(f, "Middle Name (Optional)", GetNamePart(existing?.CustomerName, 1), ref y);
+            TextBox last = AddFormField(f, "Last Name", GetNamePart(existing?.CustomerName, 2), ref y);
             TextBox phone = AddFormField(f, "Phone Number", existing?.PhoneNumber, ref y);
             TextBox vehicle = AddFormField(f, "Vehicle Model", existing?.VehicleModel, ref y);
             TextBox problem = AddFormField(f, "Problem", existing?.Problem, ref y);
@@ -719,9 +731,9 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                     MessageBox.Show("Warranty ID must be a valid number.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
-                if (string.IsNullOrWhiteSpace(first.Text) || string.IsNullOrWhiteSpace(last.Text) || string.IsNullOrWhiteSpace(phone.Text) || string.IsNullOrWhiteSpace(vehicle.Text) || string.IsNullOrWhiteSpace(problem.Text) || string.IsNullOrWhiteSpace(handledBy.Text))
+                if ((string.IsNullOrWhiteSpace(first.Text) || string.IsNullOrWhiteSpace(last.Text)) || string.IsNullOrWhiteSpace(phone.Text) || string.IsNullOrWhiteSpace(vehicle.Text) || string.IsNullOrWhiteSpace(problem.Text) || string.IsNullOrWhiteSpace(handledBy.Text))
                 {
-                    MessageBox.Show("First Name, Last Name, Phone Number, Vehicle Model, Problem, and Handled By are required.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    MessageBox.Show("Customer Name, Phone Number, Vehicle Model, Problem, and Handled By are required.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
                 if (status.Text == "Resolved" && string.IsNullOrWhiteSpace(resolution.Text))
@@ -734,9 +746,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
 
                 var payload = existing ?? new WarrantyClaim();
                 payload.WarrantyId = wid;
-                payload.FirstName = first.Text;
-                payload.MiddleName = middle.Text;
-                payload.LastName = last.Text;
+                payload.CustomerName = BuildFullName(first.Text, middle.Text, last.Text);
                 payload.PhoneNumber = phone.Text;
                 payload.VehicleModel = vehicle.Text;
                 payload.Problem = problem.Text;
@@ -764,7 +774,9 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
         {
             using Form f = CreateBaseModal(existing == null ? "New Maintenance Record" : "Edit Maintenance Record", 860);
             int y = 70;
-            TextBox customer = AddFormField(f, "Customer Name", FullName(existing?.FirstName, existing?.MiddleName, existing?.LastName), ref y);
+            TextBox first = AddFormField(f, "First Name", GetNamePart(existing?.CustomerName, 0), ref y);
+            TextBox middle = AddFormField(f, "Middle Name (Optional)", GetNamePart(existing?.CustomerName, 1), ref y);
+            TextBox last = AddFormField(f, "Last Name", GetNamePart(existing?.CustomerName, 2), ref y);
             TextBox phone = AddFormField(f, "Phone Number", existing?.PhoneNumber, ref y);
             TextBox vehicle = AddFormField(f, "Vehicle Model", existing?.VehicleModel, ref y);
             DateTimePicker serviceDate = AddFormDateField(f, "Service Date", existing?.ServiceDate ?? DateTime.Today, ref y);
@@ -777,18 +789,16 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
             Button save = AddFormSubmitButton(f, existing == null ? "Save Maintenance" : "Update Maintenance", y);
             save.Click += async (s, e) =>
             {
-                if (string.IsNullOrWhiteSpace(first.Text) || string.IsNullOrWhiteSpace(last.Text) || string.IsNullOrWhiteSpace(phone.Text) || string.IsNullOrWhiteSpace(vehicle.Text) || string.IsNullOrWhiteSpace(staff.Text))
+                if ((string.IsNullOrWhiteSpace(first.Text) || string.IsNullOrWhiteSpace(last.Text)) || string.IsNullOrWhiteSpace(phone.Text) || string.IsNullOrWhiteSpace(vehicle.Text) || string.IsNullOrWhiteSpace(staff.Text))
                 {
-                    MessageBox.Show("First Name, Last Name, Phone Number, Vehicle Model, and Assigned Staff are required.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    MessageBox.Show("Customer Name, Phone Number, Vehicle Model, and Assigned Staff are required.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
 
                 if (!ConfirmAction(existing == null ? "Confirm adding this maintenance record?" : "Confirm updating this maintenance record?")) return;
 
                 var payload = existing ?? new MaintenanceRecord();
-                payload.FirstName = first.Text;
-                payload.MiddleName = middle.Text;
-                payload.LastName = last.Text;
+                payload.CustomerName = BuildFullName(first.Text, middle.Text, last.Text);
                 payload.PhoneNumber = phone.Text;
                 payload.VehicleModel = vehicle.Text;
                 payload.ServiceDate = serviceDate.Value.Date;
