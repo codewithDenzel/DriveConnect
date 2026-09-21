@@ -59,7 +59,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
         private TextBox txtSearch = new TextBox();
         private Button btnNewRecord = new Button();
 
-        // --- STATE & DATA ---
+        // --- STATE and DATA ---
         private string currentMainTab = "Car Sales and Leads";
         private string currentSubTab = "New Inquiry";
         private List<SalesLead> _allSales = new List<SalesLead>();
@@ -110,7 +110,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                 new[] { "Active Promos", "Drafts" }));
 
             sidebarFlow.Controls.Add(CreateAccordion("nav_history", "🕒 Customer History",
-                new[] { "Customer Profile", "Sales & Lead History", "Service & Repair History", "Interaction History", "Feedback History", "Complaint History", "Warranty History", "Maintenance History" }));
+                new[] { "Customer Profile", "Sales and Lead History", "Service and Repair History", "Interaction History", "Feedback History", "Complaint History", "Warranty History", "Maintenance History" }));
 
             sidebarFlow.Controls.Add(CreateAccordion("nav_feedback", "💬 Feedback",
                 new[] { "New Feedback", "Reviewed Feedback" }));
@@ -138,6 +138,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
 
             btnNewRecord.Text = "+ New Record";
             btnNewRecord.Width = 140;
+            btnNewRecord.Visible = true;
             btnNewRecord.Height = 40;
             btnNewRecord.Location = new Point(0, 0);
             btnNewRecord.BackColor = Color.FromArgb(79, 70, 229);
@@ -254,6 +255,14 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
 
         private void TriggerTabSwitch(string mainTab, string subTab, Button? selectedBtn)
         {
+            // Keep the original DriveConnect menu names even if an older UI passes '&' versions.
+            mainTab = mainTab
+                .Replace("Car Sales & Leads", "Car Sales and Leads")
+                .Replace("Service & Repair", "Service and Repair");
+            subTab = subTab
+                .Replace("Sales & Lead History", "Sales and Lead History")
+                .Replace("Service & Repair History", "Service and Repair History");
+
             currentMainTab = mainTab;
             currentSubTab = subTab;
             lblBreadcrumb.Text = $"{mainTab} > {subTab}";
@@ -305,26 +314,42 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                     panelBI_Reports.BringToFront();
                 }
             }
-            else
+            else if (IsAdditionalDataTab(mainTab))
             {
+                // These are implemented CRM modules, so they must never fall through
+                // to the generic "under development" message.
                 topActionBar.Visible = true;
                 gridWrapper.Visible = true;
                 gridWrapper.BringToFront();
+                txtSearch.Visible = true;
+                gridView.Visible = true;
+                btnNewRecord.Visible = CanCreateCurrentTab();
+                lblPlaceholderMessage.Visible = false;
+                FilterAndBindGrid();
+            }
+            else
+            {
+                topActionBar.Visible = mainTab == "Car Sales and Leads" || mainTab == "Service and Repair";
+                gridWrapper.Visible = true;
+                gridWrapper.BringToFront();
 
-                if (mainTab == "Car Sales and Leads" || mainTab == "Service and Repair" || mainTab == "Archived" || IsAdditionalDataTab(mainTab))
+                if (mainTab == "Car Sales and Leads" || mainTab == "Service and Repair" || mainTab == "Archived")
                 {
                     txtSearch.Visible = true;
                     gridView.Visible = true;
-                    btnNewRecord.Visible = mainTab != "Archived" && CanCreateCurrentTab();
+                    btnNewRecord.Visible = mainTab != "Archived";
+                    lblPlaceholderMessage.Visible = false;
                     FilterAndBindGrid();
                 }
                 else
                 {
+                    topActionBar.Visible = false;
                     txtSearch.Visible = false;
                     gridView.Visible = false;
                     btnNewRecord.Visible = false;
                     lblPlaceholderMessage.Text = $"{subTab} features are currently under development.";
                     lblPlaceholderMessage.Visible = true;
+                    lblPlaceholderMessage.BringToFront();
                 }
             }
         }
@@ -348,7 +373,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
             bottomSplit.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
 
             Panel leftCard = CreateCardPanel();
-            AddHeader(leftCard, "Dashboard Overview", "High-level CRM sales performance & active pipelines");
+            AddHeader(leftCard, "Dashboard Overview", "High-level CRM sales performance and active pipelines");
             dgvPipelineSummary = CreateDashboardGridView();
             leftCard.Controls.Add(dgvPipelineSummary);
 
@@ -982,7 +1007,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                     DateAdded = x.CreatedAt.ToLocalTime().ToString("MMM dd, yyyy hh:mm tt")
                 }).ToList();
 
-                if (gridView.Columns["DateAdded"] != null) gridView.Columns["DateAdded"].HeaderText = "Date & Time Added";
+                if (gridView.Columns["DateAdded"] != null) gridView.Columns["DateAdded"].HeaderText = "Date and Time Added";
             }
             else if (currentMainTab == "Service and Repair")
             {
@@ -1009,7 +1034,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                     DateAdded = x.CreatedAt.ToLocalTime().ToString("MMM dd, yyyy hh:mm tt")
                 }).ToList();
 
-                if (gridView.Columns["DateAdded"] != null) gridView.Columns["DateAdded"].HeaderText = "Date & Time Added";
+                if (gridView.Columns["DateAdded"] != null) gridView.Columns["DateAdded"].HeaderText = "Date and Time Added";
                 if (gridView.Columns["Value"] != null) gridView.Columns["Value"].HeaderText = "Estimated Cost";
             }
             else if (currentMainTab == "Archived")
