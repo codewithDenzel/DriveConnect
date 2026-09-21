@@ -11,6 +11,13 @@ public class TenantDriveConnectDbContext : DbContext
     // Register both new tables
     public DbSet<SalesLead> SalesLeads => Set<SalesLead>();
     public DbSet<RepairTicket> RepairTickets => Set<RepairTicket>();
+    public DbSet<Promotion> Promotions => Set<Promotion>();
+    public DbSet<Feedback> Feedback => Set<Feedback>();
+    public DbSet<Complaint> Complaints => Set<Complaint>();
+    public DbSet<InteractionLog> InteractionLogs => Set<InteractionLog>();
+    public DbSet<VehicleWarranty> VehicleWarranties => Set<VehicleWarranty>();
+    public DbSet<WarrantyClaim> WarrantyClaims => Set<WarrantyClaim>();
+    public DbSet<MaintenanceRecord> MaintenanceRecords => Set<MaintenanceRecord>();
 
 
 
@@ -58,6 +65,95 @@ public class TenantDriveConnectDbContext : DbContext
             entity.Property(x => x.HandledBy).HasMaxLength(100);
 
             
+        });
+
+        builder.Entity<Promotion>(entity =>
+        {
+            entity.ToTable("Promotions");
+            entity.HasKey(x => x.PromotionId);
+            entity.Property(x => x.Title).HasMaxLength(150).IsRequired();
+            entity.Property(x => x.Description).HasMaxLength(500).IsRequired();
+            entity.Property(x => x.DiscountType).HasMaxLength(30).IsRequired();
+            entity.Property(x => x.DiscountValue).HasPrecision(18, 2);
+            entity.Property(x => x.CreatedBy).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.ApprovedBy).HasMaxLength(100);
+            entity.Property(x => x.Status).HasMaxLength(30).HasDefaultValue("Draft");
+        });
+
+        builder.Entity<Feedback>(entity =>
+        {
+            entity.ToTable("Feedback");
+            entity.HasKey(x => x.FeedbackId);
+            entity.Property(x => x.CustomerName).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.PhoneNumber).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.Type).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.Comment).HasMaxLength(1000).IsRequired();
+            entity.Property(x => x.HandledBy).HasMaxLength(100);
+            entity.Property(x => x.Status).HasMaxLength(30).HasDefaultValue("New");
+        });
+
+        builder.Entity<Complaint>(entity =>
+        {
+            entity.ToTable("Complaints");
+            entity.HasKey(x => x.ComplaintId);
+            entity.Property(x => x.CustomerName).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.PhoneNumber).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.Category).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.Description).HasMaxLength(1000).IsRequired();
+            entity.Property(x => x.Priority).HasMaxLength(30).IsRequired();
+            entity.Property(x => x.HandledBy).HasMaxLength(100);
+            entity.Property(x => x.Status).HasMaxLength(30).HasDefaultValue("New");
+            entity.Property(x => x.Resolution).HasMaxLength(1000);
+        });
+
+        builder.Entity<InteractionLog>(entity =>
+        {
+            entity.ToTable("InteractionLogs");
+            entity.HasKey(x => x.InteractionId);
+            entity.Property(x => x.CustomerName).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.PhoneNumber).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.InteractionType).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.Subject).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Notes).HasMaxLength(1000);
+            entity.Property(x => x.HandledBy).HasMaxLength(100);
+        });
+
+        builder.Entity<VehicleWarranty>(entity =>
+        {
+            entity.ToTable("VehicleWarranties");
+            entity.HasKey(x => x.WarrantyId);
+            entity.Property(x => x.CustomerName).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.PhoneNumber).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.VehicleModel).HasMaxLength(150).IsRequired();
+            entity.Property(x => x.Coverage).HasMaxLength(500).IsRequired();
+            entity.Property(x => x.Status).HasMaxLength(30).HasDefaultValue("Active");
+        });
+
+        builder.Entity<WarrantyClaim>(entity =>
+        {
+            entity.ToTable("WarrantyClaims");
+            entity.HasKey(x => x.ClaimId);
+            entity.Property(x => x.CustomerName).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.PhoneNumber).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.VehicleModel).HasMaxLength(150).IsRequired();
+            entity.Property(x => x.Problem).HasMaxLength(1000).IsRequired();
+            entity.Property(x => x.HandledBy).HasMaxLength(100);
+            entity.Property(x => x.Status).HasMaxLength(30).HasDefaultValue("Pending");
+            entity.Property(x => x.Resolution).HasMaxLength(1000);
+        });
+
+        builder.Entity<MaintenanceRecord>(entity =>
+        {
+            entity.ToTable("MaintenanceRecords");
+            entity.HasKey(x => x.MaintenanceId);
+            entity.Property(x => x.CustomerName).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.PhoneNumber).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.VehicleModel).HasMaxLength(150).IsRequired();
+            entity.Property(x => x.ServiceType).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.PlanCoverage).HasMaxLength(150).IsRequired();
+            entity.Property(x => x.AssignedStaff).HasMaxLength(100);
+            entity.Property(x => x.Status).HasMaxLength(30).HasDefaultValue("Scheduled");
+            entity.Property(x => x.Notes).HasMaxLength(1000);
         });
     }
 }
