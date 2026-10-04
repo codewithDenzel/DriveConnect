@@ -9,7 +9,11 @@ namespace DriveConnect.api.Controllers;
 public sealed class SalesController : TenantControllerBase
 {
     private readonly ISyncService _syncService;
-    public SalesController(ITenantDbContextFactory tenantDbFactory) : base(tenantDbFactory) { }
+    public SalesController(ITenantDbContextFactory tenantDbFactory, ISyncService syncService)
+        : base(tenantDbFactory)
+    {
+        _syncService = syncService;
+    }
 
     [HttpGet]
     public async Task<ActionResult<List<SalesLead>>> GetAll(int companyId)
