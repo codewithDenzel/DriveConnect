@@ -8,6 +8,7 @@ namespace DriveConnect.api.Controllers;
 [Route("tenant/{companyId:int}/sales")]
 public sealed class SalesController : TenantControllerBase
 {
+    private readonly ISyncService _syncService;
     public SalesController(ITenantDbContextFactory tenantDbFactory) : base(tenantDbFactory) { }
 
     [HttpGet]
@@ -24,6 +25,8 @@ public sealed class SalesController : TenantControllerBase
         if (lead.CreatedAt == default) lead.CreatedAt = DateTime.UtcNow;
         tenantDb.SalesLeads.Add(lead);
         await tenantDb.SaveChangesAsync();
+        await _syncService.EnqueueAsync(
+            tenantDb, "SalesLead", "Create", lead.InquiryId, lead);
         return Created($"/tenant/{companyId}/sales/{lead.InquiryId}", lead);
     }
 
@@ -50,6 +53,8 @@ public sealed class SalesController : TenantControllerBase
             existing.CompletedAt = null;
 
         await tenantDb.SaveChangesAsync();
+        await _syncService.EnqueueAsync(
+            tenantDb, "SalesLead", "Update", id, existing);
         return Ok(existing);
     }
 
@@ -62,6 +67,8 @@ public sealed class SalesController : TenantControllerBase
 
         tenantDb.SalesLeads.Remove(existing);
         await tenantDb.SaveChangesAsync();
+        await _syncService.EnqueueAsync(
+            tenantDb, "SalesLead", "Delete", id, null);
         return NoContent();
     }
 }
