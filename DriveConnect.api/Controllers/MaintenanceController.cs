@@ -8,6 +8,7 @@ namespace DriveConnect.api.Controllers;
 [Route("tenant/{companyId:int}/maintenance")]
 public sealed class MaintenanceController : TenantControllerBase
 {
+    private readonly ISyncService _syncService;
     public MaintenanceController(ITenantDbContextFactory tenantDbFactory) : base(tenantDbFactory) { }
 
     [HttpGet]
@@ -23,6 +24,8 @@ public sealed class MaintenanceController : TenantControllerBase
         using var tenantDb = await GetTenantDbAsync(companyId);
         tenantDb.MaintenanceRecords.Add(item);
         await tenantDb.SaveChangesAsync();
+        await _syncService.EnqueueAsync(
+            tenantDb, "MaintenanceRecord", "Create", item.MaintenanceId, item);
         return Created($"/tenant/{companyId}/maintenance/{item.MaintenanceId}", item);
     }
 
@@ -44,6 +47,8 @@ public sealed class MaintenanceController : TenantControllerBase
         existing.Notes = updated.Notes;
 
         await tenantDb.SaveChangesAsync();
+        await _syncService.EnqueueAsync(
+            tenantDb, "MaintenanceRecord", "Update", id, existing);
         return Ok(existing);
     }
 }
