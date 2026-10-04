@@ -39,6 +39,13 @@ namespace DriveConnect.infrastructure.Services
                 var userId = _configuration[$"TenantCredentials:{databaseInfo.CredentialKey}:UserId"];
                 var password = _configuration[$"TenantCredentials:{databaseInfo.CredentialKey}:Password"];
 
+                if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(password))
+                {
+                    throw new InvalidOperationException(
+                        $"Missing credentials for {databaseInfo.CredentialKey}. " +
+                        "Configure the tenant database UserId and Password as environment variables.");
+                }
+
                 connectionString =
                     $"Server={databaseInfo.ServerName};" +
                     $"Database={databaseInfo.DatabaseName};" +
