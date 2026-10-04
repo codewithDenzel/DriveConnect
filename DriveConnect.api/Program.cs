@@ -1,4 +1,3 @@
-using DriveConnect.api.Services;
 using DriveConnect.infrastructure.Data;
 using DriveConnect.infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
@@ -11,7 +10,7 @@ builder.Services.AddDbContext<MasterDriveConnectDbContext>(options =>
         sqlOptions => sqlOptions.EnableRetryOnFailure()));
 
 builder.Services.AddScoped<ITenantDatabaseResolver, TenantDatabaseResolver>();
-builder.Services.AddScoped<TenantDbContextFactory>();
+builder.Services.AddScoped<ITenantDbContextFactory, TenantDbContextFactory>();
 
 builder.Services.AddControllers();
 
