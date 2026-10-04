@@ -8,6 +8,7 @@ namespace DriveConnect.api.Controllers;
 [Route("tenant/{companyId:int}/repairs")]
 public sealed class RepairsController : TenantControllerBase
 {
+    private readonly ISyncService _syncService;
     public RepairsController(ITenantDbContextFactory tenantDbFactory) : base(tenantDbFactory) { }
 
     [HttpGet]
@@ -24,6 +25,8 @@ public sealed class RepairsController : TenantControllerBase
         if (ticket.CreatedAt == default) ticket.CreatedAt = DateTime.UtcNow;
         tenantDb.RepairTickets.Add(ticket);
         await tenantDb.SaveChangesAsync();
+        await _syncService.EnqueueAsync(
+            tenantDb, "RepairTicket", "Create", ticket.TicketId, ticket);
         return Created($"/tenant/{companyId}/repairs/{ticket.TicketId}", ticket);
     }
 
@@ -55,6 +58,8 @@ public sealed class RepairsController : TenantControllerBase
             existing.PickedUpAt = updated.PickedUpAt ?? DateTime.UtcNow;
 
         await tenantDb.SaveChangesAsync();
+        await _syncService.EnqueueAsync(
+            tenantDb, "RepairTicket", "Update", id, existing);
         return Ok(existing);
     }
 
@@ -67,6 +72,8 @@ public sealed class RepairsController : TenantControllerBase
 
         tenantDb.RepairTickets.Remove(existing);
         await tenantDb.SaveChangesAsync();
+        await _syncService.EnqueueAsync(
+            tenantDb, "RepairTicket", "Delete", id, null);
         return NoContent();
     }
 }
