@@ -1,0 +1,47 @@
+using DriveConnect.api.Services;
+using DriveConnect.domain.Entities;
+using Microsoft.EntityFrameworkCore;
+
+namespace DriveConnect.api.Controllers;
+
+[Route("tenant/{companyId:int}/warranties")]
+public sealed class WarrantiesController : TenantControllerBase
+{
+    public WarrantiesController(TenantDbContextFactory tenantDbFactory) : base(tenantDbFactory) { }
+
+    [HttpGet]
+    public async Task<ActionResult<List<VehicleWarranty>>> GetAll(int companyId)
+    {
+        using var tenantDb = await GetTenantDbAsync(companyId);
+        return Ok(await tenantDb.VehicleWarranties.AsNoTracking().ToListAsync());
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<VehicleWarranty>> Create(int companyId, VehicleWarranty item)
+    {
+        using var tenantDb = await GetTenantDbAsync(companyId);
+        tenantDb.VehicleWarranties.Add(item);
+        await tenantDb.SaveChangesAsync();
+        return Created($"/tenant/{companyId}/warranties/{item.WarrantyId}", item);
+    }
+
+    [HttpPut("{id:int}")]
+    public async Task<ActionResult<VehicleWarranty>> Update(int companyId, int id, VehicleWarranty updated)
+    {
+        using var tenantDb = await GetTenantDbAsync(companyId);
+        var existing = await tenantDb.VehicleWarranties.FindAsync(id);
+        if (existing == null) return NotFound();
+
+        existing.CustomerName = updated.CustomerName;
+        existing.PhoneNumber = updated.PhoneNumber;
+        existing.VehicleModel = updated.VehicleModel;
+        existing.PurchaseDate = updated.PurchaseDate;
+        existing.WarrantyStart = updated.WarrantyStart;
+        existing.WarrantyEnd = updated.WarrantyEnd;
+        existing.Coverage = updated.Coverage;
+        existing.Status = updated.Status;
+
+        await tenantDb.SaveChangesAsync();
+        return Ok(existing);
+    }
+}
