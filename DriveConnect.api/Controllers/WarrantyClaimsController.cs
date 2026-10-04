@@ -8,6 +8,7 @@ namespace DriveConnect.api.Controllers;
 [Route("tenant/{companyId:int}/warranty-claims")]
 public sealed class WarrantyClaimsController : TenantControllerBase
 {
+    private readonly ISyncService _syncService;
     public WarrantyClaimsController(ITenantDbContextFactory tenantDbFactory) : base(tenantDbFactory) { }
 
     [HttpGet]
@@ -24,6 +25,8 @@ public sealed class WarrantyClaimsController : TenantControllerBase
         if (item.DateReported == default) item.DateReported = DateTime.UtcNow;
         tenantDb.WarrantyClaims.Add(item);
         await tenantDb.SaveChangesAsync();
+        await _syncService.EnqueueAsync(
+            tenantDb, "WarrantyClaim", "Create", item.ClaimId, item);
         return Created($"/tenant/{companyId}/warranty-claims/{item.ClaimId}", item);
     }
 
@@ -48,6 +51,8 @@ public sealed class WarrantyClaimsController : TenantControllerBase
             : null;
 
         await tenantDb.SaveChangesAsync();
+        await _syncService.EnqueueAsync(
+            tenantDb, "WarrantyClaim", "Update", id, existing);
         return Ok(existing);
     }
 }
