@@ -9,7 +9,11 @@ namespace DriveConnect.api.Controllers;
 public sealed class FeedbackController : TenantControllerBase
 {
     private readonly ISyncService _syncService;
-    public FeedbackController(ITenantDbContextFactory tenantDbFactory) : base(tenantDbFactory) { }
+    public FeedbackController(ITenantDbContextFactory tenantDbFactory, ISyncService syncService)
+        : base(tenantDbFactory)
+    {
+        _syncService = syncService;
+    }
 
     [HttpGet]
     public async Task<ActionResult<List<Feedback>>> GetAll(int companyId)
