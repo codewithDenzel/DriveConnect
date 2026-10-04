@@ -19,7 +19,12 @@ builder.Services.AddDbContext<MasterDriveConnectDbContext>(options =>
 
 builder.Services.AddScoped<ITenantDatabaseResolver, TenantDatabaseResolver>();
 builder.Services.AddScoped<ITenantDbContextFactory, TenantDbContextFactory>();
+builder.Services.AddScoped<ISyncService, SyncService>();
+builder.Services.AddScoped<SyncApplier>();
 
+builder.Services.AddHttpClient("DriveConnectCloudSync");
+
+builder.Services.AddHostedService<SyncWorker>();
 builder.Services.AddControllers();
 
 var app = builder.Build();
