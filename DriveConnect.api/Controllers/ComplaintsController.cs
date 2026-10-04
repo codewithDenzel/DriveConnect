@@ -8,6 +8,7 @@ namespace DriveConnect.api.Controllers;
 [Route("tenant/{companyId:int}/complaints")]
 public sealed class ComplaintsController : TenantControllerBase
 {
+    private readonly ISyncService _syncService;
     public ComplaintsController(ITenantDbContextFactory tenantDbFactory) : base(tenantDbFactory) { }
 
     [HttpGet]
@@ -24,6 +25,8 @@ public sealed class ComplaintsController : TenantControllerBase
         if (item.CreatedAt == default) item.CreatedAt = DateTime.UtcNow;
         tenantDb.Complaints.Add(item);
         await tenantDb.SaveChangesAsync();
+        await _syncService.EnqueueAsync(
+            tenantDb, "Complaint", "Create", item.ComplaintId, item);
         return Created($"/tenant/{companyId}/complaints/{item.ComplaintId}", item);
     }
 
@@ -47,6 +50,8 @@ public sealed class ComplaintsController : TenantControllerBase
             : null;
 
         await tenantDb.SaveChangesAsync();
+        await _syncService.EnqueueAsync(
+            tenantDb, "Complaint", "Update", id, existing);
         return Ok(existing);
     }
 }
