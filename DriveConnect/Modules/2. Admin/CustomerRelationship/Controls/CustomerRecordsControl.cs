@@ -241,7 +241,11 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                 string subTitle = subTitles[i];
                 Button btnSub = new Button { Name = id + "_sub_" + i, Text = "      • " + subTitle, Width = 270, Height = 40, Dock = DockStyle.Top, FlatStyle = FlatStyle.Flat, ForeColor = Color.FromArgb(156, 163, 175), BackColor = Color.Transparent, TextAlign = ContentAlignment.MiddleLeft, Padding = new Padding(35, 0, 0, 0), Cursor = Cursors.Hand };
                 btnSub.FlatAppearance.BorderSize = 0;
-                btnSub.Click += (s, e) => TriggerTabSwitch(cleanMainTitle, subTitle, (Button)s);
+                btnSub.Click += (s, e) =>
+{
+    if (s is Button button)
+        TriggerTabSwitch(cleanMainTitle, subTitle, button);
+};
 
                 _allAccordionButtons.Add(btnSub);
                 subContainer.Controls.Add(btnSub);
@@ -940,7 +944,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                         Customer = ($"{x.FirstName} {x.LastName}").Trim(),
                         Model = x.CarModel,
                         DealValue = x.EstimatedCost,
-                        ArchivedOn = x.CompletedAt.Value.ToLocalTime().ToString("MMM dd, yyyy"),
+                        ArchivedOn = x.CompletedAt!.Value.ToLocalTime().ToString("MMM dd, yyyy"),
                         HandledBy = x.HandledBy
                     }).ToList();
 
@@ -971,9 +975,10 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
 
         private void FormatCurrencyColumn(string columnName)
         {
-            if (dgvReport.Columns[columnName] != null)
+            var column = dgvReport.Columns[columnName];
+            if (column != null)
             {
-                dgvReport.Columns[columnName].DefaultCellStyle.Format = "₱#,##0.00";
+                column.DefaultCellStyle.Format = "₱#,##0.00";
             }
         }
 
@@ -1245,7 +1250,8 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                     DateAdded = x.CreatedAt.ToLocalTime().ToString("MMM dd, yyyy hh:mm tt")
                 }).ToList();
 
-                if (gridView.Columns["DateAdded"] != null) gridView.Columns["DateAdded"].HeaderText = "Date and Time Added";
+                var dateAddedColumn = gridView.Columns["DateAdded"];
+                if (dateAddedColumn != null) dateAddedColumn.HeaderText = "Date and Time Added";
             }
             else if (currentMainTab == "Service and Repair")
             {
@@ -1273,7 +1279,8 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                 }).ToList();
 
                 if (gridView.Columns["DateAdded"] != null) gridView.Columns["DateAdded"].HeaderText = "Date and Time Added";
-                if (gridView.Columns["Value"] != null) gridView.Columns["Value"].HeaderText = "Estimated Cost";
+                var valueColumn = gridView.Columns["Value"];
+                if (valueColumn != null) valueColumn.HeaderText = "Estimated Cost";
             }
             else if (currentMainTab == "Archived")
             {
@@ -1301,8 +1308,10 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                     }).ToList();
                 }
 
-                if (gridView.Columns["ArchivedOn"] != null) gridView.Columns["ArchivedOn"].HeaderText = "Date Archived";
-                if (gridView.Columns["Time"] != null) gridView.Columns["Time"].HeaderText = "Time";
+                var archivedOnColumn = gridView.Columns["ArchivedOn"];
+                if (archivedOnColumn != null) archivedOnColumn.HeaderText = "Date Archived";
+                var timeColumn = gridView.Columns["Time"];
+                if (timeColumn != null) timeColumn.HeaderText = "Time";
                 if (gridView.Columns["Value"] != null) gridView.Columns["Value"].HeaderText = "Estimated Cost";
             }
         }
@@ -1335,7 +1344,11 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                 return;
             }
 
-            int id = (int)gridView.Rows[e.RowIndex].Cells["ID"].Value;
+            var idValue = gridView.Rows[e.RowIndex].Cells["ID"].Value;
+            if (idValue == null)
+                return;
+
+            int id = Convert.ToInt32(idValue);
 
             if (currentMainTab == "Car Sales and Leads") ShowSalesModal(_allSales.FirstOrDefault(x => x.InquiryId == id));
             else if (currentMainTab == "Service and Repair") ShowRepairModal(_allRepairs.FirstOrDefault(x => x.TicketId == id));
