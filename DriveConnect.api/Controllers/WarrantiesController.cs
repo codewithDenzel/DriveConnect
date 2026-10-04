@@ -9,7 +9,11 @@ namespace DriveConnect.api.Controllers;
 public sealed class WarrantiesController : TenantControllerBase
 {
     private readonly ISyncService _syncService;
-    public WarrantiesController(ITenantDbContextFactory tenantDbFactory) : base(tenantDbFactory) { }
+    public WarrantiesController(ITenantDbContextFactory tenantDbFactory, ISyncService syncService)
+        : base(tenantDbFactory)
+    {
+        _syncService = syncService;
+    }
 
     [HttpGet]
     public async Task<ActionResult<List<VehicleWarranty>>> GetAll(int companyId)
