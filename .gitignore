@@ -361,3 +361,10 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Local and production environment configuration
+DriveConnect.api/appsettings.Local.json
+DriveConnect.api/appsettings.Production.json
+*.publishsettings
+*.pubxml
+*.publish.xml
