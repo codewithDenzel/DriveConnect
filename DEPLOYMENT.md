@@ -36,3 +36,21 @@ After changing environment variables, restart the website.
 9. Open the deployed /health endpoint and verify that the API returns status ok.
 
 Never commit SQL usernames, SQL passwords, WebDeploy passwords, publish settings, or production connection strings containing passwords.
+
+
+## Offline sync configuration
+
+The local API stores CRM changes in the local tenant database first. When internet access is restored, the local API can upload queued changes to the deployed MonsterASP API.
+
+For the local API, configure:
+
+- Sync__Enabled = true
+- Sync__RemoteBaseUrl = the deployed MonsterASP API URL
+- Sync__SharedSecret = a private shared value
+
+For the MonsterASP API, configure:
+
+- Sync__Enabled = false
+- Sync__SharedSecret = the same private shared value
+
+The shared secret is sent in the X-DriveConnect-Sync-Key header. Do not commit the shared secret to GitHub.
