@@ -8,6 +8,7 @@ namespace DriveConnect.api.Controllers;
 [Route("tenant/{companyId:int}/interactions")]
 public sealed class InteractionsController : TenantControllerBase
 {
+    private readonly ISyncService _syncService;
     public InteractionsController(ITenantDbContextFactory tenantDbFactory) : base(tenantDbFactory) { }
 
     [HttpGet]
@@ -24,6 +25,8 @@ public sealed class InteractionsController : TenantControllerBase
         if (item.CreatedAt == default) item.CreatedAt = DateTime.UtcNow;
         tenantDb.InteractionLogs.Add(item);
         await tenantDb.SaveChangesAsync();
+        await _syncService.EnqueueAsync(
+            tenantDb, "InteractionLog", "Create", item.InteractionId, item);
         return Created($"/tenant/{companyId}/interactions/{item.InteractionId}", item);
     }
 
@@ -42,6 +45,8 @@ public sealed class InteractionsController : TenantControllerBase
         existing.HandledBy = updated.HandledBy;
 
         await tenantDb.SaveChangesAsync();
+        await _syncService.EnqueueAsync(
+            tenantDb, "InteractionLog", "Update", id, existing);
         return Ok(existing);
     }
 }
