@@ -8,6 +8,7 @@ namespace DriveConnect.api.Controllers;
 [Route("tenant/{companyId:int}/promotions")]
 public sealed class PromotionsController : TenantControllerBase
 {
+    private readonly ISyncService _syncService;
     public PromotionsController(ITenantDbContextFactory tenantDbFactory) : base(tenantDbFactory) { }
 
     [HttpGet]
@@ -24,6 +25,8 @@ public sealed class PromotionsController : TenantControllerBase
         if (item.CreatedAt == default) item.CreatedAt = DateTime.UtcNow;
         tenantDb.Promotions.Add(item);
         await tenantDb.SaveChangesAsync();
+        await _syncService.EnqueueAsync(
+            tenantDb, "Promotion", "Create", item.PromotionId, item);
         return Created($"/tenant/{companyId}/promotions/{item.PromotionId}", item);
     }
 
@@ -45,6 +48,8 @@ public sealed class PromotionsController : TenantControllerBase
         existing.Status = updated.Status;
 
         await tenantDb.SaveChangesAsync();
+        await _syncService.EnqueueAsync(
+            tenantDb, "Promotion", "Update", id, existing);
         return Ok(existing);
     }
 }
