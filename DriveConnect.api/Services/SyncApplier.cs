@@ -75,9 +75,8 @@ public sealed class SyncApplier
 
         if (existing != null)
         {
-            SetKey(existing, info.Key, GetKey(existing, info.Key));
+            SetKey(incoming, info.Key, mapping!.RemoteId!.Value);
             db.Entry(existing).CurrentValues.SetValues(incoming);
-            SetKey(existing, info.Key, mapping!.RemoteId!.Value);
 
             await db.SaveChangesAsync();
 
