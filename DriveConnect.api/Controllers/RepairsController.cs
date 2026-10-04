@@ -1,5 +1,6 @@
-using DriveConnect.api.Services;
 using DriveConnect.domain.Entities;
+using DriveConnect.infrastructure.Services;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace DriveConnect.api.Controllers;
@@ -7,7 +8,7 @@ namespace DriveConnect.api.Controllers;
 [Route("tenant/{companyId:int}/repairs")]
 public sealed class RepairsController : TenantControllerBase
 {
-    public RepairsController(TenantDbContextFactory tenantDbFactory) : base(tenantDbFactory) { }
+    public RepairsController(ITenantDbContextFactory tenantDbFactory) : base(tenantDbFactory) { }
 
     [HttpGet]
     public async Task<ActionResult<List<RepairTicket>>> GetAll(int companyId)
