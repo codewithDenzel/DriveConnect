@@ -9,7 +9,11 @@ namespace DriveConnect.api.Controllers;
 public sealed class InteractionsController : TenantControllerBase
 {
     private readonly ISyncService _syncService;
-    public InteractionsController(ITenantDbContextFactory tenantDbFactory) : base(tenantDbFactory) { }
+    public InteractionsController(ITenantDbContextFactory tenantDbFactory, ISyncService syncService)
+        : base(tenantDbFactory)
+    {
+        _syncService = syncService;
+    }
 
     [HttpGet]
     public async Task<ActionResult<List<InteractionLog>>> GetAll(int companyId)
