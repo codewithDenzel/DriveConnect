@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -22,20 +22,37 @@ namespace DriveConnect.infrastructure.Services
         public async Task<TenantDriveConnectDbContext> CreateAsync(int companyId)
         {
             var databaseInfo = await _resolver.GetDatabaseInfoAsync(companyId);
-            var userId = _configuration[$"TenantCredentials:{databaseInfo.CredentialKey}:UserId"];
-            var password = _configuration[$"TenantCredentials:{databaseInfo.CredentialKey}:Password"];
 
-            var connectionString =
-                $"Server={databaseInfo.ServerName};" +
-                $"Database={databaseInfo.DatabaseName};" +
-                $"User Id={userId};" +
-                $"Password={password};" +
-                $"Encrypt=True;" +
-                $"TrustServerCertificate=True;" +
-                $"MultipleActiveResultSets=True;";
+            string connectionString;
+
+            if (databaseInfo.ServerName.Contains("(localdb)", StringComparison.OrdinalIgnoreCase))
+            {
+                connectionString =
+                    $"Server={databaseInfo.ServerName};" +
+                    $"Database={databaseInfo.DatabaseName};" +
+                    "Trusted_Connection=True;" +
+                    "TrustServerCertificate=True;" +
+                    "MultipleActiveResultSets=True;";
+            }
+            else
+            {
+                var userId = _configuration[$"TenantCredentials:{databaseInfo.CredentialKey}:UserId"];
+                var password = _configuration[$"TenantCredentials:{databaseInfo.CredentialKey}:Password"];
+
+                connectionString =
+                    $"Server={databaseInfo.ServerName};" +
+                    $"Database={databaseInfo.DatabaseName};" +
+                    $"User Id={userId};" +
+                    $"Password={password};" +
+                    "Encrypt=True;" +
+                    "TrustServerCertificate=True;" +
+                    "MultipleActiveResultSets=True;";
+            }
 
             var options = new DbContextOptionsBuilder<TenantDriveConnectDbContext>()
-                .UseSqlServer(connectionString)
+                .UseSqlServer(
+                    connectionString,
+                    sqlOptions => sqlOptions.EnableRetryOnFailure())
                 .Options;
 
             return new TenantDriveConnectDbContext(options);
