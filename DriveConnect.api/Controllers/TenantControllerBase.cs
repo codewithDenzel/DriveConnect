@@ -1,5 +1,5 @@
-using DriveConnect.api.Services;
 using DriveConnect.infrastructure.Data;
+using DriveConnect.infrastructure.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DriveConnect.api.Controllers;
@@ -7,9 +7,9 @@ namespace DriveConnect.api.Controllers;
 [ApiController]
 public abstract class TenantControllerBase : ControllerBase
 {
-    private readonly TenantDbContextFactory _tenantDbFactory;
+    private readonly ITenantDbContextFactory _tenantDbFactory;
 
-    protected TenantControllerBase(TenantDbContextFactory tenantDbFactory)
+    protected TenantControllerBase(ITenantDbContextFactory tenantDbFactory)
     {
         _tenantDbFactory = tenantDbFactory;
     }
