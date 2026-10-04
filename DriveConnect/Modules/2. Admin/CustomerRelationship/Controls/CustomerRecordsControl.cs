@@ -963,7 +963,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                         Model = x.CarModel,
                         Issue = x.Concern,
                         EstimatedCost = x.EstimatedCost,
-                        ArchivedOn = x.CompletedAt.Value.ToLocalTime().ToString("MMM dd, yyyy"),
+                        ArchivedOn = x.CompletedAt?.ToLocalTime().ToString("MMM dd, yyyy") ?? "-",
                         HandledBy = x.HandledBy
                     }).ToList();
 
@@ -1278,7 +1278,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                     DateAdded = x.CreatedAt.ToLocalTime().ToString("MMM dd, yyyy hh:mm tt")
                 }).ToList();
 
-                if (gridView.Columns["DateAdded"] != null) gridView.Columns["DateAdded"].HeaderText = "Date and Time Added";
+                var dateAddedColumn = gridView.Columns["DateAdded"];\n                if (dateAddedColumn != null) dateAddedColumn.HeaderText = "Date and Time Added";
                 var valueColumn = gridView.Columns["Value"];
                 if (valueColumn != null) valueColumn.HeaderText = "Estimated Cost";
             }
@@ -1312,7 +1312,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                 if (archivedOnColumn != null) archivedOnColumn.HeaderText = "Date Archived";
                 var timeColumn = gridView.Columns["Time"];
                 if (timeColumn != null) timeColumn.HeaderText = "Time";
-                if (gridView.Columns["Value"] != null) gridView.Columns["Value"].HeaderText = "Estimated Cost";
+                var valueHeaderColumn = gridView.Columns["Value"];\n                if (valueHeaderColumn != null) valueHeaderColumn.HeaderText = "Estimated Cost";
             }
         }
 
