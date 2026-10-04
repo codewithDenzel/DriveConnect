@@ -91,7 +91,7 @@ public sealed class SyncApplier
         }
 
         SetKey(incoming, info.Key, 0);
-        db.Set(info.Type).Add(incoming);
+        db.Add(incoming);
 
         await db.SaveChangesAsync();
 
