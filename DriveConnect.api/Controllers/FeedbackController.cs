@@ -8,6 +8,7 @@ namespace DriveConnect.api.Controllers;
 [Route("tenant/{companyId:int}/feedback")]
 public sealed class FeedbackController : TenantControllerBase
 {
+    private readonly ISyncService _syncService;
     public FeedbackController(ITenantDbContextFactory tenantDbFactory) : base(tenantDbFactory) { }
 
     [HttpGet]
@@ -24,6 +25,8 @@ public sealed class FeedbackController : TenantControllerBase
         if (item.CreatedAt == default) item.CreatedAt = DateTime.UtcNow;
         tenantDb.Feedback.Add(item);
         await tenantDb.SaveChangesAsync();
+        await _syncService.EnqueueAsync(
+            tenantDb, "Feedback", "Create", item.FeedbackId, item);
         return Created($"/tenant/{companyId}/feedback/{item.FeedbackId}", item);
     }
 
@@ -46,6 +49,8 @@ public sealed class FeedbackController : TenantControllerBase
             : null;
 
         await tenantDb.SaveChangesAsync();
+        await _syncService.EnqueueAsync(
+            tenantDb, "Feedback", "Update", id, existing);
         return Ok(existing);
     }
 }
