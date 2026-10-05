@@ -47,5 +47,10 @@ namespace DriveConnect.winforms.Services
         public async Task<List<MaintenanceRecord>> GetMaintenanceAsync(int companyId) => await _http.GetFromJsonAsync<List<MaintenanceRecord>>($"/tenant/{companyId}/maintenance") ?? new();
         public async Task<HttpResponseMessage> CreateMaintenanceAsync(int companyId, MaintenanceRecord item) => await _http.PostAsJsonAsync($"/tenant/{companyId}/maintenance", item);
         public async Task<HttpResponseMessage> UpdateMaintenanceAsync(int companyId, int id, MaintenanceRecord item) => await _http.PutAsJsonAsync($"/tenant/{companyId}/maintenance/{id}", item);
+
+        public async Task<List<Branch>> GetBranchesAsync(int companyId) => await _http.GetFromJsonAsync<List<Branch>>($"/companies/{companyId}/branches") ?? new();
+        public async Task<HttpResponseMessage> CreateBranchAsync(int companyId, Branch branch) => await _http.PostAsJsonAsync($"/companies/{companyId}/branches", branch);
+        public async Task<HttpResponseMessage> UpdateBranchAsync(int companyId, int id, Branch branch) => await _http.PutAsJsonAsync($"/companies/{companyId}/branches/{id}", branch);
+        public async Task<HttpResponseMessage> DeleteBranchAsync(int companyId, int id) => await _http.DeleteAsync($"/companies/{companyId}/branches/{id}");
     }
 }
