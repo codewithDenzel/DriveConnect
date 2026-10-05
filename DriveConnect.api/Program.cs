@@ -30,7 +30,10 @@ builder.Services.AddControllers();
 
 var app = builder.Build();
 
-app.UseHttpsRedirection();
+if (app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 app.MapGet("/health", () => Results.Ok(new
 {
