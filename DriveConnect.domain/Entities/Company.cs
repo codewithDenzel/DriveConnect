@@ -11,5 +11,6 @@ public class Company
     // Navigation Properties
     public ICollection<AppUser> Users { get; set; } = new List<AppUser>();
     public ICollection<Subscription> Subscriptions { get; set; } = new List<Subscription>();
-    public ICollection<Device> Devices { get; set; } = new List<Device>(); 
+    public ICollection<Device> Devices { get; set; } = new List<Device>();
+    public ICollection<Branch> Branches { get; set; } = new List<Branch>();
 }
