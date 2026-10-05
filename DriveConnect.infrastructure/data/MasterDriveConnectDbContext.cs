@@ -14,6 +14,7 @@ public class MasterDriveConnectDbContext : DbContext
     // System Administration Entities
     public DbSet<AppUser> AppUsers => Set<AppUser>();
     public DbSet<Subscription> Subscriptions => Set<Subscription>();
+    public DbSet<Branch> Branches => Set<Branch>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -72,6 +73,20 @@ public class MasterDriveConnectDbContext : DbContext
                 .WithMany(x => x.Subscriptions)
                 .HasForeignKey(x => x.CompanyId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<Branch>(entity =>
+        {
+            entity.HasKey(x => x.BranchId);
+            entity.Property(x => x.BranchCode).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.BranchName).HasMaxLength(150).IsRequired();
+            entity.Property(x => x.Address).HasMaxLength(300);
+            entity.Property(x => x.PhoneNumber).HasMaxLength(50);
+            entity.HasOne(x => x.Company)
+                .WithMany(x => x.Branches)
+                .HasForeignKey(x => x.CompanyId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(x => new { x.CompanyId, x.BranchCode }).IsUnique();
         });
     }
 }
