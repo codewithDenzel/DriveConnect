@@ -9,6 +9,7 @@ END;
 GO
 
 BEGIN TRANSACTION;
+
 CREATE TABLE [Companies] (
     [CompanyId] int NOT NULL IDENTITY,
     [CompanyCode] nvarchar(50) NOT NULL,
@@ -18,17 +19,32 @@ CREATE TABLE [Companies] (
     CONSTRAINT [PK_Companies] PRIMARY KEY ([CompanyId])
 );
 
+CREATE TABLE [Branches] (
+    [BranchId] int NOT NULL IDENTITY,
+    [CompanyId] int NOT NULL,
+    [BranchCode] nvarchar(50) NOT NULL,
+    [BranchName] nvarchar(150) NOT NULL,
+    [Address] nvarchar(300) NULL,
+    [PhoneNumber] nvarchar(50) NULL,
+    [IsActive] bit NOT NULL,
+    [CreatedAt] datetime2 NOT NULL,
+    CONSTRAINT [PK_Branches] PRIMARY KEY ([BranchId]),
+    CONSTRAINT [FK_Branches_Companies_CompanyId] FOREIGN KEY ([CompanyId]) REFERENCES [Companies] ([CompanyId]) ON DELETE NO ACTION
+);
+
 CREATE TABLE [AppUsers] (
     [UserId] int NOT NULL IDENTITY,
     [CompanyId] int NOT NULL,
+    [BranchId] int NULL,
     [Username] nvarchar(100) NOT NULL,
     [Email] nvarchar(150) NOT NULL,
-    [PasswordHash] nvarchar(max) NOT NULL,
+    [PasswordHash] nvarchar(500) NOT NULL,
     [Role] nvarchar(50) NOT NULL,
     [IsActive] bit NOT NULL,
     [CreatedAt] datetime2 NOT NULL,
     CONSTRAINT [PK_AppUsers] PRIMARY KEY ([UserId]),
-    CONSTRAINT [FK_AppUsers_Companies_CompanyId] FOREIGN KEY ([CompanyId]) REFERENCES [Companies] ([CompanyId]) ON DELETE NO ACTION
+    CONSTRAINT [FK_AppUsers_Companies_CompanyId] FOREIGN KEY ([CompanyId]) REFERENCES [Companies] ([CompanyId]) ON DELETE NO ACTION,
+    CONSTRAINT [FK_AppUsers_Branches_BranchId] FOREIGN KEY ([BranchId]) REFERENCES [Branches] ([BranchId]) ON DELETE NO ACTION
 );
 
 CREATE TABLE [CompanyDatabases] (
@@ -64,31 +80,14 @@ CREATE TABLE [Subscriptions] (
     CONSTRAINT [FK_Subscriptions_Companies_CompanyId] FOREIGN KEY ([CompanyId]) REFERENCES [Companies] ([CompanyId]) ON DELETE NO ACTION
 );
 
-CREATE TABLE [Branches] (
-    [BranchId] int NOT NULL IDENTITY,
-    [CompanyId] int NOT NULL,
-    [BranchCode] nvarchar(50) NOT NULL,
-    [BranchName] nvarchar(150) NOT NULL,
-    [Address] nvarchar(300) NULL,
-    [PhoneNumber] nvarchar(50) NULL,
-    [IsActive] bit NOT NULL,
-    [CreatedAt] datetime2 NOT NULL,
-    CONSTRAINT [PK_Branches] PRIMARY KEY ([BranchId]),
-    CONSTRAINT [FK_Branches_Companies_CompanyId] FOREIGN KEY ([CompanyId]) REFERENCES [Companies] ([CompanyId]) ON DELETE NO ACTION
-);
-
 CREATE INDEX [IX_AppUsers_CompanyId] ON [AppUsers] ([CompanyId]);
-
+CREATE INDEX [IX_AppUsers_BranchId] ON [AppUsers] ([BranchId]);
 CREATE UNIQUE INDEX [IX_AppUsers_Email] ON [AppUsers] ([Email]);
-
+CREATE UNIQUE INDEX [IX_AppUsers_Username] ON [AppUsers] ([Username]);
 CREATE UNIQUE INDEX [IX_Companies_CompanyCode] ON [Companies] ([CompanyCode]);
-
 CREATE INDEX [IX_CompanyDatabases_CompanyId] ON [CompanyDatabases] ([CompanyId]);
-
 CREATE UNIQUE INDEX [IX_Devices_CompanyId_DeviceCode] ON [Devices] ([CompanyId], [DeviceCode]);
-
-CREATE INDEX [IX_Subscriptions_CompanyId] ON [Subscriptions] ([CompanyId]);
-
+CREATE UNIQUE INDEX [IX_Subscriptions_CompanyId] ON [Subscriptions] ([CompanyId]);
 CREATE UNIQUE INDEX [IX_Branches_CompanyId_BranchCode] ON [Branches] ([CompanyId], [BranchCode]);
 
 INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
@@ -96,4 +95,3 @@ VALUES (N'20260908133645_InitialMasterDriveConnect', N'10.0.11');
 
 COMMIT;
 GO
-
