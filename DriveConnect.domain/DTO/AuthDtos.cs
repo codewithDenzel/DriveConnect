@@ -39,11 +39,3 @@ public sealed record UpdateUserRequest(
     string Role,
     int? BranchId,
     bool IsActive);
-
-
-public sealed record BootstrapRequest(
-    string SetupKey,
-    int CompanyId,
-    string Username,
-    string Email,
-    string Password);
