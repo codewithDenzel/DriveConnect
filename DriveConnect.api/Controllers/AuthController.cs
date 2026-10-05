@@ -20,79 +20,6 @@ public sealed class AuthController : ControllerBase
     private readonly IConfiguration _configuration;
     private readonly PasswordHasher<AppUser> _passwordHasher = new();
 
-    [AllowAnonymous]
-    [HttpPost("bootstrap")]
-    public async Task<ActionResult> Bootstrap(BootstrapRequest request)
-    {
-        var setupKey = _configuration["Auth:BootstrapKey"];
-
-        if (string.IsNullOrWhiteSpace(setupKey) ||
-            !string.Equals(request.SetupKey, setupKey, StringComparison.Ordinal))
-        {
-            return Unauthorized("Invalid setup key.");
-        }
-
-        if (await _masterDb.AppUsers.AnyAsync())
-            return Conflict("User setup has already been completed.");
-
-        if (string.IsNullOrWhiteSpace(request.Username) ||
-            string.IsNullOrWhiteSpace(request.Email) ||
-            string.IsNullOrWhiteSpace(request.Password))
-        {
-            return BadRequest("Username, email, and password are required.");
-        }
-
-        if (request.Password.Length < 8)
-            return BadRequest("Password must be at least 8 characters.");
-
-        var username = request.Username.Trim();
-        var email = request.Email.Trim();
-
-        if (!IsValidEmail(email))
-            return BadRequest("Please enter a valid email address.");
-
-        var company = await _masterDb.Companies
-            .FirstOrDefaultAsync(x =>
-                x.CompanyId == request.CompanyId &&
-                x.IsActive);
-
-        if (company == null)
-            return NotFound("Company not found.");
-
-        if (await _masterDb.AppUsers.AnyAsync(x =>
-                x.Username == username || x.Email == email))
-        {
-            return Conflict("Username or email is already in use.");
-        }
-
-        var user = new AppUser
-        {
-            CompanyId = company.CompanyId,
-            Username = username,
-            Email = email,
-            PasswordHash = string.Empty,
-            Role = "Super Admin",
-            BranchId = null,
-            IsActive = true,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        user.PasswordHash = _passwordHasher.HashPassword(
-            user,
-            request.Password);
-
-        _masterDb.AppUsers.Add(user);
-        await _masterDb.SaveChangesAsync();
-
-        return Ok(new
-        {
-            userId = user.UserId,
-            username = user.Username,
-            role = user.Role
-        });
-    }
-
-
     public AuthController(
         MasterDriveConnectDbContext masterDb,
         IConfiguration configuration)
@@ -139,7 +66,9 @@ public sealed class AuthController : ControllerBase
             return Unauthorized("Invalid username or password.");
 
         var key = _configuration["Jwt:Key"];
-        if (string.IsNullOrWhiteSpace(key) || Encoding.UTF8.GetByteCount(key) < 32)
+
+        if (string.IsNullOrWhiteSpace(key) ||
+            Encoding.UTF8.GetByteCount(key) < 32)
         {
             return StatusCode(
                 StatusCodes.Status500InternalServerError,
@@ -157,7 +86,9 @@ public sealed class AuthController : ControllerBase
         if (user.BranchId.HasValue)
             claims.Add(new Claim("branchId", user.BranchId.Value.ToString()));
 
-        var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
+        var signingKey = new SymmetricSecurityKey(
+            Encoding.UTF8.GetBytes(key));
+
         var credentials = new SigningCredentials(
             signingKey,
             SecurityAlgorithms.HmacSha256);
@@ -178,21 +109,4 @@ public sealed class AuthController : ControllerBase
             user.BranchId,
             user.Branch?.BranchName));
     }
-    private static bool IsValidEmail(string email)
-    {
-        try
-        {
-            var address = new System.Net.Mail.MailAddress(email);
-
-            return string.Equals(
-                address.Address,
-                email,
-                StringComparison.OrdinalIgnoreCase);
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
 }
