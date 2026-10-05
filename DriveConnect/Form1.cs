@@ -1,6 +1,8 @@
 using System;
 using System.Windows.Forms;
+using DriveConnect.winforms.Forms;
 using DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls;
+using DriveConnect.winforms.Services;
 
 namespace DriveConnect
 {
@@ -10,21 +12,36 @@ namespace DriveConnect
         {
             InitializeComponent();
 
-            // Lock as Fullscreen
-            this.WindowState = FormWindowState.Maximized;
-            this.FormBorderStyle = FormBorderStyle.Sizable; // Keeps standard window controls if needed, or set to None for borderless kiosk
-            this.Text = "DriveConnect CRM System";
-            this.Load += Form1_Load;
+            WindowState = FormWindowState.Maximized;
+            FormBorderStyle = FormBorderStyle.Sizable;
+            Text = "DriveConnect CRM System";
+            Load += Form1_Load;
         }
 
         private void Form1_Load(object? sender, EventArgs e)
         {
-            this.Controls.Clear();
+            using var loginForm = new LoginForm();
+
+            if (loginForm.ShowDialog(this) != DialogResult.OK)
+            {
+                Close();
+                return;
+            }
+
+            ShowMainSystem();
+        }
+
+        private void ShowMainSystem()
+        {
+            Controls.Clear();
+
             var crmControl = new CustomerRecordsControl
             {
                 Dock = DockStyle.Fill
             };
-            this.Controls.Add(crmControl);
+
+            Controls.Add(crmControl);
+            Text = $"DriveConnect CRM System - {UserSession.Role}";
         }
     }
 }
