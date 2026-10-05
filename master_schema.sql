@@ -64,6 +64,19 @@ CREATE TABLE [Subscriptions] (
     CONSTRAINT [FK_Subscriptions_Companies_CompanyId] FOREIGN KEY ([CompanyId]) REFERENCES [Companies] ([CompanyId]) ON DELETE NO ACTION
 );
 
+CREATE TABLE [Branches] (
+    [BranchId] int NOT NULL IDENTITY,
+    [CompanyId] int NOT NULL,
+    [BranchCode] nvarchar(50) NOT NULL,
+    [BranchName] nvarchar(150) NOT NULL,
+    [Address] nvarchar(300) NULL,
+    [PhoneNumber] nvarchar(50) NULL,
+    [IsActive] bit NOT NULL,
+    [CreatedAt] datetime2 NOT NULL,
+    CONSTRAINT [PK_Branches] PRIMARY KEY ([BranchId]),
+    CONSTRAINT [FK_Branches_Companies_CompanyId] FOREIGN KEY ([CompanyId]) REFERENCES [Companies] ([CompanyId]) ON DELETE NO ACTION
+);
+
 CREATE INDEX [IX_AppUsers_CompanyId] ON [AppUsers] ([CompanyId]);
 
 CREATE UNIQUE INDEX [IX_AppUsers_Email] ON [AppUsers] ([Email]);
@@ -75,6 +88,8 @@ CREATE INDEX [IX_CompanyDatabases_CompanyId] ON [CompanyDatabases] ([CompanyId])
 CREATE UNIQUE INDEX [IX_Devices_CompanyId_DeviceCode] ON [Devices] ([CompanyId], [DeviceCode]);
 
 CREATE INDEX [IX_Subscriptions_CompanyId] ON [Subscriptions] ([CompanyId]);
+
+CREATE UNIQUE INDEX [IX_Branches_CompanyId_BranchCode] ON [Branches] ([CompanyId], [BranchCode]);
 
 INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
 VALUES (N'20260908133645_InitialMasterDriveConnect', N'10.0.11');
