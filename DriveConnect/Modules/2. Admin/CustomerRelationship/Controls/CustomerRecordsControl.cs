@@ -68,6 +68,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
         private string currentSubTab = "New Inquiry";
         private List<SalesLead> _allSales = new List<SalesLead>();
         private List<RepairTicket> _allRepairs = new List<RepairTicket>();
+        private List<Branch> _allBranches = new List<Branch>();
         private List<Button> _allAccordionButtons = new List<Button>();
 
         private readonly CrmApiService _apiService = new CrmApiService();
@@ -103,6 +104,9 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
 
             sidebarFlow.Controls.Add(CreateAccordion("nav_bi", "📊 Business Intelligence",
                 new[] { "Dashboard", "KPI", "Reports", "Graphs" }));
+
+            sidebarFlow.Controls.Add(CreateAccordion("nav_branching", "🏢 Branching",
+                new[] { "Manage Branches" }));
 
             sidebarFlow.Controls.Add(CreateAccordion("nav_sales", "🚗 Car Sales and Leads",
                 new[] { "New Inquiry", "Test Drive Scheduled", "Negotiation", "Closed Deals" }));
@@ -294,9 +298,22 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
             panelBI_Reports.Visible = false;
             lblPlaceholderMessage.Visible = false;
 
-            if (mainTab == "Business Intelligence")
+            if (mainTab == "Branching")
+            {
+                topActionBar.Visible = true;
+                gridWrapper.Visible = true;
+                gridWrapper.BringToFront();
+                txtSearch.Visible = true;
+                txtSearch.PlaceholderText = "Search by branch code or name...";
+                gridView.Visible = true;
+                btnNewRecord.Visible = true;
+                lblPlaceholderMessage.Visible = false;
+                BindBranchGrid();
+            }
+            else if (mainTab == "Business Intelligence")
             {
                 topActionBar.Visible = false;
+                txtSearch.PlaceholderText = "Search by Name, Phone, or Model...";
 
                 if (subTab == "Dashboard")
                 {
@@ -324,6 +341,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
             }
             else if (IsAdditionalDataTab(mainTab))
             {
+                txtSearch.PlaceholderText = "Search by Name, Phone, or Model...";
                 // These are implemented CRM modules, so they must never fall through
                 // to the generic "under development" message.
                 topActionBar.Visible = true;
@@ -1198,6 +1216,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
             {
                 _allSales = await _apiService.GetSalesAsync(CurrentCompanyId) ?? new List<SalesLead>();
                 _allRepairs = await _apiService.GetRepairsAsync(CurrentCompanyId) ?? new List<RepairTicket>();
+                await LoadBranchesAsync();
                 await LoadAdditionalDataAsync();
 
                 if (currentMainTab == "Business Intelligence")
@@ -1221,6 +1240,12 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
         {
             string q = txtSearch.Text.ToLower();
             gridView.DataSource = null;
+
+            if (currentMainTab == "Branching")
+            {
+                BindBranchGrid();
+                return;
+            }
 
             if (IsAdditionalDataTab(currentMainTab))
             {
@@ -1320,7 +1345,11 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
 
         private async void BtnNewRecord_Click(object? sender, EventArgs e)
         {
-            if (currentMainTab == "Car Sales and Leads") ShowSalesModal(null);
+            if (currentMainTab == "Branching")
+            {
+                await ShowBranchModalAsync(null);
+            }
+            else if (currentMainTab == "Car Sales and Leads") ShowSalesModal(null);
             else if (currentMainTab == "Service and Repair") ShowRepairModal(null);
             else if (CanCreateCurrentTab() && currentMainTab == "Promotions") await ShowPromotionModalAsync(null);
             else if (CanCreateCurrentTab() && currentMainTab == "Customer History" && currentSubTab == "Interaction History") await ShowInteractionModalAsync(null);
@@ -1337,6 +1366,17 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
         private async void GridView_CellDoubleClick(object? sender, DataGridViewCellEventArgs e)
         {
             if (e.RowIndex < 0) return;
+
+            if (currentMainTab == "Branching")
+            {
+                var branchIdValue = gridView.Rows[e.RowIndex].Cells["ID"].Value;
+                if (branchIdValue == null)
+                    return;
+
+                int branchId = Convert.ToInt32(branchIdValue);
+                await ShowBranchModalAsync(_allBranches.FirstOrDefault(x => x.BranchId == branchId));
+                return;
+            }
 
             if (IsAdditionalDataTab(currentMainTab))
             {
