@@ -178,4 +178,21 @@ public sealed class AuthController : ControllerBase
             user.BranchId,
             user.Branch?.BranchName));
     }
+    private static bool IsValidEmail(string email)
+    {
+        try
+        {
+            var address = new System.Net.Mail.MailAddress(email);
+
+            return string.Equals(
+                address.Address,
+                email,
+                StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
 }
