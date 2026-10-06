@@ -9,6 +9,7 @@ namespace DriveConnect.domain.Entities
     {
         [Key]
         public int TicketId { get; set; }
+        public int? BranchId { get; set; }
         public string? FirstName { get; set; }
         public string? MiddleName { get; set; }
         public string? LastName { get; set; }
