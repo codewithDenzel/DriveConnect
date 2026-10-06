@@ -18,14 +18,34 @@ public sealed class PromotionsController : TenantControllerBase
     [HttpGet]
     public async Task<ActionResult<List<Promotion>>> GetAll(int companyId)
     {
+        if (!CanAccessCompany(companyId))
+            return Forbid();
+
         using var tenantDb = await GetTenantDbAsync(companyId);
-        return Ok(await tenantDb.Promotions.AsNoTracking().ToListAsync());
+        var query = tenantDb.Promotions.AsNoTracking();
+
+        if (IsStaffUser)
+        {
+            if (!TryGetCurrentBranchId(out var branchId))
+                return Forbid();
+
+            query = query.Where(x => x.BranchId == branchId);
+        }
+
+        return Ok(await query.ToListAsync());
     }
 
     [HttpPost]
     public async Task<ActionResult<Promotion>> Create(int companyId, Promotion item)
     {
+        if (!CanAccessCompany(companyId) || !IsStaffUser)
+            return Forbid();
+
+        if (!TryGetCurrentBranchId(out var branchId))
+            return Forbid();
+
         using var tenantDb = await GetTenantDbAsync(companyId);
+        item.BranchId = branchId;
         if (item.CreatedAt == default) item.CreatedAt = DateTime.UtcNow;
         tenantDb.Promotions.Add(item);
         await tenantDb.SaveChangesAsync();
@@ -37,9 +57,15 @@ public sealed class PromotionsController : TenantControllerBase
     [HttpPut("{id:int}")]
     public async Task<ActionResult<Promotion>> Update(int companyId, int id, Promotion updated)
     {
+        if (!CanAccessCompany(companyId))
+            return Forbid();
+
         using var tenantDb = await GetTenantDbAsync(companyId);
         var existing = await tenantDb.Promotions.FindAsync(id);
         if (existing == null) return NotFound();
+
+        if (!CanAccessBranch(existing.BranchId))
+            return Forbid();
 
         existing.Title = updated.Title;
         existing.Description = updated.Description;
