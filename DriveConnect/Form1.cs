@@ -2,6 +2,7 @@ using System;
 using System.Windows.Forms;
 using DriveConnect.winforms.Forms;
 using DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls;
+using DriveConnect.winforms.Modules.SystemAdministration.Controls;
 using DriveConnect.winforms.Services;
 
 namespace DriveConnect
@@ -34,6 +35,21 @@ namespace DriveConnect
         private void ShowMainSystem()
         {
             Controls.Clear();
+
+            if (string.Equals(
+                    UserSession.Role,
+                    "Super Admin",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                var superAdminControl = new SuperAdminControl
+                {
+                    Dock = DockStyle.Fill
+                };
+
+                Controls.Add(superAdminControl);
+                Text = "DriveConnect - Super Admin";
+                return;
+            }
 
             var crmControl = new CustomerRecordsControl
             {
