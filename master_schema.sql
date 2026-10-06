@@ -84,6 +84,10 @@ CREATE INDEX [IX_AppUsers_CompanyId] ON [AppUsers] ([CompanyId]);
 CREATE INDEX [IX_AppUsers_BranchId] ON [AppUsers] ([BranchId]);
 CREATE UNIQUE INDEX [IX_AppUsers_Email] ON [AppUsers] ([Email]);
 CREATE UNIQUE INDEX [IX_AppUsers_Username] ON [AppUsers] ([Username]);
+
+CREATE UNIQUE INDEX [IX_AppUsers_OnlyOneSuperAdmin]
+    ON [AppUsers] ([Role])
+    WHERE [Role] = N'Super Admin';
 CREATE UNIQUE INDEX [IX_Companies_CompanyCode] ON [Companies] ([CompanyCode]);
 CREATE INDEX [IX_CompanyDatabases_CompanyId] ON [CompanyDatabases] ([CompanyId]);
 CREATE UNIQUE INDEX [IX_Devices_CompanyId_DeviceCode] ON [Devices] ([CompanyId], [DeviceCode]);
