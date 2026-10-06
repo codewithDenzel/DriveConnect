@@ -18,14 +18,34 @@ public sealed class ComplaintsController : TenantControllerBase
     [HttpGet]
     public async Task<ActionResult<List<Complaint>>> GetAll(int companyId)
     {
+        if (!CanAccessCompany(companyId))
+            return Forbid();
+
         using var tenantDb = await GetTenantDbAsync(companyId);
-        return Ok(await tenantDb.Complaints.AsNoTracking().ToListAsync());
+        var query = tenantDb.Complaints.AsNoTracking();
+
+        if (IsStaffUser)
+        {
+            if (!TryGetCurrentBranchId(out var branchId))
+                return Forbid();
+
+            query = query.Where(x => x.BranchId == branchId);
+        }
+
+        return Ok(await query.ToListAsync());
     }
 
     [HttpPost]
     public async Task<ActionResult<Complaint>> Create(int companyId, Complaint item)
     {
+        if (!CanAccessCompany(companyId) || !IsStaffUser)
+            return Forbid();
+
+        if (!TryGetCurrentBranchId(out var branchId))
+            return Forbid();
+
         using var tenantDb = await GetTenantDbAsync(companyId);
+        item.BranchId = branchId;
         if (item.CreatedAt == default) item.CreatedAt = DateTime.UtcNow;
         tenantDb.Complaints.Add(item);
         await tenantDb.SaveChangesAsync();
@@ -40,6 +60,9 @@ public sealed class ComplaintsController : TenantControllerBase
         using var tenantDb = await GetTenantDbAsync(companyId);
         var existing = await tenantDb.Complaints.FindAsync(id);
         if (existing == null) return NotFound();
+
+        if (!CanAccessBranch(existing.BranchId))
+            return Forbid();
 
         existing.CustomerName = updated.CustomerName;
         existing.PhoneNumber = updated.PhoneNumber;
