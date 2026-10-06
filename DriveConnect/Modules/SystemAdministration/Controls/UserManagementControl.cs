@@ -52,7 +52,12 @@ public sealed class UserManagementControl : UserControl
 
         var subtitle = new Label
         {
-            Text = "Manage user accounts, roles, and branch assignments.",
+            Text = string.Equals(
+                UserSession.Role,
+                SuperAdmin,
+                StringComparison.OrdinalIgnoreCase)
+                ? "Manage the dealership's Admin accounts only."
+                : "Manage the dealership's Staff accounts only.",
             AutoSize = true,
             Location = new Point(2, 37),
             Font = new Font("Segoe UI", 9F),
@@ -149,11 +154,22 @@ public sealed class UserManagementControl : UserControl
             _allBranches = await _api.GetBranchesAsync(UserSession.CompanyId);
             var users = await _api.GetUsersAsync(UserSession.CompanyId);
 
+            var managedRole = string.Equals(
+                UserSession.Role,
+                SuperAdmin,
+                StringComparison.OrdinalIgnoreCase)
+                ? Admin
+                : Staff;
+
             _allUsers.Clear();
-            _allUsers.AddRange(users);
+            _allUsers.AddRange(users.Where(x =>
+                string.Equals(
+                    x.Role,
+                    managedRole,
+                    StringComparison.OrdinalIgnoreCase)));
 
             BindGrid();
-            ShowStatus($"{_allUsers.Count} user(s).", false);
+            ShowStatus($"{_allUsers.Count} {managedRole} user(s).", false);
         }
         catch (HttpRequestException)
         {
@@ -169,7 +185,18 @@ public sealed class UserManagementControl : UserControl
     {
         var term = _txtSearch.Text.Trim();
 
+        var managedRole = string.Equals(
+            UserSession.Role,
+            SuperAdmin,
+            StringComparison.OrdinalIgnoreCase)
+            ? Admin
+            : Staff;
+
         var rows = _allUsers
+            .Where(x => string.Equals(
+                x.Role,
+                managedRole,
+                StringComparison.OrdinalIgnoreCase))
             .Where(x =>
                 string.IsNullOrWhiteSpace(term) ||
                 x.Username.Contains(term, StringComparison.OrdinalIgnoreCase) ||
@@ -320,11 +347,12 @@ public sealed class UserManagementControl : UserControl
             if (isSuperAdmin)
                 cbBranch.SelectedIndex = 0;
 
-            lblHint.Text = isEditingSuperAdmin
-                ? "This is the only Super Admin account and cannot be reassigned or deactivated."
-                : role == Staff
-                    ? "Staff users must be assigned to an active branch."
-                    : "Admin users manage their company's Staff users.";
+            lblHint.Text = string.Equals(
+                UserSession.Role,
+                SuperAdmin,
+                StringComparison.OrdinalIgnoreCase)
+                ? "Super Admin accounts are system-owned. This screen manages Admin accounts only."
+                : "Staff users must be assigned to an active branch.";
         }
 
         cbRole.SelectedIndexChanged += (_, _) => ApplyRoleRules();
@@ -432,13 +460,7 @@ public sealed class UserManagementControl : UserControl
                 SuperAdmin,
                 StringComparison.OrdinalIgnoreCase))
         {
-            return existing != null &&
-                   string.Equals(
-                       existing.Role,
-                       SuperAdmin,
-                       StringComparison.OrdinalIgnoreCase)
-                ? new[] { SuperAdmin }
-                : new[] { Admin, Staff };
+            return new[] { Admin };
         }
 
         return new[] { Staff };
