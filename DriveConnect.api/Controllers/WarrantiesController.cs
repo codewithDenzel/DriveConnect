@@ -18,14 +18,34 @@ public sealed class WarrantiesController : TenantControllerBase
     [HttpGet]
     public async Task<ActionResult<List<VehicleWarranty>>> GetAll(int companyId)
     {
+        if (!CanAccessCompany(companyId))
+            return Forbid();
+
         using var tenantDb = await GetTenantDbAsync(companyId);
-        return Ok(await tenantDb.VehicleWarranties.AsNoTracking().ToListAsync());
+        var query = tenantDb.VehicleWarranties.AsNoTracking();
+
+        if (IsStaffUser)
+        {
+            if (!TryGetCurrentBranchId(out var branchId))
+                return Forbid();
+
+            query = query.Where(x => x.BranchId == branchId);
+        }
+
+        return Ok(await query.ToListAsync());
     }
 
     [HttpPost]
     public async Task<ActionResult<VehicleWarranty>> Create(int companyId, VehicleWarranty item)
     {
+        if (!CanAccessCompany(companyId) || !IsStaffUser)
+            return Forbid();
+
+        if (!TryGetCurrentBranchId(out var branchId))
+            return Forbid();
+
         using var tenantDb = await GetTenantDbAsync(companyId);
+        item.BranchId = branchId;
         tenantDb.VehicleWarranties.Add(item);
         await tenantDb.SaveChangesAsync();
         await _syncService.EnqueueAsync(
@@ -39,6 +59,9 @@ public sealed class WarrantiesController : TenantControllerBase
         using var tenantDb = await GetTenantDbAsync(companyId);
         var existing = await tenantDb.VehicleWarranties.FindAsync(id);
         if (existing == null) return NotFound();
+
+        if (!CanAccessBranch(existing.BranchId))
+            return Forbid();
 
         existing.CustomerName = updated.CustomerName;
         existing.PhoneNumber = updated.PhoneNumber;
