@@ -9,6 +9,7 @@ namespace DriveConnect.domain.Entities
     {
         [Key]
         public int PromotionId { get; set; }
+        public int? BranchId { get; set; }
         public string? Title { get; set; }
         public string? Description { get; set; }
         public string? DiscountType { get; set; }
