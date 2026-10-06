@@ -238,7 +238,7 @@ public sealed class UserManagementControl : UserControl
         var txtUsername = AddField(form, "Username", existing?.Username, ref y);
         var txtEmail = AddField(form, "Email", existing?.Email, ref y);
 
-        var availableRoles = GetAvailableRoles();
+        var availableRoles = GetAvailableRoles(existing);
         var cbRole = AddRoleCombo(
             form,
             "Role",
