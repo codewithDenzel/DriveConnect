@@ -34,10 +34,21 @@ public sealed class UsersController : ControllerBase
         if (!CanAccessCompany(companyId))
             return Forbid();
 
+        var currentRole = User.FindFirstValue(ClaimTypes.Role);
+
+        var managedRole = string.Equals(
+            currentRole,
+            "Super Admin",
+            StringComparison.OrdinalIgnoreCase)
+            ? "Admin"
+            : "Staff";
+
         var users = await _masterDb.AppUsers
             .AsNoTracking()
             .Include(x => x.Branch)
-            .Where(x => x.CompanyId == companyId)
+            .Where(x =>
+                x.CompanyId == companyId &&
+                x.Role == managedRole)
             .OrderBy(x => x.Username)
             .Select(x => new UserListItem(
                 x.UserId,
@@ -281,8 +292,10 @@ public sealed class UsersController : ControllerBase
                 "Super Admin",
                 StringComparison.OrdinalIgnoreCase))
         {
-            return string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase) ||
-                   string.Equals(role, "Staff", StringComparison.OrdinalIgnoreCase);
+            return string.Equals(
+                role,
+                "Admin",
+                StringComparison.OrdinalIgnoreCase);
         }
 
         return string.Equals(
@@ -306,22 +319,25 @@ public sealed class UsersController : ControllerBase
                 "Super Admin",
                 StringComparison.OrdinalIgnoreCase))
         {
-            if (!string.Equals(
+            if (string.Equals(
                     targetUser.Role,
                     "Super Admin",
                     StringComparison.OrdinalIgnoreCase))
             {
-                return true;
+                return int.TryParse(currentUserId, out var id) &&
+                       id == targetUser.UserId;
             }
 
-            return int.TryParse(currentUserId, out var id) &&
-                   id == targetUser.UserId;
+            return string.Equals(
+                targetUser.Role,
+                "Admin",
+                StringComparison.OrdinalIgnoreCase);
         }
 
-        return !string.Equals(
-                   targetUser.Role,
-                   "Super Admin",
-                   StringComparison.OrdinalIgnoreCase);
+        return string.Equals(
+            targetUser.Role,
+            "Staff",
+            StringComparison.OrdinalIgnoreCase);
     }
 
     private bool CanAccessCompany(int companyId)
