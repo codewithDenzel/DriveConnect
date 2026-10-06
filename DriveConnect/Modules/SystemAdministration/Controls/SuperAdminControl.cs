@@ -244,7 +244,7 @@ public sealed class SuperAdminControl : UserControl
             Padding = new Padding(25)
         };
 
-        var status = new Label
+        _systemStatusValue = new Label
         {
             Text = "Loading...",
             AutoSize = true,
@@ -253,7 +253,7 @@ public sealed class SuperAdminControl : UserControl
             ForeColor = Color.FromArgb(124, 58, 237)
         };
 
-        var text = new Label
+        _systemStatusDetail = new Label
         {
             Text = "Checking the DriveConnect API...",
             AutoSize = true,
@@ -261,8 +261,8 @@ public sealed class SuperAdminControl : UserControl
             ForeColor = Color.FromArgb(75, 85, 99)
         };
 
-        card.Controls.Add(status);
-        card.Controls.Add(text);
+        card.Controls.Add(_systemStatusValue);
+        card.Controls.Add(_systemStatusDetail);
         _statusPanel.Controls.Add(card);
         _statusPanel.Controls.Add(title);
     }
@@ -329,28 +329,18 @@ public sealed class SuperAdminControl : UserControl
         try
         {
             var systemStatus = await _api.GetSystemStatusAsync();
-            if (_statusPanel.Controls.OfType<Panel>().FirstOrDefault() is Panel card)
+
+            if (systemStatus != null)
             {
-                var labels = card.Controls.OfType<Label>().ToList();
-                if (labels.Count >= 2 && systemStatus != null)
-                {
-                    labels[0].Text = systemStatus.Status;
-                    labels[1].Text =
-                        $"{systemStatus.Service} • Logged in as {systemStatus.Role}";
-                }
+                _systemStatusValue.Text = systemStatus.Status;
+                _systemStatusDetail.Text =
+                    $"{systemStatus.Service} • Logged in as {systemStatus.Role}";
             }
         }
         catch
         {
-            if (_statusPanel.Controls.OfType<Panel>().FirstOrDefault() is Panel card)
-            {
-                var labels = card.Controls.OfType<Label>().ToList();
-                if (labels.Count >= 2)
-                {
-                    labels[0].Text = "Unavailable";
-                    labels[1].Text = "Unable to reach the DriveConnect API.";
-                }
-            }
+            _systemStatusValue.Text = "Unavailable";
+            _systemStatusDetail.Text = "Unable to reach the DriveConnect API.";
         }
     }
 
