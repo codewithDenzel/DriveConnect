@@ -18,8 +18,21 @@ public sealed class FeedbackController : TenantControllerBase
     [HttpGet]
     public async Task<ActionResult<List<Feedback>>> GetAll(int companyId)
     {
+        if (!CanAccessCompany(companyId))
+            return StatusCode(StatusCodes.Status403Forbidden);
+
         using var tenantDb = await GetTenantDbAsync(companyId);
-        return Ok(await tenantDb.Feedback.AsNoTracking().ToListAsync());
+        var query = tenantDb.Feedback.AsNoTracking();
+
+        if (IsStaffUser)
+        {
+            if (!TryGetCurrentBranchId(out var branchId))
+                return StatusCode(StatusCodes.Status403Forbidden);
+
+            query = query.Where(x => x.BranchId == branchId);
+        }
+
+        return Ok(await query.ToListAsync());
     }
 
     [HttpPost]
