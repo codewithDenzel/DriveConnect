@@ -1,6 +1,5 @@
 using System.Drawing;
 using System.Net.Mail;
-using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using DriveConnect.domain.DTO;
 using DriveConnect.domain.Entities;
@@ -592,63 +591,6 @@ public sealed class UserManagementControl : UserControl
     private sealed record BranchChoice(int? Id, string Name)
     {
         public override string ToString() => Name;
-    }
-
-    private static bool IsValidEmail(string email)
-    {
-        try
-        {
-            var address = new MailAddress(email);
-            return string.Equals(
-                address.Address,
-                email,
-                StringComparison.OrdinalIgnoreCase);
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-    private static TextBox AddField(
-        Form parent,
-        string labelText,
-        string? value,
-        ref int y)
-    {
-        var label = new Label
-        {
-            Text = labelText,
-            AutoSize = true,
-            Location = new Point(30, y),
-            Font = new Font("Segoe UI Semibold", 9F),
-            ForeColor = Color.FromArgb(75, 85, 99)
-        };
-
-        var text = new TextBox
-        {
-            Text = value ?? string.Empty,
-            Location = new Point(30, y + 22),
-            Width = 400,
-            Font = new Font("Segoe UI", 10F),
-            BorderStyle = BorderStyle.FixedSingle
-        };
-
-        parent.Controls.Add(label);
-        parent.Controls.Add(text);
-
-        y += 62;
-        return text;
-    }
-
-    private static TextBox AddPasswordField(
-        Form parent,
-        string labelText,
-        ref int y)
-    {
-        var text = AddField(parent, labelText, null, ref y);
-        text.UseSystemPasswordChar = true;
-        return text;
     }
 
     private void ShowStatus(string message, bool error)
