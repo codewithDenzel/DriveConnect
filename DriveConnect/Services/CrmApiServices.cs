@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
 using DriveConnect.domain.Entities;
@@ -10,7 +11,23 @@ namespace DriveConnect.winforms.Services
     public class CrmApiService
     {
         // Make sure this port matches your running API port
-        private readonly HttpClient _http = new HttpClient { BaseAddress = new Uri("https://localhost:7162") };
+        private readonly HttpClient _http;
+
+        public CrmApiService()
+        {
+            _http = new HttpClient
+            {
+                BaseAddress = new Uri("https://localhost:7162")
+            };
+
+            if (!string.IsNullOrWhiteSpace(UserSession.Token))
+            {
+                _http.DefaultRequestHeaders.Authorization =
+                    new AuthenticationHeaderValue(
+                        "Bearer",
+                        UserSession.Token);
+            }
+        }
 
         public async Task<List<SalesLead>> GetSalesAsync(int companyId) => await _http.GetFromJsonAsync<List<SalesLead>>($"/tenant/{companyId}/sales") ?? new();
         public async Task<HttpResponseMessage> CreateSalesAsync(int companyId, SalesLead lead) => await _http.PostAsJsonAsync($"/tenant/{companyId}/sales", lead);
