@@ -354,8 +354,15 @@ public sealed class SuperAdminControl : UserControl
         }
     }
 
-    private static Label CreateTitle(string titleText, string subtitleText)
+    private static Panel CreateTitle(string titleText, string subtitleText)
     {
+        var panel = new Panel
+        {
+            Dock = DockStyle.Top,
+            Height = 68,
+            BackColor = Color.Transparent
+        };
+
         var title = new Label
         {
             Text = titleText,
@@ -374,7 +381,10 @@ public sealed class SuperAdminControl : UserControl
             ForeColor = Color.FromArgb(107, 114, 128)
         };
 
-        return title;
+        panel.Controls.Add(title);
+        panel.Controls.Add(subtitle);
+
+        return panel;
     }
 
     private static Label CreateValueLabel()
