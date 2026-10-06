@@ -138,11 +138,14 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                     new[] { "Manage Branches" }));
             }
 
-            sidebarFlow.Controls.Add(CreateAccordion("nav_sales", "🚗 Car Sales and Leads",
-                new[] { "New Inquiry", "Test Drive Scheduled", "Negotiation", "Closed Deals" }));
+            if (IsStaffRole())
+            {
+                sidebarFlow.Controls.Add(CreateAccordion("nav_sales", "🚗 Car Sales and Leads",
+                    new[] { "New Inquiry", "Test Drive Scheduled", "Negotiation", "Closed Deals" }));
 
-            sidebarFlow.Controls.Add(CreateAccordion("nav_service", "🔧 Service and Repair",
-                new[] { "New Diagnose", "In Repair", "Waiting for Parts", "Repaired", "Ready for Pickup", "Picked Up" }));
+                sidebarFlow.Controls.Add(CreateAccordion("nav_service", "🔧 Service and Repair",
+                    new[] { "New Diagnose", "In Repair", "Waiting for Parts", "Repaired", "Ready for Pickup", "Picked Up" }));
+            }
 
             sidebarFlow.Controls.Add(CreateAccordion(
                 "nav_promotions2",
