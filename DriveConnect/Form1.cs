@@ -1,4 +1,5 @@
 using System;
+using System.Drawing;
 using System.Windows.Forms;
 using DriveConnect.winforms.Forms;
 using DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls;
@@ -21,6 +22,11 @@ namespace DriveConnect
 
         private void Form1_Load(object? sender, EventArgs e)
         {
+            ShowLogin();
+        }
+
+        private void ShowLogin()
+        {
             using var loginForm = new LoginForm();
 
             if (loginForm.ShowDialog(this) != DialogResult.OK)
@@ -36,6 +42,45 @@ namespace DriveConnect
         {
             Controls.Clear();
 
+            var mainPanel = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = Color.FromArgb(243, 244, 246)
+            };
+
+            var header = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 52,
+                BackColor = Color.White,
+                Padding = new Padding(10, 7, 12, 7)
+            };
+
+            var logoutButton = new Button
+            {
+                Text = "Log Out",
+                Dock = DockStyle.Right,
+                Width = 100,
+                FlatStyle = FlatStyle.Flat,
+                BackColor = Color.White,
+                ForeColor = Color.FromArgb(75, 85, 99),
+                Font = new Font("Segoe UI Semibold", 9F),
+                Cursor = Cursors.Hand
+            };
+
+            logoutButton.FlatAppearance.BorderColor = Color.FromArgb(229, 231, 235);
+            logoutButton.FlatAppearance.BorderSize = 1;
+            logoutButton.Click += (_, _) =>
+            {
+                UserSession.Clear();
+                Controls.Clear();
+                Text = "DriveConnect CRM System";
+                ShowLogin();
+            };
+
+            header.Controls.Add(logoutButton);
+            mainPanel.Controls.Add(header);
+
             if (string.Equals(
                     UserSession.Role,
                     "Super Admin",
@@ -46,18 +91,21 @@ namespace DriveConnect
                     Dock = DockStyle.Fill
                 };
 
-                Controls.Add(superAdminControl);
+                mainPanel.Controls.Add(superAdminControl);
                 Text = "DriveConnect - Super Admin";
-                return;
+            }
+            else
+            {
+                var crmControl = new CustomerRecordsControl
+                {
+                    Dock = DockStyle.Fill
+                };
+
+                mainPanel.Controls.Add(crmControl);
+                Text = $"DriveConnect CRM System - {UserSession.Role}";
             }
 
-            var crmControl = new CustomerRecordsControl
-            {
-                Dock = DockStyle.Fill
-            };
-
-            Controls.Add(crmControl);
-            Text = $"DriveConnect CRM System - {UserSession.Role}";
+            Controls.Add(mainPanel);
         }
     }
 }
