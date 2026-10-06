@@ -38,7 +38,7 @@ public sealed class UserManagementControl : UserControl
         var topBar = new Panel
         {
             Dock = DockStyle.Top,
-            Height = 75,
+            Height = 125,
             BackColor = Color.Transparent
         };
 
@@ -239,10 +239,11 @@ public sealed class UserManagementControl : UserControl
         var txtUsername = AddField(form, "Username", existing?.Username, ref y);
         var txtEmail = AddField(form, "Email", existing?.Email, ref y);
 
-        var cbRole = AddCombo(
+        var availableRoles = GetAvailableRoles();
+        var cbRole = AddRoleCombo(
             form,
             "Role",
-            GetAvailableRoles(existing),
+            availableRoles,
             existing?.Role ?? (UserSession.Role == Admin ? Staff : Admin),
             ref y);
 
@@ -251,17 +252,12 @@ public sealed class UserManagementControl : UserControl
             .OrderBy(x => x.BranchName)
             .ToList();
 
-        var cbBranch = AddCombo(
+        var cbBranch = AddBranchCombo(
             form,
             "Branch",
-            branches.Select(x => $"{x.BranchId}|{x.BranchName}").ToArray(),
-            existing?.BranchId.HasValue == true
-                ? $"{existing.BranchId.Value}|{existing.BranchName}"
-                : "None",
+            branches,
+            existing?.BranchId,
             ref y);
-
-        if (UserSession.Role == Admin)
-            cbRole.SelectedItem = Staff;
 
         var txtPassword = AddPasswordField(
             form,
@@ -286,10 +282,7 @@ public sealed class UserManagementControl : UserControl
             Size = new Size(400, 44),
             Location = new Point(30, y),
             Font = new Font("Segoe UI", 8.5F),
-            ForeColor = Color.FromArgb(107, 114, 128),
-            Text = UserSession.Role == Admin
-                ? "Admin accounts can manage Staff users in their company."
-                : "Staff users must be assigned to an active branch."
+            ForeColor = Color.FromArgb(107, 114, 128)
         };
         form.Controls.Add(lblHint);
         y += 55;
@@ -308,28 +301,25 @@ public sealed class UserManagementControl : UserControl
         btnSave.FlatAppearance.BorderSize = 0;
         form.Controls.Add(btnSave);
 
-        cbRole.SelectedIndexChanged += (_, _) =>
+        void ApplyRoleRules()
         {
             var role = cbRole.SelectedItem?.ToString() ?? Staff;
             var isSuperAdmin = role == SuperAdmin;
-            var isStaff = role == Staff;
+
+            cbBranch.Enabled = !isSuperAdmin;
 
             if (isSuperAdmin)
-            {
                 cbBranch.SelectedIndex = 0;
-                cbBranch.Enabled = false;
-            }
-            else
-            {
-                cbBranch.Enabled = true;
-            }
 
-            lblHint.Text = isStaff
+            lblHint.Text = role == Staff
                 ? "Staff users must be assigned to an active branch."
                 : isSuperAdmin
                     ? "Super Admin users are not assigned to a branch."
                     : "Admin users manage their company's Staff users.";
-        };
+        }
+
+        cbRole.SelectedIndexChanged += (_, _) => ApplyRoleRules();
+        ApplyRoleRules();
 
         btnSave.Click += async (_, _) =>
         {
@@ -380,11 +370,8 @@ public sealed class UserManagementControl : UserControl
             btnSave.Enabled = false;
             Cursor = Cursors.WaitCursor;
 
-            HttpResponseMessage response;
-
-            if (existing == null)
-            {
-                response = await _api.CreateUserAsync(
+            HttpResponseMessage response = existing == null
+                ? await _api.CreateUserAsync(
                     UserSession.CompanyId,
                     new CreateUserRequest(
                         username,
@@ -392,11 +379,8 @@ public sealed class UserManagementControl : UserControl
                         password,
                         role,
                         branchId,
-                        chkActive.Checked));
-            }
-            else
-            {
-                response = await _api.UpdateUserAsync(
+                        chkActive.Checked))
+                : await _api.UpdateUserAsync(
                     UserSession.CompanyId,
                     existing.UserId,
                     new UpdateUserRequest(
@@ -406,7 +390,6 @@ public sealed class UserManagementControl : UserControl
                         role,
                         branchId,
                         chkActive.Checked));
-            }
 
             Cursor = Cursors.Default;
             btnSave.Enabled = true;
@@ -429,21 +412,8 @@ public sealed class UserManagementControl : UserControl
             form.Close();
         };
 
-        cbRole.SelectedIndexChanged += (_, _) => { };
-
-        form.Shown += (_, _) =>
-        {
-            cbRole_SelectedChanged(cbRole);
-        };
-
         if (form.ShowDialog(FindForm()) == DialogResult.OK)
             await LoadUsersAsync();
-    }
-
-    private static void cbRole_SelectedChanged(ComboBox cbRole)
-    {
-        // The initial role change is handled by the event added during modal setup.
-        _ = cbRole;
     }
 
     private static string[] GetAvailableRoles(UserListItem? existing)
@@ -541,7 +511,7 @@ public sealed class UserManagementControl : UserControl
         return text;
     }
 
-    private static ComboBox AddCombo(
+    private static ComboBox AddRoleCombo(
         Form parent,
         string labelText,
         string[] items,
@@ -565,24 +535,120 @@ public sealed class UserManagementControl : UserControl
             DropDownStyle = ComboBoxStyle.DropDownList
         };
 
-        combo.Items.Add("None");
-
-        foreach (var item in items)
-        {
-            if (!combo.Items.Contains(item))
-                combo.Items.Add(item);
-        }
-
+        combo.Items.AddRange(items);
         combo.SelectedItem = combo.Items.Contains(value)
             ? value
-            : "None";
+            : items[0];
 
         parent.Controls.Add(label);
         parent.Controls.Add(combo);
 
         y += 62;
-
         return combo;
+    }
+
+    private static ComboBox AddBranchCombo(
+        Form parent,
+        string labelText,
+        IReadOnlyList<Branch> branches,
+        int? branchId,
+        ref int y)
+    {
+        var label = new Label
+        {
+            Text = labelText,
+            AutoSize = true,
+            Location = new Point(30, y),
+            Font = new Font("Segoe UI Semibold", 9F),
+            ForeColor = Color.FromArgb(75, 85, 99)
+        };
+
+        var combo = new ComboBox
+        {
+            Location = new Point(30, y + 22),
+            Width = 400,
+            Font = new Font("Segoe UI", 10F),
+            DropDownStyle = ComboBoxStyle.DropDownList
+        };
+
+        combo.Items.Add(new BranchChoice(null, "None"));
+
+        foreach (var branch in branches)
+            combo.Items.Add(new BranchChoice(branch.BranchId, branch.BranchName));
+
+        var selected = combo.Items
+            .OfType<BranchChoice>()
+            .FirstOrDefault(x => x.Id == branchId);
+
+        combo.SelectedItem = selected ?? combo.Items[0];
+
+        parent.Controls.Add(label);
+        parent.Controls.Add(combo);
+
+        y += 62;
+        return combo;
+    }
+
+    private sealed record BranchChoice(int? Id, string Name)
+    {
+        public override string ToString() => Name;
+    }
+
+    private static bool IsValidEmail(string email)
+    {
+        try
+        {
+            var address = new MailAddress(email);
+            return string.Equals(
+                address.Address,
+                email,
+                StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static TextBox AddField(
+        Form parent,
+        string labelText,
+        string? value,
+        ref int y)
+    {
+        var label = new Label
+        {
+            Text = labelText,
+            AutoSize = true,
+            Location = new Point(30, y),
+            Font = new Font("Segoe UI Semibold", 9F),
+            ForeColor = Color.FromArgb(75, 85, 99)
+        };
+
+        var text = new TextBox
+        {
+            Text = value ?? string.Empty,
+            Location = new Point(30, y + 22),
+            Width = 400,
+            Font = new Font("Segoe UI", 10F),
+            BorderStyle = BorderStyle.FixedSingle
+        };
+
+        parent.Controls.Add(label);
+        parent.Controls.Add(text);
+
+        y += 62;
+        return text;
+    }
+
+    private static TextBox AddPasswordField(
+        Form parent,
+        string labelText,
+        ref int y)
+    {
+        var text = AddField(parent, labelText, null, ref y);
+        text.UseSystemPasswordChar = true;
+        return text;
     }
 
     private void ShowStatus(string message, bool error)
