@@ -42,6 +42,11 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
 
         private bool CanCreateCurrentTab()
         {
+            // Admin can manage existing company records, but daily CRM records
+            // are created by Staff.
+            if (IsAdminRole())
+                return false;
+
             if (currentMainTab == "Customer History")
                 return currentSubTab == "Interaction History";
 
@@ -54,7 +59,8 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
             {
                 var query = _allPromotions.AsEnumerable();
                 if (currentSubTab == "Active Promos") query = query.Where(x => x.Status == "Active");
-                else if (currentSubTab == "Drafts") query = query.Where(x => x.Status == "Draft");
+                else if (currentSubTab == "Drafts" || currentSubTab == "Pending Approval")
+                    query = query.Where(x => x.Status == "Draft");
 
                 string q = txtSearch.Text.Trim().ToLower();
                 if (!string.IsNullOrWhiteSpace(q))
