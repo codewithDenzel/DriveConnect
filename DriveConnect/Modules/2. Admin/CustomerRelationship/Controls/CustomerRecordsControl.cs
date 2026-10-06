@@ -344,7 +344,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
             if (userManagementControl != null)
                 userManagementControl.Visible = false;
 
-            if (mainTab == "User Management")
+            if (mainTab == "User Management" || mainTab == "Staff Management")
             {
                 if (!IsAdminRole())
                     return;
@@ -430,7 +430,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                 {
                     txtSearch.Visible = true;
                     gridView.Visible = true;
-                    btnNewRecord.Visible = mainTab != "Archived";
+                    btnNewRecord.Visible = IsStaffRole();
                     lblPlaceholderMessage.Visible = false;
                     FilterAndBindGrid();
                 }
@@ -1412,6 +1412,12 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
 
         private async void BtnNewRecord_Click(object? sender, EventArgs e)
         {
+            if (IsAdminRole() &&
+                currentMainTab != "Branching")
+            {
+                return;
+            }
+
             if (currentMainTab == "Branching")
             {
                 await ShowBranchModalAsync(null);
