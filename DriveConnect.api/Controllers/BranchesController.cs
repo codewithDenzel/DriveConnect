@@ -37,6 +37,7 @@ public sealed class BranchesController : ControllerBase
         return Ok(branches);
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     public async Task<ActionResult<Branch>> Create(int companyId, Branch branch)
     {
@@ -82,6 +83,7 @@ public sealed class BranchesController : ControllerBase
         return Created($"/companies/{companyId}/branches/{newBranch.BranchId}", newBranch);
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPut("{id:int}")]
     public async Task<ActionResult<Branch>> Update(int companyId, int id, Branch updated)
     {
@@ -121,6 +123,7 @@ public sealed class BranchesController : ControllerBase
         return Ok(branch);
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int companyId, int id)
     {
