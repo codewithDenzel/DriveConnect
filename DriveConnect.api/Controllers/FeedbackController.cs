@@ -38,7 +38,14 @@ public sealed class FeedbackController : TenantControllerBase
     [HttpPost]
     public async Task<ActionResult<Feedback>> Create(int companyId, Feedback item)
     {
+        if (!CanAccessCompany(companyId) || !IsStaffUser)
+            return StatusCode(StatusCodes.Status403Forbidden);
+
+        if (!TryGetCurrentBranchId(out var branchId))
+            return StatusCode(StatusCodes.Status403Forbidden);
+
         using var tenantDb = await GetTenantDbAsync(companyId);
+        item.BranchId = branchId;
         if (item.CreatedAt == default) item.CreatedAt = DateTime.UtcNow;
         tenantDb.Feedback.Add(item);
         await tenantDb.SaveChangesAsync();
