@@ -130,12 +130,25 @@ public sealed class UsersController : ControllerBase
         if (user == null)
             return NotFound("User not found.");
 
-        if (!CanAccessUser(user) || !CanManageRole(request.Role))
+        if (!CanAccessUser(user))
+            return Forbid();
+
+        var editingOwnSuperAdmin =
+            string.Equals(
+                user.Role,
+                "Super Admin",
+                StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(
+                request.Role,
+                "Super Admin",
+                StringComparison.OrdinalIgnoreCase);
+
+        if (!editingOwnSuperAdmin && !CanManageRole(request.Role))
             return Forbid();
 
         if (string.Equals(user.Role, "Super Admin", StringComparison.OrdinalIgnoreCase))
         {
-            if (!string.Equals(request.Role, "Super Admin", StringComparison.OrdinalIgnoreCase) ||
+            if (!editingOwnSuperAdmin ||
                 request.BranchId.HasValue ||
                 !request.IsActive)
             {
