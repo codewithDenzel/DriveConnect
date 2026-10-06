@@ -18,14 +18,34 @@ public sealed class WarrantyClaimsController : TenantControllerBase
     [HttpGet]
     public async Task<ActionResult<List<WarrantyClaim>>> GetAll(int companyId)
     {
+        if (!CanAccessCompany(companyId))
+            return Forbid();
+
         using var tenantDb = await GetTenantDbAsync(companyId);
-        return Ok(await tenantDb.WarrantyClaims.AsNoTracking().ToListAsync());
+        var query = tenantDb.WarrantyClaims.AsNoTracking();
+
+        if (IsStaffUser)
+        {
+            if (!TryGetCurrentBranchId(out var branchId))
+                return Forbid();
+
+            query = query.Where(x => x.BranchId == branchId);
+        }
+
+        return Ok(await query.ToListAsync());
     }
 
     [HttpPost]
     public async Task<ActionResult<WarrantyClaim>> Create(int companyId, WarrantyClaim item)
     {
+        if (!CanAccessCompany(companyId) || !IsStaffUser)
+            return Forbid();
+
+        if (!TryGetCurrentBranchId(out var branchId))
+            return Forbid();
+
         using var tenantDb = await GetTenantDbAsync(companyId);
+        item.BranchId = branchId;
         if (item.DateReported == default) item.DateReported = DateTime.UtcNow;
         tenantDb.WarrantyClaims.Add(item);
         await tenantDb.SaveChangesAsync();
@@ -40,6 +60,9 @@ public sealed class WarrantyClaimsController : TenantControllerBase
         using var tenantDb = await GetTenantDbAsync(companyId);
         var existing = await tenantDb.WarrantyClaims.FindAsync(id);
         if (existing == null) return NotFound();
+
+        if (!CanAccessBranch(existing.BranchId))
+            return Forbid();
 
         existing.WarrantyId = updated.WarrantyId;
         existing.CustomerName = updated.CustomerName;
