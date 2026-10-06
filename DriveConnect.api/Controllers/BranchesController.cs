@@ -1,11 +1,13 @@
 using DriveConnect.domain.Entities;
 using DriveConnect.infrastructure.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace DriveConnect.api.Controllers;
 
 [ApiController]
+[Authorize(Roles = "Admin,Super Admin")]
 [Route("companies/{companyId:int}/branches")]
 public sealed class BranchesController : ControllerBase
 {
