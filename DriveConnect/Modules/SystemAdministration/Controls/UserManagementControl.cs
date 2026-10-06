@@ -43,7 +43,12 @@ public sealed class UserManagementControl : UserControl
 
         var title = new Label
         {
-            Text = "User Management",
+            Text = string.Equals(
+                UserSession.Role,
+                SuperAdmin,
+                StringComparison.OrdinalIgnoreCase)
+                ? "Admin Accounts"
+                : "Staff Management",
             AutoSize = true,
             Location = new Point(0, 3),
             Font = new Font("Segoe UI Semibold", 18F, FontStyle.Bold),
