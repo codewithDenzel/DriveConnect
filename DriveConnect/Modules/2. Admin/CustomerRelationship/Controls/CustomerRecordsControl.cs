@@ -84,6 +84,22 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
             _ = LoadDataFromApiAsync();
         }
 
+        private bool IsAdminRole()
+        {
+            return string.Equals(
+                UserSession.Role,
+                "Admin",
+                StringComparison.OrdinalIgnoreCase);
+        }
+
+        private bool IsStaffRole()
+        {
+            return string.Equals(
+                UserSession.Role,
+                "Staff",
+                StringComparison.OrdinalIgnoreCase);
+        }
+
         private void SetupLightModernUI()
         {
             this.Dock = DockStyle.Fill;
@@ -102,22 +118,25 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
             sidebarPanel.Controls.Add(lblLogo);
 
             // --- ACCORDION SIDEBAR ---
-            FlowLayoutPanel sidebarFlow = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, WrapContents = false, AutoScroll = true };
-
-            sidebarFlow.Controls.Add(CreateAccordion("nav_bi", "📊 Business Intelligence",
-                new[] { "Dashboard", "KPI", "Reports", "Graphs" }));
-
-            var currentRole = (UserSession.Role ?? string.Empty).Trim();
-
-            if (string.Equals(currentRole, "Super Admin", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(currentRole, "Admin", StringComparison.OrdinalIgnoreCase))
+            FlowLayoutPanel sidebarFlow = new FlowLayoutPanel
             {
-                sidebarFlow.Controls.Add(CreateAccordion("nav_users", "👤 User Management",
-                    new[] { "Manage Users" }));
-            }
+                Dock = DockStyle.Fill,
+                FlowDirection = FlowDirection.TopDown,
+                WrapContents = false,
+                AutoScroll = true
+            };
 
-            sidebarFlow.Controls.Add(CreateAccordion("nav_branching", "🏢 Branching",
-                new[] { "Manage Branches" }));
+            if (IsAdminRole())
+            {
+                sidebarFlow.Controls.Add(CreateAccordion("nav_bi", "📊 Business Intelligence",
+                    new[] { "Dashboard", "KPI", "Reports", "Graphs" }));
+
+                sidebarFlow.Controls.Add(CreateAccordion("nav_users", "👤 Staff Management",
+                    new[] { "Manage Staff" }));
+
+                sidebarFlow.Controls.Add(CreateAccordion("nav_branching", "🏢 Branching",
+                    new[] { "Manage Branches" }));
+            }
 
             sidebarFlow.Controls.Add(CreateAccordion("nav_sales", "🚗 Car Sales and Leads",
                 new[] { "New Inquiry", "Test Drive Scheduled", "Negotiation", "Closed Deals" }));
@@ -125,8 +144,12 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
             sidebarFlow.Controls.Add(CreateAccordion("nav_service", "🔧 Service and Repair",
                 new[] { "New Diagnose", "In Repair", "Waiting for Parts", "Repaired", "Ready for Pickup", "Picked Up" }));
 
-            sidebarFlow.Controls.Add(CreateAccordion("nav_promotions2", "📢 Promotions",
-                new[] { "Active Promos", "Drafts" }));
+            sidebarFlow.Controls.Add(CreateAccordion(
+                "nav_promotions2",
+                "📢 Promotions",
+                IsAdminRole()
+                    ? new[] { "Pending Approval", "Active Promos" }
+                    : new[] { "Active Promos", "Drafts" }));
 
             sidebarFlow.Controls.Add(CreateAccordion("nav_history", "🕒 Customer History",
                 new[] { "Customer Profile", "Sales and Lead History", "Service and Repair History", "Interaction History", "Feedback History", "Complaint History", "Warranty History", "Maintenance History" }));
@@ -143,8 +166,11 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
             sidebarFlow.Controls.Add(CreateAccordion("nav_maintenance", "🧰 Maintenance",
                 new[] { "Scheduled Maintenance", "Completed Maintenance" }));
 
-            sidebarFlow.Controls.Add(CreateAccordion("nav_archived", "📁 Archived",
-                new[] { "Archived Sales", "Archived Repairs" }));
+            if (IsAdminRole())
+            {
+                sidebarFlow.Controls.Add(CreateAccordion("nav_archived", "📁 Archived",
+                    new[] { "Archived Sales", "Archived Repairs" }));
+            }
 
             sidebarPanel.Controls.Add(sidebarFlow);
             sidebarFlow.BringToFront();
@@ -320,6 +346,9 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
 
             if (mainTab == "User Management")
             {
+                if (!IsAdminRole())
+                    return;
+
                 topActionBar.Visible = false;
                 txtSearch.Visible = false;
                 btnNewRecord.Visible = false;
@@ -332,6 +361,9 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
 
             if (mainTab == "Branching")
             {
+                if (!IsAdminRole())
+                    return;
+
                 topActionBar.Visible = true;
                 gridWrapper.Visible = true;
                 gridWrapper.BringToFront();
@@ -344,6 +376,9 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
             }
             else if (mainTab == "Business Intelligence")
             {
+                if (!IsAdminRole())
+                    return;
+
                 topActionBar.Visible = false;
                 txtSearch.PlaceholderText = "Search by Name, Phone, or Model...";
 
@@ -1398,6 +1433,13 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
         private async void GridView_CellDoubleClick(object? sender, DataGridViewCellEventArgs e)
         {
             if (e.RowIndex < 0) return;
+
+            if (IsAdminRole() &&
+                (currentMainTab == "Car Sales and Leads" ||
+                 currentMainTab == "Service and Repair"))
+            {
+                return;
+            }
 
             if (currentMainTab == "Branching")
             {
