@@ -18,14 +18,34 @@ public sealed class SalesController : TenantControllerBase
     [HttpGet]
     public async Task<ActionResult<List<SalesLead>>> GetAll(int companyId)
     {
+        if (!CanAccessCompany(companyId))
+            return Forbid();
+
         using var tenantDb = await GetTenantDbAsync(companyId);
-        return Ok(await tenantDb.SalesLeads.AsNoTracking().ToListAsync());
+        var query = tenantDb.SalesLeads.AsNoTracking();
+
+        if (IsStaffUser)
+        {
+            if (!TryGetCurrentBranchId(out var branchId))
+                return Forbid();
+
+            query = query.Where(x => x.BranchId == branchId);
+        }
+
+        return Ok(await query.ToListAsync());
     }
 
     [HttpPost]
     public async Task<ActionResult<SalesLead>> Create(int companyId, SalesLead lead)
     {
+        if (!CanAccessCompany(companyId) || !IsStaffUser)
+            return Forbid();
+
+        if (!TryGetCurrentBranchId(out var branchId))
+            return Forbid();
+
         using var tenantDb = await GetTenantDbAsync(companyId);
+        lead.BranchId = branchId;
         if (lead.CreatedAt == default) lead.CreatedAt = DateTime.UtcNow;
         tenantDb.SalesLeads.Add(lead);
         await tenantDb.SaveChangesAsync();
@@ -37,9 +57,15 @@ public sealed class SalesController : TenantControllerBase
     [HttpPut("{id:int}")]
     public async Task<ActionResult<SalesLead>> Update(int companyId, int id, SalesLead updated)
     {
+        if (!CanAccessCompany(companyId))
+            return Forbid();
+
         using var tenantDb = await GetTenantDbAsync(companyId);
         var existing = await tenantDb.SalesLeads.FindAsync(id);
         if (existing == null) return NotFound();
+
+        if (!CanAccessBranch(existing.BranchId))
+            return Forbid();
 
         existing.FirstName = updated.FirstName;
         existing.MiddleName = updated.MiddleName;
@@ -50,6 +76,12 @@ public sealed class SalesController : TenantControllerBase
         existing.Status = updated.Status;
         existing.EstimatedCost = updated.EstimatedCost;
         existing.HandledBy = updated.HandledBy;
+
+        if (IsStaffUser &&
+            !TryGetCurrentBranchId(out _))
+        {
+            return Forbid();
+        }
 
         if (updated.Status == "Closed Won" || updated.Status == "Closed Lost" || updated.Status == "Archived")
             existing.CompletedAt = updated.CompletedAt ?? DateTime.UtcNow;
@@ -65,9 +97,15 @@ public sealed class SalesController : TenantControllerBase
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int companyId, int id)
     {
+        if (!CanAccessCompany(companyId))
+            return Forbid();
+
         using var tenantDb = await GetTenantDbAsync(companyId);
         var existing = await tenantDb.SalesLeads.FindAsync(id);
         if (existing == null) return NotFound();
+
+        if (!CanAccessBranch(existing.BranchId))
+            return Forbid();
 
         tenantDb.SalesLeads.Remove(existing);
         await tenantDb.SaveChangesAsync();
