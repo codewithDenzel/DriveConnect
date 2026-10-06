@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using DriveConnect.domain.Entities;
 using DriveConnect.winforms.Services;
+using DriveConnect.winforms.Modules.SystemAdministration.Controls;
 
 namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
 {
@@ -70,6 +71,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
         private List<RepairTicket> _allRepairs = new List<RepairTicket>();
         private List<Branch> _allBranches = new List<Branch>();
         private List<Button> _allAccordionButtons = new List<Button>();
+        private UserManagementControl? userManagementControl;
 
         private readonly CrmApiService _apiService = new CrmApiService();
         private const int CurrentCompanyId = 1;
@@ -104,6 +106,13 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
 
             sidebarFlow.Controls.Add(CreateAccordion("nav_bi", "📊 Business Intelligence",
                 new[] { "Dashboard", "KPI", "Reports", "Graphs" }));
+
+            if (UserSession.Role.Equals("Super Admin", StringComparison.OrdinalIgnoreCase) ||
+                UserSession.Role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+            {
+                sidebarFlow.Controls.Add(CreateAccordion("nav_users", "👤 User Management",
+                    new[] { "Manage Users" }));
+            }
 
             sidebarFlow.Controls.Add(CreateAccordion("nav_branching", "🏢 Branching",
                 new[] { "Manage Branches" }));
@@ -207,6 +216,13 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
 
             gridWrapper.Controls.Add(gridView);
 
+            userManagementControl = new UserManagementControl
+            {
+                Dock = DockStyle.Fill,
+                Visible = false
+            };
+            mainContentPanel.Controls.Add(userManagementControl);
+
             // Add BI Panels
             BuildDashboardView();
             BuildKpiView();
@@ -238,7 +254,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
 
             Panel subContainer = new Panel { AutoSize = true, Width = 270, Dock = DockStyle.Top, Visible = false };
 
-            string cleanMainTitle = mainTitle.Replace("📊 ", "").Replace("🏢 ", "").Replace("🚗 ", "").Replace("🔧 ", "").Replace("📢 ", "").Replace("🕒 ", "").Replace("💬 ", "").Replace("⚠ ", "").Replace("🛡 ", "").Replace("🧰 ", "").Replace("📁 ", "").Trim();
+            string cleanMainTitle = mainTitle.Replace("📊 ", "").Replace("👤 ", "").Replace("🏢 ", "").Replace("🚗 ", "").Replace("🔧 ", "").Replace("📢 ", "").Replace("🕒 ", "").Replace("💬 ", "").Replace("⚠ ", "").Replace("🛡 ", "").Replace("🧰 ", "").Replace("📁 ", "").Trim();
 
             for (int i = subTitles.Length - 1; i >= 0; i--)
             {
@@ -297,6 +313,20 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
             panelBI_Graphs.Visible = false;
             panelBI_Reports.Visible = false;
             lblPlaceholderMessage.Visible = false;
+            if (userManagementControl != null)
+                userManagementControl.Visible = false;
+
+            if (mainTab == "User Management")
+            {
+                topActionBar.Visible = false;
+                txtSearch.Visible = false;
+                btnNewRecord.Visible = false;
+                gridWrapper.Visible = false;
+                userManagementControl?.BringToFront();
+                if (userManagementControl != null)
+                    userManagementControl.Visible = true;
+                return;
+            }
 
             if (mainTab == "Branching")
             {
