@@ -1,3 +1,4 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using DriveConnect.domain.DTO;
 using DriveConnect.domain.Entities;
@@ -14,7 +15,7 @@ namespace DriveConnect.api.Controllers;
 [Route("companies/{companyId:int}/users")]
 public sealed class UsersController : ControllerBase
 {
-    private static readonly string[] AllowedRoles = { "Super Admin", "Admin", "Staff" };
+    private static readonly string[] AllowedRoles = { "Admin", "Staff" };
 
     private readonly MasterDriveConnectDbContext _masterDb;
     private readonly PasswordHasher<AppUser> _passwordHasher = new();
@@ -129,8 +130,19 @@ public sealed class UsersController : ControllerBase
         if (user == null)
             return NotFound("User not found.");
 
-        if (!CanManageRole(user.Role) || !CanManageRole(request.Role))
+        if (!CanAccessUser(user) || !CanManageRole(request.Role))
             return Forbid();
+
+        if (string.Equals(user.Role, "Super Admin", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!string.Equals(request.Role, "Super Admin", StringComparison.OrdinalIgnoreCase) ||
+                request.BranchId.HasValue ||
+                !request.IsActive)
+            {
+                return BadRequest(
+                    "The Super Admin account cannot be reassigned, moved to a branch, or deactivated.");
+            }
+        }
 
         var validationError = await ValidateUserRequestAsync(
             companyId,
@@ -208,17 +220,19 @@ public sealed class UsersController : ControllerBase
 
         if (!AllowedRoles.Contains(
                 normalizedRole,
-                StringComparer.OrdinalIgnoreCase))
+                StringComparer.OrdinalIgnoreCase) &&
+            !normalizedRole.Equals("Super Admin", StringComparison.OrdinalIgnoreCase))
         {
-            return "Invalid role. Use Super Admin, Admin, or Staff.";
+            return "Invalid role. Use Admin or Staff.";
         }
 
         if (normalizedRole.Equals(
                 "Super Admin",
-                StringComparison.OrdinalIgnoreCase) &&
-            branchId.HasValue)
+                StringComparison.OrdinalIgnoreCase))
         {
-            return "Super Admin users cannot be assigned to a branch.";
+            return isUpdate
+                ? null
+                : "A Super Admin account already exists and cannot be created here.";
         }
 
         if (normalizedRole.Equals(
@@ -254,7 +268,8 @@ public sealed class UsersController : ControllerBase
                 "Super Admin",
                 StringComparison.OrdinalIgnoreCase))
         {
-            return true;
+            return string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(role, "Staff", StringComparison.OrdinalIgnoreCase);
         }
 
         return string.Equals(
@@ -264,6 +279,35 @@ public sealed class UsersController : ControllerBase
                string.Equals(
                    role,
                    "Staff",
+                   StringComparison.OrdinalIgnoreCase);
+    }
+
+    private bool CanAccessUser(AppUser targetUser)
+    {
+        var currentRole = User.FindFirstValue(ClaimTypes.Role);
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier) ??
+                            User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+
+        if (string.Equals(
+                currentRole,
+                "Super Admin",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            if (!string.Equals(
+                    targetUser.Role,
+                    "Super Admin",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            return int.TryParse(currentUserId, out var id) &&
+                   id == targetUser.UserId;
+        }
+
+        return !string.Equals(
+                   targetUser.Role,
+                   "Super Admin",
                    StringComparison.OrdinalIgnoreCase);
     }
 
