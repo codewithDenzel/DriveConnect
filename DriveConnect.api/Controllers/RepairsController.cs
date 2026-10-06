@@ -18,8 +18,21 @@ public sealed class RepairsController : TenantControllerBase
     [HttpGet]
     public async Task<ActionResult<List<RepairTicket>>> GetAll(int companyId)
     {
+        if (!CanAccessCompany(companyId))
+            return Forbid();
+
         using var tenantDb = await GetTenantDbAsync(companyId);
-        return Ok(await tenantDb.RepairTickets.AsNoTracking().ToListAsync());
+        var query = tenantDb.RepairTickets.AsNoTracking();
+
+        if (IsStaffUser)
+        {
+            if (!TryGetCurrentBranchId(out var branchId))
+                return Forbid();
+
+            query = query.Where(x => x.BranchId == branchId);
+        }
+
+        return Ok(await query.ToListAsync());
     }
 
     [HttpPost]
