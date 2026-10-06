@@ -244,6 +244,20 @@ public sealed class UserManagementControl : UserControl
 
     private async Task ShowUserModalAsync(UserListItem? existing)
     {
+        try
+        {
+            _allBranches = await _api.GetBranchesAsync(UserSession.CompanyId);
+        }
+        catch
+        {
+            MessageBox.Show(
+                "Unable to load the latest branch list.",
+                "Branch Load Error",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Error);
+            return;
+        }
+
         using var form = new Form
         {
             Text = existing == null ? "New User" : "Edit User",
