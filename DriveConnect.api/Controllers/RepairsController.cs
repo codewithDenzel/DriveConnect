@@ -38,7 +38,14 @@ public sealed class RepairsController : TenantControllerBase
     [HttpPost]
     public async Task<ActionResult<RepairTicket>> Create(int companyId, RepairTicket ticket)
     {
+        if (!CanAccessCompany(companyId) || !IsStaffUser)
+            return Forbid();
+
+        if (!TryGetCurrentBranchId(out var branchId))
+            return Forbid();
+
         using var tenantDb = await GetTenantDbAsync(companyId);
+        ticket.BranchId = branchId;
         if (ticket.CreatedAt == default) ticket.CreatedAt = DateTime.UtcNow;
         tenantDb.RepairTickets.Add(ticket);
         await tenantDb.SaveChangesAsync();
