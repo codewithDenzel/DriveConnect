@@ -1,10 +1,12 @@
 using DriveConnect.infrastructure.Data;
 using DriveConnect.infrastructure.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DriveConnect.api.Controllers;
 
 [ApiController]
+[Authorize(Roles = "Admin,Staff")]
 public abstract class TenantControllerBase : ControllerBase
 {
     private readonly ITenantDbContextFactory _tenantDbFactory;
