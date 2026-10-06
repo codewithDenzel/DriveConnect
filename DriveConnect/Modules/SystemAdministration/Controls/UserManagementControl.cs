@@ -369,7 +369,8 @@ public sealed class UserManagementControl : UserControl
             var email = txtEmail.Text.Trim();
             var role = cbRole.SelectedItem?.ToString() ?? Staff;
             var password = txtPassword.Text;
-            int? branchId = ParseBranchId(cbBranch.SelectedItem?.ToString());
+            var selectedBranch = cbBranch.SelectedItem as BranchChoice;
+            int? branchId = selectedBranch?.Id;
 
             if (string.IsNullOrWhiteSpace(username))
             {
