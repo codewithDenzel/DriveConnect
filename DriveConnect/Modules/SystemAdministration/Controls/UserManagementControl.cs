@@ -246,6 +246,15 @@ public sealed class UserManagementControl : UserControl
             existing?.Role ?? (UserSession.Role == Admin ? Staff : Admin),
             ref y);
 
+        var isEditingSuperAdmin =
+            existing != null &&
+            string.Equals(
+                existing.Role,
+                SuperAdmin,
+                StringComparison.OrdinalIgnoreCase);
+
+        cbRole.Enabled = !isEditingSuperAdmin;
+
         var branches = _allBranches
             .Where(x => x.IsActive)
             .OrderBy(x => x.BranchName)
@@ -270,7 +279,8 @@ public sealed class UserManagementControl : UserControl
             Location = new Point(30, y + 5),
             AutoSize = true,
             Font = new Font("Segoe UI Semibold", 9.5F),
-            ForeColor = Color.FromArgb(75, 85, 99)
+            ForeColor = Color.FromArgb(75, 85, 99),
+            Enabled = !isEditingSuperAdmin
         };
         form.Controls.Add(chkActive);
         y += 45;
@@ -310,10 +320,10 @@ public sealed class UserManagementControl : UserControl
             if (isSuperAdmin)
                 cbBranch.SelectedIndex = 0;
 
-            lblHint.Text = role == Staff
-                ? "Staff users must be assigned to an active branch."
-                : isSuperAdmin
-                    ? "Super Admin users are not assigned to a branch."
+            lblHint.Text = isEditingSuperAdmin
+                ? "This is the only Super Admin account and cannot be reassigned or deactivated."
+                : role == Staff
+                    ? "Staff users must be assigned to an active branch."
                     : "Admin users manage their company's Staff users.";
         }
 
@@ -422,7 +432,13 @@ public sealed class UserManagementControl : UserControl
                 SuperAdmin,
                 StringComparison.OrdinalIgnoreCase))
         {
-            return new[] { SuperAdmin, Admin, Staff };
+            return existing != null &&
+                   string.Equals(
+                       existing.Role,
+                       SuperAdmin,
+                       StringComparison.OrdinalIgnoreCase)
+                ? new[] { SuperAdmin }
+                : new[] { Admin, Staff };
         }
 
         return new[] { Staff };
