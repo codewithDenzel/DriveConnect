@@ -107,8 +107,10 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
             sidebarFlow.Controls.Add(CreateAccordion("nav_bi", "📊 Business Intelligence",
                 new[] { "Dashboard", "KPI", "Reports", "Graphs" }));
 
-            if (UserSession.Role.Equals("Super Admin", StringComparison.OrdinalIgnoreCase) ||
-                UserSession.Role.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+            var currentRole = (UserSession.Role ?? string.Empty).Trim();
+
+            if (string.Equals(currentRole, "Super Admin", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(currentRole, "Admin", StringComparison.OrdinalIgnoreCase))
             {
                 sidebarFlow.Controls.Add(CreateAccordion("nav_users", "👤 User Management",
                     new[] { "Manage Users" }));
