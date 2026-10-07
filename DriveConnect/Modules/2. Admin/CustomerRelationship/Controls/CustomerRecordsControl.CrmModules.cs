@@ -504,18 +504,10 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
             TextBox createdBy = AddFormField(
                 f,
                 "Created By",
-                existing?.CreatedBy ?? UserSession.Username,
+                existing?.CreatedBy ?? UserSession.FullName,
                 ref y);
 
             createdBy.ReadOnly = true;
-
-            TextBox approvedBy = AddFormField(
-                f,
-                "Approved By",
-                existing?.ApprovedBy,
-                ref y);
-
-            approvedBy.ReadOnly = true;
 
             string[] statusOptions = IsAdminRole()
                 ? new[] { "Draft", "Active", "Expired", "Archived" }
@@ -618,7 +610,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                 payload.DiscountValue = discountValue;
                 payload.StartDate = start.Value.Date;
                 payload.EndDate = end.Value.Date;
-                payload.CreatedBy = existing?.CreatedBy ?? UserSession.Username;
+                payload.CreatedBy = existing?.CreatedBy ?? UserSession.FullName;
                 payload.ApprovedBy = existing?.ApprovedBy;
                 payload.Status = status.Text;
 
