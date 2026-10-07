@@ -64,13 +64,14 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
 
                 string q = txtSearch.Text.Trim().ToLower();
                 if (!string.IsNullOrWhiteSpace(q))
-                    query = query.Where(x => (x.Title ?? "").ToLower().Contains(q) || (x.Description ?? "").ToLower().Contains(q) || (x.CreatedBy ?? "").ToLower().Contains(q));
+                    query = query.Where(x => (x.Title ?? "").ToLower().Contains(q) || (x.Description ?? "").ToLower().Contains(q) || (x.Reason ?? "").ToLower().Contains(q) || (x.CreatedBy ?? "").ToLower().Contains(q));
 
                 gridView.DataSource = query.Select(x => new
                 {
                     ID = x.PromotionId,
                     Title = x.Title,
                     Description = x.Description,
+                    Reason = x.Reason,
                     Discount = x.DiscountType == "Percentage" ? $"{x.DiscountValue:N2}%" : $"₱{x.DiscountValue:N2}",
                     StartDate = x.StartDate.ToLocalTime().ToString("MMM dd, yyyy"),
                     EndDate = x.EndDate.ToLocalTime().ToString("MMM dd, yyyy"),
@@ -447,62 +448,207 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
 
         private async Task ShowPromotionModalAsync(Promotion? existing)
         {
-            using Form f = CreateBaseModal(existing == null ? "New Promotion" : "Edit Promotion", 650);
-            int y = 70;
-            TextBox title = AddFormField(f, "Promotion Title", existing?.Title, ref y);
-            TextBox desc = AddFormField(f, "Description", existing?.Description, ref y);
-            ComboBox discountType = AddFormCombo(f, "Discount Type", new[] { "Percentage", "Fixed Amount", "None" }, existing?.DiscountType ?? "Percentage", ref y);
-            TextBox discount = AddFormField(f, "Discount Value", existing?.DiscountValue.ToString("F2") ?? "0.00", ref y);
-            DateTimePicker start = AddFormDateField(f, "Start Date", existing?.StartDate ?? DateTime.Today, ref y);
-            DateTimePicker end = AddFormDateField(f, "End Date", existing?.EndDate ?? DateTime.Today.AddMonths(1), ref y);
-            TextBox createdBy = AddFormField(f, "Created By", existing?.CreatedBy, ref y);
-            TextBox approvedBy = AddFormField(f, "Approved By", existing?.ApprovedBy, ref y);
-            ComboBox status = AddFormCombo(f, "Status", new[] { "Draft", "Active", "Expired", "Archived" }, existing?.Status ?? "Draft", ref y);
+            if (existing != null &&
+                IsStaffRole() &&
+                !string.Equals(existing.Status, "Draft", StringComparison.OrdinalIgnoreCase))
+            {
+                MessageBox.Show(
+                    "Only draft promotions can be edited by Staff.",
+                    "Promotion Approval",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+                return;
+            }
 
-            Button save = AddFormSubmitButton(f, existing == null ? "Save Promotion" : "Update Promotion", y);
+            using Form f = CreateBaseModal(
+                existing == null ? "New Promotion" : "Edit Promotion",
+                720);
+
+            int y = 70;
+
+            TextBox title = AddFormField(
+                f, "Promotion Title", existing?.Title, ref y);
+
+            TextBox desc = AddFormField(
+                f, "Description", existing?.Description, ref y);
+
+            TextBox reason = AddFormField(
+                f, "Promotion Reason", existing?.Reason, ref y);
+
+            ComboBox discountType = AddFormCombo(
+                f,
+                "Discount Type",
+                new[] { "Percentage", "Fixed Amount", "None" },
+                existing?.DiscountType ?? "Percentage",
+                ref y);
+
+            TextBox discount = AddFormField(
+                f,
+                "Discount Value",
+                existing?.DiscountValue.ToString("F2") ?? "0.00",
+                ref y);
+
+            DateTimePicker start = AddFormDateField(
+                f,
+                "Start Date",
+                existing?.StartDate ?? DateTime.Today,
+                ref y);
+
+            DateTimePicker end = AddFormDateField(
+                f,
+                "End Date",
+                existing?.EndDate ?? DateTime.Today.AddMonths(1),
+                ref y);
+
+            TextBox createdBy = AddFormField(
+                f,
+                "Created By",
+                existing?.CreatedBy ?? UserSession.Username,
+                ref y);
+
+            createdBy.ReadOnly = true;
+
+            TextBox approvedBy = AddFormField(
+                f,
+                "Approved By",
+                existing?.ApprovedBy,
+                ref y);
+
+            approvedBy.ReadOnly = true;
+
+            string[] statusOptions = IsAdminRole()
+                ? new[] { "Draft", "Active", "Expired", "Archived" }
+                : new[] { "Draft" };
+
+            ComboBox status = AddFormCombo(
+                f,
+                "Status",
+                statusOptions,
+                existing?.Status ?? "Draft",
+                ref y);
+
+            Button save = AddFormSubmitButton(
+                f,
+                existing == null ? "Save Promotion" : "Update Promotion",
+                y);
+
             save.Click += async (s, e) =>
             {
-                if (string.IsNullOrWhiteSpace(title.Text) || string.IsNullOrWhiteSpace(desc.Text) || string.IsNullOrWhiteSpace(createdBy.Text))
+                if (string.IsNullOrWhiteSpace(title.Text) ||
+                    string.IsNullOrWhiteSpace(desc.Text) ||
+                    string.IsNullOrWhiteSpace(reason.Text))
                 {
-                    MessageBox.Show("Title, Description, and Created By are required.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    MessageBox.Show(
+                        "Promotion Title, Description, and Promotion Reason are required.",
+                        "Validation Error",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Warning);
                     return;
                 }
 
                 if (end.Value.Date < start.Value.Date)
                 {
-                    MessageBox.Show("End Date cannot be before Start Date.", "Validation Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    MessageBox.Show(
+                        "End Date cannot be before Start Date.",
+                        "Validation Error",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Warning);
                     return;
                 }
 
-                decimal.TryParse(discount.Text, out decimal discountValue);
-                bool archive = existing != null && existing.Status != "Archived" && status.Text == "Archived";
-                if (!ConfirmAction(existing == null ? "Confirm adding this promotion?" : archive ? "Confirm archiving this promotion?" : "Confirm updating this promotion?")) return;
+                if (!decimal.TryParse(
+                        discount.Text,
+                        out decimal discountValue))
+                {
+                    MessageBox.Show(
+                        "Discount Value must be a valid number.",
+                        "Validation Error",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Warning);
+                    return;
+                }
 
-                var payload = existing ?? new Promotion { CreatedAt = DateTime.UtcNow };
-                payload.Title = title.Text;
-                payload.Description = desc.Text;
+                if (discountValue < 0)
+                {
+                    MessageBox.Show(
+                        "Discount Value cannot be negative.",
+                        "Validation Error",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Warning);
+                    return;
+                }
+
+                if (discountType.Text == "Percentage" &&
+                    discountValue > 100)
+                {
+                    MessageBox.Show(
+                        "Percentage discount cannot be more than 100%.",
+                        "Validation Error",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Warning);
+                    return;
+                }
+
+                if (discountType.Text == "None")
+                    discountValue = 0;
+
+                bool archive =
+                    existing != null &&
+                    existing.Status != "Archived" &&
+                    status.Text == "Archived";
+
+                if (!ConfirmAction(
+                        existing == null
+                            ? "Confirm adding this promotion?"
+                            : archive
+                                ? "Confirm archiving this promotion?"
+                                : "Confirm updating this promotion?"))
+                {
+                    return;
+                }
+
+                var payload = existing ??
+                    new Promotion { CreatedAt = DateTime.UtcNow };
+
+                payload.Title = title.Text.Trim();
+                payload.Description = desc.Text.Trim();
+                payload.Reason = reason.Text.Trim();
                 payload.DiscountType = discountType.Text;
                 payload.DiscountValue = discountValue;
                 payload.StartDate = start.Value.Date;
                 payload.EndDate = end.Value.Date;
-                payload.CreatedBy = createdBy.Text;
-                payload.ApprovedBy = string.IsNullOrWhiteSpace(approvedBy.Text) ? null : approvedBy.Text;
+                payload.CreatedBy = existing?.CreatedBy ?? UserSession.Username;
+                payload.ApprovedBy = existing?.ApprovedBy;
                 payload.Status = status.Text;
 
                 var response = existing == null
-                    ? await _apiService.CreatePromotionAsync(CurrentCompanyId, payload)
-                    : await _apiService.UpdatePromotionAsync(CurrentCompanyId, payload.PromotionId, payload);
+                    ? await _apiService.CreatePromotionAsync(
+                        CurrentCompanyId,
+                        payload)
+                    : await _apiService.UpdatePromotionAsync(
+                        CurrentCompanyId,
+                        payload.PromotionId,
+                        payload);
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    MessageBox.Show("The promotion could not be saved.", "Save Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    var message = await response.Content.ReadAsStringAsync();
+
+                    MessageBox.Show(
+                        string.IsNullOrWhiteSpace(message)
+                            ? "The promotion could not be saved."
+                            : message.Trim('"'),
+                        "Save Error",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error);
                     return;
                 }
 
                 f.DialogResult = DialogResult.OK;
             };
 
-            if (f.ShowDialog() == DialogResult.OK) await RefreshAdditionalDataAndGridAsync();
+            if (f.ShowDialog() == DialogResult.OK)
+                await RefreshAdditionalDataAndGridAsync();
         }
 
         private async Task ShowFeedbackModalAsync(Feedback? existing)
