@@ -79,7 +79,7 @@ public sealed class AuthController : ControllerBase
         {
             new(JwtRegisteredClaimNames.Sub, user.UserId.ToString()),
             new(ClaimTypes.Name, user.Username),
-            new("displayName", string.IsNullOrWhiteSpace(user.FullName) ? user.Username : user.FullName),
+            new("displayName", BuildDisplayName(user)),
             new(ClaimTypes.Role, user.Role),
             new("companyId", user.CompanyId.ToString())
         };
@@ -106,9 +106,22 @@ public sealed class AuthController : ControllerBase
             user.UserId,
             user.CompanyId,
             user.Username,
-            string.IsNullOrWhiteSpace(user.FullName) ? user.Username : user.FullName,
+            BuildDisplayName(user),
             user.Role,
             user.BranchId,
             user.Branch?.BranchName));
+    }
+
+    private static string BuildDisplayName(AppUser user)
+    {
+        var middle = string.IsNullOrWhiteSpace(user.MiddleName)
+            ? null
+            : user.MiddleName.Trim();
+
+        var parts = new[] { user.FirstName?.Trim(), middle, user.LastName?.Trim() }
+            .Where(x => !string.IsNullOrWhiteSpace(x));
+
+        var name = string.Join(" ", parts);
+        return string.IsNullOrWhiteSpace(name) ? user.Username : name;
     }
 }
