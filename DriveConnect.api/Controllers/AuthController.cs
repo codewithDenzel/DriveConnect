@@ -79,6 +79,7 @@ public sealed class AuthController : ControllerBase
         {
             new(JwtRegisteredClaimNames.Sub, user.UserId.ToString()),
             new(ClaimTypes.Name, user.Username),
+            new("displayName", string.IsNullOrWhiteSpace(user.FullName) ? user.Username : user.FullName),
             new(ClaimTypes.Role, user.Role),
             new("companyId", user.CompanyId.ToString())
         };
@@ -105,6 +106,7 @@ public sealed class AuthController : ControllerBase
             user.UserId,
             user.CompanyId,
             user.Username,
+            string.IsNullOrWhiteSpace(user.FullName) ? user.Username : user.FullName,
             user.Role,
             user.BranchId,
             user.Branch?.BranchName));
