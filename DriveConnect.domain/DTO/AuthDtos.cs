@@ -18,7 +18,9 @@ public sealed record UserListItem(
     int UserId,
     int CompanyId,
     string Username,
-    string? FullName,
+    string FirstName,
+    string? MiddleName,
+    string LastName,
     string Email,
     string Role,
     int? BranchId,
@@ -28,7 +30,9 @@ public sealed record UserListItem(
 
 public sealed record CreateUserRequest(
     string Username,
-    string FullName,
+    string FirstName,
+    string? MiddleName,
+    string LastName,
     string Email,
     string Password,
     string Role,
@@ -37,7 +41,9 @@ public sealed record CreateUserRequest(
 
 public sealed record UpdateUserRequest(
     string Username,
-    string FullName,
+    string FirstName,
+    string? MiddleName,
+    string LastName,
     string Email,
     string? Password,
     string Role,
