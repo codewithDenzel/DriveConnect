@@ -80,7 +80,7 @@ public sealed class UserManagementControl : UserControl
         _btnNew.Cursor = Cursors.Hand;
         _btnNew.Click += async (_, _) => await ShowUserModalAsync(null);
 
-        _txtSearch.PlaceholderText = "Search username, email, role, or branch...";
+        _txtSearch.PlaceholderText = "Search name, username, email, role, or branch...";
         _txtSearch.Width = 340;
         _txtSearch.Height = 36;
         _txtSearch.Location = new Point(140, 76);
@@ -211,6 +211,7 @@ public sealed class UserManagementControl : UserControl
             .Select(x => new
             {
                 ID = x.UserId,
+                Name = string.IsNullOrWhiteSpace(x.FullName) ? x.Username : x.FullName,
                 Username = x.Username,
                 Email = x.Email,
                 Role = x.Role,
@@ -261,7 +262,7 @@ public sealed class UserManagementControl : UserControl
         using var form = new Form
         {
             Text = existing == null ? "New User" : "Edit User",
-            ClientSize = new Size(470, 590),
+            ClientSize = new Size(470, 655),
             StartPosition = FormStartPosition.CenterParent,
             FormBorderStyle = FormBorderStyle.FixedDialog,
             MaximizeBox = false,
@@ -282,6 +283,7 @@ public sealed class UserManagementControl : UserControl
         int y = 75;
 
         var txtUsername = AddField(form, "Username", existing?.Username, ref y);
+        var txtFullName = AddField(form, "Full Name", existing?.FullName, ref y);
         var txtEmail = AddField(form, "Email", existing?.Email, ref y);
 
         var availableRoles = GetAvailableRoles(existing);
@@ -380,6 +382,7 @@ public sealed class UserManagementControl : UserControl
         btnSave.Click += async (_, _) =>
         {
             var username = txtUsername.Text.Trim();
+            var fullName = txtFullName.Text.Trim();
             var email = txtEmail.Text.Trim();
             var role = cbRole.SelectedItem?.ToString() ?? Staff;
             var password = txtPassword.Text;
@@ -389,6 +392,13 @@ public sealed class UserManagementControl : UserControl
             if (string.IsNullOrWhiteSpace(username))
             {
                 MessageBox.Show("Username is required.", "Validation",
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(fullName))
+            {
+                MessageBox.Show("Full Name is required.", "Validation",
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
@@ -432,6 +442,7 @@ public sealed class UserManagementControl : UserControl
                     UserSession.CompanyId,
                     new CreateUserRequest(
                         username,
+                        fullName,
                         email,
                         password,
                         role,
@@ -442,6 +453,7 @@ public sealed class UserManagementControl : UserControl
                     existing.UserId,
                     new UpdateUserRequest(
                         username,
+                        fullName,
                         email,
                         string.IsNullOrWhiteSpace(password) ? null : password,
                         role,
