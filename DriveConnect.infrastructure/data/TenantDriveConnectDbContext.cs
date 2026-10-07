@@ -73,6 +73,7 @@ public class TenantDriveConnectDbContext : DbContext
             entity.HasKey(x => x.PromotionId);
             entity.Property(x => x.Title).HasMaxLength(150).IsRequired();
             entity.Property(x => x.Description).HasMaxLength(500).IsRequired();
+            entity.Property(x => x.Reason).HasMaxLength(500);
             entity.Property(x => x.DiscountType).HasMaxLength(30).IsRequired();
             entity.Property(x => x.DiscountValue).HasPrecision(18, 2);
             entity.Property(x => x.CreatedBy).HasMaxLength(100).IsRequired();
