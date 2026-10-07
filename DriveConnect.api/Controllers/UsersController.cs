@@ -54,7 +54,9 @@ public sealed class UsersController : ControllerBase
                 x.UserId,
                 x.CompanyId,
                 x.Username,
-                x.FullName,
+                x.FirstName,
+                x.MiddleName,
+                x.LastName,
                 x.Email,
                 x.Role,
                 x.BranchId,
@@ -83,7 +85,9 @@ public sealed class UsersController : ControllerBase
         var validationError = await ValidateUserRequestAsync(
             companyId,
             request.Username,
-            request.FullName,
+            request.FirstName,
+            request.MiddleName,
+            request.LastName,
             request.Email,
             request.Password,
             request.Role,
@@ -93,7 +97,9 @@ public sealed class UsersController : ControllerBase
             return BadRequest(validationError);
 
         var username = request.Username.Trim();
-        var fullName = request.FullName.Trim();
+        var firstName = request.FirstName.Trim();
+        var middleName = string.IsNullOrWhiteSpace(request.MiddleName) ? null : request.MiddleName.Trim();
+        var lastName = request.LastName.Trim();
         var email = request.Email.Trim();
 
         var duplicate = await _masterDb.AppUsers
@@ -109,7 +115,9 @@ public sealed class UsersController : ControllerBase
         {
             CompanyId = companyId,
             Username = username,
-            FullName = fullName,
+            FirstName = firstName,
+            MiddleName = middleName,
+            LastName = lastName,
             Email = email,
             Role = request.Role.Trim(),
             BranchId = request.BranchId,
@@ -175,7 +183,9 @@ public sealed class UsersController : ControllerBase
         var validationError = await ValidateUserRequestAsync(
             companyId,
             request.Username,
-            request.FullName,
+            request.FirstName,
+            request.MiddleName,
+            request.LastName,
             request.Email,
             request.Password,
             request.Role,
@@ -186,7 +196,9 @@ public sealed class UsersController : ControllerBase
             return BadRequest(validationError);
 
         var username = request.Username.Trim();
-        var fullName = request.FullName.Trim();
+        var firstName = request.FirstName.Trim();
+        var middleName = string.IsNullOrWhiteSpace(request.MiddleName) ? null : request.MiddleName.Trim();
+        var lastName = request.LastName.Trim();
         var email = request.Email.Trim();
 
         var duplicate = await _masterDb.AppUsers
@@ -199,7 +211,9 @@ public sealed class UsersController : ControllerBase
             return Conflict("Username or email is already in use.");
 
         user.Username = username;
-        user.FullName = fullName;
+        user.FirstName = firstName;
+        user.MiddleName = middleName;
+        user.LastName = lastName;
         user.Email = email;
         user.Role = request.Role.Trim();
         user.BranchId = request.BranchId;
@@ -220,7 +234,9 @@ public sealed class UsersController : ControllerBase
     private async Task<string?> ValidateUserRequestAsync(
         int companyId,
         string username,
-        string fullName,
+        string firstName,
+        string? middleName,
+        string lastName,
         string email,
         string? password,
         string role,
@@ -233,11 +249,20 @@ public sealed class UsersController : ControllerBase
         if (username.Trim().Length < 3)
             return "Username must be at least 3 characters.";
 
-        if (string.IsNullOrWhiteSpace(fullName))
-            return "Full name is required.";
+        if (string.IsNullOrWhiteSpace(firstName))
+            return "First Name is required.";
 
-        if (fullName.Trim().Length > 200)
-            return "Full name must be 200 characters or less.";
+        if (firstName.Trim().Length > 100)
+            return "First Name must be 100 characters or less.";
+
+        if (!string.IsNullOrWhiteSpace(middleName) && middleName.Trim().Length > 100)
+            return "Middle Name must be 100 characters or less.";
+
+        if (string.IsNullOrWhiteSpace(lastName))
+            return "Last Name is required.";
+
+        if (lastName.Trim().Length > 100)
+            return "Last Name must be 100 characters or less.";
 
         if (string.IsNullOrWhiteSpace(email) ||
             !IsValidEmail(email.Trim()))
@@ -381,7 +406,9 @@ public sealed class UsersController : ControllerBase
                 x.UserId,
                 x.CompanyId,
                 x.Username,
-                x.FullName,
+                x.FirstName,
+                x.MiddleName,
+                x.LastName,
                 x.Email,
                 x.Role,
                 x.BranchId,
