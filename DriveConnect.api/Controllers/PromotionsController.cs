@@ -70,7 +70,7 @@ public sealed class PromotionsController : TenantControllerBase
         using var tenantDb = await GetTenantDbAsync(companyId);
 
         item.BranchId = branchId;
-        item.CreatedBy = User.FindFirstValue(ClaimTypes.Name) ?? item.CreatedBy;
+        item.CreatedBy = User.FindFirst("displayName")?.Value ?? User.FindFirstValue(ClaimTypes.Name) ?? item.CreatedBy;
         item.ApprovedBy = null;
         item.Status = "Draft";
 
@@ -149,7 +149,7 @@ public sealed class PromotionsController : TenantControllerBase
         {
             existing.Status = updated.Status;
             existing.ApprovedBy = updated.Status == "Active"
-                ? User.FindFirstValue(ClaimTypes.Name)
+                ? User.FindFirst("displayName")?.Value ?? User.FindFirstValue(ClaimTypes.Name)
                 : null;
         }
 
