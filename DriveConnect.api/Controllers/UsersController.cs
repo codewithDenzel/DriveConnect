@@ -54,6 +54,7 @@ public sealed class UsersController : ControllerBase
                 x.UserId,
                 x.CompanyId,
                 x.Username,
+                x.FullName,
                 x.Email,
                 x.Role,
                 x.BranchId,
@@ -82,6 +83,7 @@ public sealed class UsersController : ControllerBase
         var validationError = await ValidateUserRequestAsync(
             companyId,
             request.Username,
+            request.FullName,
             request.Email,
             request.Password,
             request.Role,
@@ -91,6 +93,7 @@ public sealed class UsersController : ControllerBase
             return BadRequest(validationError);
 
         var username = request.Username.Trim();
+        var fullName = request.FullName.Trim();
         var email = request.Email.Trim();
 
         var duplicate = await _masterDb.AppUsers
@@ -106,6 +109,7 @@ public sealed class UsersController : ControllerBase
         {
             CompanyId = companyId,
             Username = username,
+            FullName = fullName,
             Email = email,
             Role = request.Role.Trim(),
             BranchId = request.BranchId,
@@ -171,6 +175,7 @@ public sealed class UsersController : ControllerBase
         var validationError = await ValidateUserRequestAsync(
             companyId,
             request.Username,
+            request.FullName,
             request.Email,
             request.Password,
             request.Role,
@@ -181,6 +186,7 @@ public sealed class UsersController : ControllerBase
             return BadRequest(validationError);
 
         var username = request.Username.Trim();
+        var fullName = request.FullName.Trim();
         var email = request.Email.Trim();
 
         var duplicate = await _masterDb.AppUsers
@@ -193,6 +199,7 @@ public sealed class UsersController : ControllerBase
             return Conflict("Username or email is already in use.");
 
         user.Username = username;
+        user.FullName = fullName;
         user.Email = email;
         user.Role = request.Role.Trim();
         user.BranchId = request.BranchId;
@@ -213,6 +220,7 @@ public sealed class UsersController : ControllerBase
     private async Task<string?> ValidateUserRequestAsync(
         int companyId,
         string username,
+        string fullName,
         string email,
         string? password,
         string role,
@@ -224,6 +232,12 @@ public sealed class UsersController : ControllerBase
 
         if (username.Trim().Length < 3)
             return "Username must be at least 3 characters.";
+
+        if (string.IsNullOrWhiteSpace(fullName))
+            return "Full name is required.";
+
+        if (fullName.Trim().Length > 200)
+            return "Full name must be 200 characters or less.";
 
         if (string.IsNullOrWhiteSpace(email) ||
             !IsValidEmail(email.Trim()))
@@ -367,6 +381,7 @@ public sealed class UsersController : ControllerBase
                 x.UserId,
                 x.CompanyId,
                 x.Username,
+                x.FullName,
                 x.Email,
                 x.Role,
                 x.BranchId,
