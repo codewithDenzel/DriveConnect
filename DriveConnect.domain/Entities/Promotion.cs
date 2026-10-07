@@ -12,6 +12,7 @@ namespace DriveConnect.domain.Entities
         public int? BranchId { get; set; }
         public string? Title { get; set; }
         public string? Description { get; set; }
+        public string? Reason { get; set; }
         public string? DiscountType { get; set; }
         public decimal DiscountValue { get; set; }
         public DateTime StartDate { get; set; }
