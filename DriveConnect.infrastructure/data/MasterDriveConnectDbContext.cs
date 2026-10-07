@@ -55,7 +55,9 @@ public class MasterDriveConnectDbContext : DbContext
         {
             entity.HasKey(x => x.UserId);
             entity.Property(x => x.Username).HasMaxLength(100).IsRequired();
-            entity.Property(x => x.FullName).HasMaxLength(200);
+            entity.Property(x => x.FirstName).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.MiddleName).HasMaxLength(100);
+            entity.Property(x => x.LastName).HasMaxLength(100).IsRequired();
             entity.Property(x => x.Email).HasMaxLength(150).IsRequired();
             entity.Property(x => x.Role).HasMaxLength(50).IsRequired();
             entity.HasOne(x => x.Company)
