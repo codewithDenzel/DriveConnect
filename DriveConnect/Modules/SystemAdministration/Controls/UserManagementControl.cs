@@ -204,6 +204,7 @@ public sealed class UserManagementControl : UserControl
                 StringComparison.OrdinalIgnoreCase))
             .Where(x =>
                 string.IsNullOrWhiteSpace(term) ||
+                (x.FullName ?? "").Contains(term, StringComparison.OrdinalIgnoreCase) ||
                 x.Username.Contains(term, StringComparison.OrdinalIgnoreCase) ||
                 x.Email.Contains(term, StringComparison.OrdinalIgnoreCase) ||
                 x.Role.Contains(term, StringComparison.OrdinalIgnoreCase) ||
