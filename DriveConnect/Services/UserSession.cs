@@ -8,6 +8,7 @@ public static class UserSession
     public static int UserId { get; private set; }
     public static int CompanyId { get; private set; }
     public static string Username { get; private set; } = string.Empty;
+    public static string FullName { get; private set; } = string.Empty;
     public static string Role { get; private set; } = string.Empty;
     public static int? BranchId { get; private set; }
     public static string? BranchName { get; private set; }
@@ -20,6 +21,7 @@ public static class UserSession
         UserId = response.UserId;
         CompanyId = response.CompanyId;
         Username = response.Username;
+        FullName = string.IsNullOrWhiteSpace(response.FullName) ? response.Username : response.FullName;
         Role = response.Role;
         BranchId = response.BranchId;
         BranchName = response.BranchName;
@@ -31,6 +33,7 @@ public static class UserSession
         UserId = 0;
         CompanyId = 0;
         Username = string.Empty;
+        FullName = string.Empty;
         Role = string.Empty;
         BranchId = null;
         BranchName = null;
