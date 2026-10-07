@@ -204,7 +204,9 @@ public sealed class UserManagementControl : UserControl
                 StringComparison.OrdinalIgnoreCase))
             .Where(x =>
                 string.IsNullOrWhiteSpace(term) ||
-                (x.FullName ?? "").Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                x.FirstName.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+            (x.MiddleName ?? "").Contains(term, StringComparison.OrdinalIgnoreCase) ||
+            x.LastName.Contains(term, StringComparison.OrdinalIgnoreCase) ||
                 x.Username.Contains(term, StringComparison.OrdinalIgnoreCase) ||
                 x.Email.Contains(term, StringComparison.OrdinalIgnoreCase) ||
                 x.Role.Contains(term, StringComparison.OrdinalIgnoreCase) ||
@@ -212,7 +214,7 @@ public sealed class UserManagementControl : UserControl
             .Select(x => new
             {
                 ID = x.UserId,
-                Name = string.IsNullOrWhiteSpace(x.FullName) ? x.Username : x.FullName,
+                Name = $"{x.FirstName} {(string.IsNullOrWhiteSpace(x.MiddleName) ? "" : x.MiddleName + " ")}{x.LastName}".Trim(),
                 Username = x.Username,
                 Email = x.Email,
                 Role = x.Role,
@@ -263,7 +265,7 @@ public sealed class UserManagementControl : UserControl
         using var form = new Form
         {
             Text = existing == null ? "New User" : "Edit User",
-            ClientSize = new Size(470, 655),
+            ClientSize = new Size(470, 785),
             StartPosition = FormStartPosition.CenterParent,
             FormBorderStyle = FormBorderStyle.FixedDialog,
             MaximizeBox = false,
@@ -283,8 +285,10 @@ public sealed class UserManagementControl : UserControl
 
         int y = 75;
 
+        var txtFirstName = AddField(form, "First Name", existing?.FirstName, ref y);
+        var txtMiddleName = AddField(form, "Middle Name (Optional)", existing?.MiddleName, ref y);
+        var txtLastName = AddField(form, "Last Name", existing?.LastName, ref y);
         var txtUsername = AddField(form, "Username", existing?.Username, ref y);
-        var txtFullName = AddField(form, "Full Name", existing?.FullName, ref y);
         var txtEmail = AddField(form, "Email", existing?.Email, ref y);
 
         var availableRoles = GetAvailableRoles(existing);
@@ -382,8 +386,10 @@ public sealed class UserManagementControl : UserControl
 
         btnSave.Click += async (_, _) =>
         {
+            var firstName = txtFirstName.Text.Trim();
+            var middleName = txtMiddleName.Text.Trim();
+            var lastName = txtLastName.Text.Trim();
             var username = txtUsername.Text.Trim();
-            var fullName = txtFullName.Text.Trim();
             var email = txtEmail.Text.Trim();
             var role = cbRole.SelectedItem?.ToString() ?? Staff;
             var password = txtPassword.Text;
@@ -397,9 +403,10 @@ public sealed class UserManagementControl : UserControl
                 return;
             }
 
-            if (string.IsNullOrWhiteSpace(fullName))
+            if (string.IsNullOrWhiteSpace(firstName) ||
+                string.IsNullOrWhiteSpace(lastName))
             {
-                MessageBox.Show("Full Name is required.", "Validation",
+                MessageBox.Show("First Name and Last Name are required.", "Validation",
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
@@ -443,7 +450,9 @@ public sealed class UserManagementControl : UserControl
                     UserSession.CompanyId,
                     new CreateUserRequest(
                         username,
-                        fullName,
+                        firstName,
+                        string.IsNullOrWhiteSpace(middleName) ? null : middleName,
+                        lastName,
                         email,
                         password,
                         role,
@@ -454,7 +463,9 @@ public sealed class UserManagementControl : UserControl
                     existing.UserId,
                     new UpdateUserRequest(
                         username,
-                        fullName,
+                        firstName,
+                        string.IsNullOrWhiteSpace(middleName) ? null : middleName,
+                        lastName,
                         email,
                         string.IsNullOrWhiteSpace(password) ? null : password,
                         role,
