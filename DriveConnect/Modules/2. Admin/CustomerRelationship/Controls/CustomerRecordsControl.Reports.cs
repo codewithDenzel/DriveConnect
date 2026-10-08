@@ -103,7 +103,7 @@ public partial class CustomerRecordsControl
             new("Closed Won", won.Count)
         };
 
-        var branchComparison = BuildBranchSalesComparison();
+        var branchComparison = BuildBranchSalesComparison(rows);
         var monthly = BuildMonthlySales(rows);
 
         var findings = new List<string>();
@@ -164,7 +164,7 @@ public partial class CustomerRecordsControl
             .OrderByDescending(x => x.Value)
             .ToList();
 
-        var branchLeads = BuildBranchLeadComparison();
+        var branchLeads = BuildBranchLeadComparison(rows);
         int active = rows.Count(x => x.Status != "Closed Won" && x.Status != "Closed Lost");
         int won = rows.Count(x => x.Status == "Closed Won");
         int lost = rows.Count(x => x.Status == "Closed Lost");
@@ -287,7 +287,7 @@ public partial class CustomerRecordsControl
             Charts = new()
             {
                 new() { Title = "Repair Status", Subtitle = "Current repair workload by status", Type = ManagementReportChartType.Pie, Data = statuses },
-                new() { Title = "Repairs by Branch", Subtitle = "Repair volume across branches", Type = ManagementReportChartType.HorizontalBar, Data = BuildBranchRepairComparison() }
+                new() { Title = "Repairs by Branch", Subtitle = "Repair volume across branches", Type = ManagementReportChartType.HorizontalBar, Data = BuildBranchRepairComparison(rows) }
             },
             Findings = new()
             {
@@ -331,7 +331,7 @@ public partial class CustomerRecordsControl
             Charts = new()
             {
                 new() { Title = "Feedback Rating Distribution", Subtitle = "Customer rating volume", Type = ManagementReportChartType.Bar, Data = ratings },
-                new() { Title = "Feedback by Branch", Subtitle = "Feedback volume across branches", Type = ManagementReportChartType.HorizontalBar, Data = BuildBranchFeedbackComparison() }
+                new() { Title = "Feedback by Branch", Subtitle = "Feedback volume across branches", Type = ManagementReportChartType.HorizontalBar, Data = BuildBranchFeedbackComparison(rows) }
             },
             Findings = new()
             {
@@ -375,7 +375,7 @@ public partial class CustomerRecordsControl
             Charts = new()
             {
                 new() { Title = "Complaint Status", Subtitle = "Open vs resolved workload", Type = ManagementReportChartType.Pie, Data = status },
-                new() { Title = "Complaints by Branch", Subtitle = "Complaint volume across branches", Type = ManagementReportChartType.HorizontalBar, Data = BuildBranchComplaintComparison() }
+                new() { Title = "Complaints by Branch", Subtitle = "Complaint volume across branches", Type = ManagementReportChartType.HorizontalBar, Data = BuildBranchComplaintComparison(rows) }
             },
             Findings = new()
             {
@@ -418,7 +418,7 @@ public partial class CustomerRecordsControl
             Charts = new()
             {
                 new() { Title = "Warranty Status", Subtitle = "Warranty distribution by status", Type = ManagementReportChartType.Pie, Data = status },
-                new() { Title = "Warranties by Branch", Subtitle = "Warranty volume across branches", Type = ManagementReportChartType.HorizontalBar, Data = BuildBranchWarrantyComparison() }
+                new() { Title = "Warranties by Branch", Subtitle = "Warranty volume across branches", Type = ManagementReportChartType.HorizontalBar, Data = BuildBranchWarrantyComparison(rows) }
             },
             Findings = new()
             {
@@ -463,7 +463,7 @@ public partial class CustomerRecordsControl
             Charts = new()
             {
                 new() { Title = "Maintenance Status", Subtitle = "Maintenance workload by status", Type = ManagementReportChartType.Bar, Data = status },
-                new() { Title = "Maintenance by Branch", Subtitle = "Maintenance activity across branches", Type = ManagementReportChartType.HorizontalBar, Data = BuildBranchMaintenanceComparison() }
+                new() { Title = "Maintenance by Branch", Subtitle = "Maintenance activity across branches", Type = ManagementReportChartType.HorizontalBar, Data = BuildBranchMaintenanceComparison(rows) }
             },
             Findings = new()
             {
@@ -503,7 +503,7 @@ public partial class CustomerRecordsControl
             },
             Charts = new()
             {
-                new() { Title = "Archived Sales by Branch", Subtitle = "Completed sales value by branch", Type = ManagementReportChartType.HorizontalBar, Currency = true, Data = BuildBranchArchivedSalesComparison() }
+                new() { Title = "Archived Sales by Branch", Subtitle = "Completed sales value by branch", Type = ManagementReportChartType.HorizontalBar, Currency = true, Data = BuildBranchArchivedSalesComparison(rows) }
             },
             Findings = new()
             {
@@ -541,7 +541,7 @@ public partial class CustomerRecordsControl
             },
             Charts = new()
             {
-                new() { Title = "Archived Repairs by Branch", Subtitle = "Estimated repair value by branch", Type = ManagementReportChartType.HorizontalBar, Currency = true, Data = BuildBranchArchivedRepairComparison() }
+                new() { Title = "Archived Repairs by Branch", Subtitle = "Estimated repair value by branch", Type = ManagementReportChartType.HorizontalBar, Currency = true, Data = BuildBranchArchivedRepairComparison(rows) }
             },
             Findings = new()
             {
@@ -579,57 +579,66 @@ public partial class CustomerRecordsControl
         return result;
     }
 
-    private List<KeyValuePair<string, decimal>> BuildBranchSalesComparison()
+    private List<KeyValuePair<string, decimal>> BuildBranchSalesComparison(IEnumerable<SalesLead> source)
     {
         return _allBranches.Where(x => x.IsActive).OrderBy(x => x.BranchName)
             .Select(b => new KeyValuePair<string, decimal>(
                 b.BranchName,
-                _allSales.Where(x => x.BranchId == b.BranchId && x.Status == "Closed Won").Sum(x => x.EstimatedCost)))
+                source.Where(x => x.BranchId == b.BranchId && x.Status == "Closed Won").Sum(x => x.EstimatedCost)))
+            .Where(x => x.Value > 0)
             .ToList();
     }
 
-    private List<KeyValuePair<string, decimal>> BuildBranchLeadComparison()
+    private List<KeyValuePair<string, decimal>> BuildBranchLeadComparison(IEnumerable<SalesLead> source)
         => _allBranches.Where(x => x.IsActive).OrderBy(x => x.BranchName)
-            .Select(b => new KeyValuePair<string, decimal>(b.BranchName, _allSales.Count(x => x.BranchId == b.BranchId && x.Status != "Archived")))
+            .Select(b => new KeyValuePair<string, decimal>(b.BranchName, source.Count(x => x.BranchId == b.BranchId)))
+            .Where(x => x.Value > 0)
             .ToList();
 
-    private List<KeyValuePair<string, decimal>> BuildBranchRepairComparison()
+    private List<KeyValuePair<string, decimal>> BuildBranchRepairComparison(IEnumerable<RepairTicket> source)
         => _allBranches.Where(x => x.IsActive).OrderBy(x => x.BranchName)
-            .Select(b => new KeyValuePair<string, decimal>(b.BranchName, _allRepairs.Count(x => x.BranchId == b.BranchId && x.Status != "Archived")))
+            .Select(b => new KeyValuePair<string, decimal>(b.BranchName, source.Count(x => x.BranchId == b.BranchId)))
+            .Where(x => x.Value > 0)
             .ToList();
 
-    private List<KeyValuePair<string, decimal>> BuildBranchFeedbackComparison()
+    private List<KeyValuePair<string, decimal>> BuildBranchFeedbackComparison(IEnumerable<Feedback> source)
         => _allBranches.Where(x => x.IsActive).OrderBy(x => x.BranchName)
-            .Select(b => new KeyValuePair<string, decimal>(b.BranchName, _allFeedback.Count(x => x.BranchId == b.BranchId)))
+            .Select(b => new KeyValuePair<string, decimal>(b.BranchName, source.Count(x => x.BranchId == b.BranchId)))
+            .Where(x => x.Value > 0)
             .ToList();
 
-    private List<KeyValuePair<string, decimal>> BuildBranchComplaintComparison()
+    private List<KeyValuePair<string, decimal>> BuildBranchComplaintComparison(IEnumerable<Complaint> source)
         => _allBranches.Where(x => x.IsActive).OrderBy(x => x.BranchName)
-            .Select(b => new KeyValuePair<string, decimal>(b.BranchName, _allComplaints.Count(x => x.BranchId == b.BranchId)))
+            .Select(b => new KeyValuePair<string, decimal>(b.BranchName, source.Count(x => x.BranchId == b.BranchId)))
+            .Where(x => x.Value > 0)
             .ToList();
 
-    private List<KeyValuePair<string, decimal>> BuildBranchWarrantyComparison()
+    private List<KeyValuePair<string, decimal>> BuildBranchWarrantyComparison(IEnumerable<VehicleWarranty> source)
         => _allBranches.Where(x => x.IsActive).OrderBy(x => x.BranchName)
-            .Select(b => new KeyValuePair<string, decimal>(b.BranchName, _allWarranties.Count(x => x.BranchId == b.BranchId)))
+            .Select(b => new KeyValuePair<string, decimal>(b.BranchName, source.Count(x => x.BranchId == b.BranchId)))
+            .Where(x => x.Value > 0)
             .ToList();
 
-    private List<KeyValuePair<string, decimal>> BuildBranchMaintenanceComparison()
+    private List<KeyValuePair<string, decimal>> BuildBranchMaintenanceComparison(IEnumerable<MaintenanceRecord> source)
         => _allBranches.Where(x => x.IsActive).OrderBy(x => x.BranchName)
-            .Select(b => new KeyValuePair<string, decimal>(b.BranchName, _allMaintenance.Count(x => x.BranchId == b.BranchId)))
+            .Select(b => new KeyValuePair<string, decimal>(b.BranchName, source.Count(x => x.BranchId == b.BranchId)))
+            .Where(x => x.Value > 0)
             .ToList();
 
-    private List<KeyValuePair<string, decimal>> BuildBranchArchivedSalesComparison()
+    private List<KeyValuePair<string, decimal>> BuildBranchArchivedSalesComparison(IEnumerable<SalesLead> source)
         => _allBranches.Where(x => x.IsActive).OrderBy(x => x.BranchName)
             .Select(b => new KeyValuePair<string, decimal>(
                 b.BranchName,
-                _allSales.Where(x => x.BranchId == b.BranchId && x.Status == "Archived").Sum(x => x.EstimatedCost)))
+                source.Where(x => x.BranchId == b.BranchId).Sum(x => x.EstimatedCost)))
+            .Where(x => x.Value > 0)
             .ToList();
 
-    private List<KeyValuePair<string, decimal>> BuildBranchArchivedRepairComparison()
+    private List<KeyValuePair<string, decimal>> BuildBranchArchivedRepairComparison(IEnumerable<RepairTicket> source)
         => _allBranches.Where(x => x.IsActive).OrderBy(x => x.BranchName)
             .Select(b => new KeyValuePair<string, decimal>(
                 b.BranchName,
-                _allRepairs.Where(x => x.BranchId == b.BranchId && x.Status == "Archived").Sum(x => x.EstimatedCost)))
+                source.Where(x => x.BranchId == b.BranchId).Sum(x => x.EstimatedCost)))
+            .Where(x => x.Value > 0)
             .ToList();
 
     private List<string> BuildLeadFindings(List<SalesLead> rows, List<KeyValuePair<string, decimal>> branchLeads)
