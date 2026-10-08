@@ -160,19 +160,27 @@ public sealed class ReportPreviewForm : Form
     {
         var panel = CreateCard(new Size(1100, 390));
         panel.Controls.Add(new Label { Text = "Detailed Records", AutoSize = true, Location = new Point(18, 14), Font = new Font("Segoe UI Semibold", 12F, FontStyle.Bold), ForeColor = Color.FromArgb(67, 56, 202) });
+
         var grid = new DataGridView
         {
             Location = new Point(18, 48),
             Size = new Size(1050, 320),
             Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
-            DataSource = _report.DetailRows.Select(row => _report.DetailHeaders.Select((header, index) => new { header, index }).ToDictionary(x => x.header, x => index < row.Count ? row[index] : "")).ToList(),
             ReadOnly = true,
             AllowUserToAddRows = false,
             RowHeadersVisible = false,
             AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
             BackgroundColor = Color.White,
-            BorderStyle = BorderStyle.None
+            BorderStyle = BorderStyle.None,
+            SelectionMode = DataGridViewSelectionMode.FullRowSelect
         };
+
+        foreach (var header in _report.DetailHeaders)
+            grid.Columns.Add(header, header);
+
+        foreach (var row in _report.DetailRows)
+            grid.Rows.Add(row.Take(_report.DetailHeaders.Count).Cast<object?>().ToArray());
+
         panel.Controls.Add(grid);
         return panel;
     }
