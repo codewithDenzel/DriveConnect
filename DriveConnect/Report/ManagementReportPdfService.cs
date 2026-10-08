@@ -83,8 +83,11 @@ public static class ManagementReportPdfService
                                     columns.RelativeColumn();
                             });
 
-                            foreach (var header in report.DetailHeaders.Take(8))
-                                table.Header(headerCell => headerCell.Cell().Background("EEF2FF").Padding(5).Text(header).FontSize(7).SemiBold().FontColor("4338CA"));
+                            table.Header(header =>
+                            {
+                                foreach (var headerText in report.DetailHeaders.Take(8))
+                                    header.Cell().Background("EEF2FF").Padding(5).Text(headerText).FontSize(7).SemiBold().FontColor("4338CA");
+                            });
 
                             foreach (var row in report.DetailRows)
                             {
