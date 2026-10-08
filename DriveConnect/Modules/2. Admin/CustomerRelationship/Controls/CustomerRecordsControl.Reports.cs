@@ -310,7 +310,7 @@ public partial class CustomerRecordsControl
 
     private ManagementReportData BuildFeedbackReport(List<Feedback> rows, string period, string branch)
     {
-        decimal average = rows.Count == 0 ? 0 : rows.Average(x => x.Rating);
+        decimal average = rows.Count == 0 ? 0m : (decimal)rows.Average(x => x.Rating);
         var ratings = rows.GroupBy(x => x.Rating).OrderBy(g => g.Key)
             .Select(g => new KeyValuePair<string, decimal>($"{g.Key} Star", g.Count())).ToList();
 
