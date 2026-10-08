@@ -72,6 +72,8 @@ CREATE TABLE [Subscriptions] (
     [SubscriptionId] int NOT NULL IDENTITY,
     [CompanyId] int NOT NULL,
     [PlanName] nvarchar(100) NOT NULL,
+    [BillingCycle] nvarchar(20) NOT NULL,
+    [BillingAmount] decimal(18,2) NOT NULL,
     [MonthlyFee] decimal(18,2) NOT NULL,
     [StartDate] datetime2 NOT NULL,
     [EndDate] datetime2 NOT NULL,
