@@ -23,12 +23,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="Assets\driveconnect-logo.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-
-  <ItemGroup>
     <Folder Include="Modules\1. SuperAdmin\SystemAdministration\Controls\" />
     <Folder Include="Modules\1. SuperAdmin\SystemAdministration\Forms\" />
     <Folder Include="Modules\2. Admin\CustomerRelationship\Forms\" />
