@@ -79,7 +79,6 @@ namespace DriveConnect
             };
 
             header.Controls.Add(logoutButton);
-            mainPanel.Controls.Add(header);
 
             if (string.Equals(
                     UserSession.Role,
@@ -91,7 +90,11 @@ namespace DriveConnect
                     Dock = DockStyle.Fill
                 };
 
+                // Add the fill control first so the top logout header is never covered.
                 mainPanel.Controls.Add(superAdminControl);
+                mainPanel.Controls.Add(header);
+                header.BringToFront();
+
                 Text = "DriveConnect - Super Admin";
             }
             else
@@ -101,7 +104,11 @@ namespace DriveConnect
                     Dock = DockStyle.Fill
                 };
 
+                // Keep the shared logout header above the CRM workspace.
                 mainPanel.Controls.Add(crmControl);
+                mainPanel.Controls.Add(header);
+                header.BringToFront();
+
                 Text = $"DriveConnect CRM System - {UserSession.Role}";
             }
 
