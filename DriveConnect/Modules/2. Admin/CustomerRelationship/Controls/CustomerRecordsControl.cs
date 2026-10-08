@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -104,6 +105,23 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                 StringComparison.OrdinalIgnoreCase);
         }
 
+        private Image? LoadDriveConnectLogo()
+        {
+            string logoPath = Path.Combine(AppContext.BaseDirectory, "Assets", "driveconnect-logo.png");
+            if (!File.Exists(logoPath))
+                return null;
+
+            try
+            {
+                using var source = new Bitmap(logoPath);
+                return new Bitmap(source);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
         private void SetupLightModernUI()
         {
             this.Dock = DockStyle.Fill;
@@ -113,13 +131,40 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
             sidebarPanel.Dock = DockStyle.Left;
             sidebarPanel.Width = 260;
             sidebarPanel.BackColor = Color.FromArgb(255, 255, 255);
-            sidebarPanel.Padding = new Padding(0, 20, 0, 0);
+            sidebarPanel.Padding = new Padding(0);
 
-            Panel sidebarBorder = new Panel { Dock = DockStyle.Right, Width = 1, BackColor = Color.FromArgb(229, 231, 235) };
-            sidebarPanel.Controls.Add(sidebarBorder);
+            Panel logoPanel = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 112,
+                BackColor = Color.White,
+                Padding = new Padding(24, 10, 24, 8)
+            };
 
-            Label lblLogo = new Label { Text = "DriveConnect CRM", Dock = DockStyle.Top, Height = 60, Font = new Font("Segoe UI", 16F, FontStyle.Bold), ForeColor = Color.FromArgb(17, 24, 39), TextAlign = ContentAlignment.MiddleCenter };
-            sidebarPanel.Controls.Add(lblLogo);
+            var logoImage = LoadDriveConnectLogo();
+            if (logoImage != null)
+            {
+                PictureBox logoBox = new PictureBox
+                {
+                    Dock = DockStyle.Fill,
+                    Image = logoImage,
+                    SizeMode = PictureBoxSizeMode.Zoom,
+                    BackColor = Color.Transparent
+                };
+                logoPanel.Controls.Add(logoBox);
+            }
+            else
+            {
+                Label fallbackLogo = new Label
+                {
+                    Text = "DriveConnect CRM",
+                    Dock = DockStyle.Fill,
+                    Font = new Font("Segoe UI Semibold", 15F, FontStyle.Bold),
+                    ForeColor = Color.FromArgb(17, 24, 39),
+                    TextAlign = ContentAlignment.MiddleCenter
+                };
+                logoPanel.Controls.Add(fallbackLogo);
+            }
 
             // --- ACCORDION SIDEBAR ---
             FlowLayoutPanel sidebarFlow = new FlowLayoutPanel
@@ -179,8 +224,18 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                     new[] { "Archived Sales", "Archived Repairs" }));
             }
 
+            Panel sidebarBorder = new Panel
+            {
+                Dock = DockStyle.Right,
+                Width = 1,
+                BackColor = Color.FromArgb(229, 231, 235)
+            };
+
+            // Add the fill area first, then the top logo and right border so the
+            // accordion cannot cover the logo area.
             sidebarPanel.Controls.Add(sidebarFlow);
-            sidebarFlow.BringToFront();
+            sidebarPanel.Controls.Add(logoPanel);
+            sidebarPanel.Controls.Add(sidebarBorder);
 
             mainContentPanel.Dock = DockStyle.Fill;
             mainContentPanel.Padding = new Padding(30);
@@ -212,8 +267,8 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
             topActionBar.Controls.Add(txtSearch);
 
             subTabPanel.Dock = DockStyle.Top;
-            subTabPanel.Height = 60;
-            subTabPanel.Padding = new Padding(0, 15, 0, 0);
+            subTabPanel.Height = 70;
+            subTabPanel.Padding = new Padding(0, 18, 0, 0);
 
             lblBreadcrumb.AutoSize = true;
             lblBreadcrumb.Font = new Font("Segoe UI Semibold", 14F, FontStyle.Bold);
@@ -649,17 +704,17 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                 Padding = new Padding(8, 8, 0, 8),
                 Margin = new Padding(0)
             };
-            branchPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 60F));
+            branchPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 82F));
             branchPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
 
             var scopeLabel = new Label
             {
                 Text = "Branch",
                 Dock = DockStyle.Fill,
-                TextAlign = ContentAlignment.MiddleLeft,
+                TextAlign = ContentAlignment.MiddleRight,
                 Font = new Font("Segoe UI Semibold", 9F),
                 ForeColor = Color.FromArgb(75, 85, 99),
-                Margin = new Padding(0, 0, 8, 0)
+                Margin = new Padding(0, 0, 10, 0)
             };
 
             cbAnalyticsBranch.DropDownStyle = ComboBoxStyle.DropDownList;
@@ -988,10 +1043,10 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
             {
                 Text = value,
                 Dock = DockStyle.Fill,
-                Font = new Font("Segoe UI Semibold", 15F, FontStyle.Bold),
+                Font = new Font("Segoe UI Semibold", 14F, FontStyle.Bold),
                 ForeColor = accent,
                 TextAlign = ContentAlignment.MiddleLeft,
-                AutoEllipsis = true,
+                AutoEllipsis = false,
                 Margin = new Padding(0)
             };
             var lblSecondary = new Label
@@ -1202,19 +1257,52 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
 
         private Panel CreateHorizontalBarChart(List<KeyValuePair<string, decimal>> data, bool currency)
         {
-            var p=new Panel{BackColor=Color.White};
-            p.Paint+=(s,e)=>
+            var p = new Panel { BackColor = Color.White };
+            p.Paint += (s, e) =>
             {
                 e.Graphics.Clear(Color.White);
-                if(data.Count==0){DrawNoData(e.Graphics,p.ClientSize);return;}
-                decimal max=Math.Max(1,data.Max(x=>x.Value)); int rowH=Math.Max(28,(p.ClientSize.Height-10)/Math.Max(1,data.Count));
-                for(int i=0;i<data.Count;i++)
+                if (data.Count == 0)
                 {
-                    int y=8+i*rowH; int labelW=130; int barW=Math.Max(5,(int)((p.ClientSize.Width-labelW-90)*(double)(data[i].Value/max)));
-                    TextRenderer.DrawText(e.Graphics,data[i].Key,new Font("Segoe UI",8.5F),new Rectangle(0,y,labelW-8,rowH),Color.FromArgb(75,85,99),TextFormatFlags.VerticalCenter|TextFormatFlags.EndEllipsis);
-                    using var b=new SolidBrush(Color.FromArgb(124,58,237)); e.Graphics.FillRectangle(b,labelW,y+7,barW,16);
-                    string val=currency?$"₱{data[i].Value:N0}":data[i].Value.ToString("N0");
-                    TextRenderer.DrawText(e.Graphics,val,new Font("Segoe UI",8.5F,FontStyle.Bold),new Rectangle(labelW+barW+8,y,85,rowH),Color.FromArgb(55,65,81),TextFormatFlags.VerticalCenter);
+                    DrawNoData(e.Graphics, p.ClientSize);
+                    return;
+                }
+
+                decimal max = Math.Max(1, data.Max(x => x.Value));
+                int rowH = Math.Max(28, (p.ClientSize.Height - 10) / Math.Max(1, data.Count));
+                int labelW = 130;
+                int valueW = 120;
+                int gap = 10;
+                int barAreaW = Math.Max(50, p.ClientSize.Width - labelW - valueW - gap);
+
+                for (int i = 0; i < data.Count; i++)
+                {
+                    int y = 8 + i * rowH;
+                    int barW = data[i].Value <= 0
+                        ? 0
+                        : Math.Max(5, (int)(barAreaW * (double)(data[i].Value / max)));
+
+                    TextRenderer.DrawText(
+                        e.Graphics,
+                        data[i].Key,
+                        new Font("Segoe UI", 8.5F),
+                        new Rectangle(0, y, labelW - 8, rowH),
+                        Color.FromArgb(75, 85, 99),
+                        TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
+
+                    if (barW > 0)
+                    {
+                        using var b = new SolidBrush(Color.FromArgb(124, 58, 237));
+                        e.Graphics.FillRectangle(b, labelW, y + 7, barW, 16);
+                    }
+
+                    string val = currency ? $"₱{data[i].Value:N0}" : data[i].Value.ToString("N0");
+                    TextRenderer.DrawText(
+                        e.Graphics,
+                        val,
+                        new Font("Segoe UI", 8.5F, FontStyle.Bold),
+                        new Rectangle(labelW + barAreaW + gap, y, valueW, rowH),
+                        Color.FromArgb(55, 65, 81),
+                        TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
                 }
             };
             return p;
