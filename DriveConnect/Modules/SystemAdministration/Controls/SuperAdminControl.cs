@@ -1215,6 +1215,53 @@ public sealed class SuperAdminControl : UserControl
                 : Color.FromArgb(153, 27, 27);
     }
 
+    private void BindSystemStatus(
+        SystemStatusOverview? systemStatus,
+        bool failed = false)
+    {
+        if (systemStatus == null)
+        {
+            var status = failed ? "Unavailable" : "Unknown";
+
+            _systemStatusValue.Text = status;
+            _statusValueLarge.Text = status;
+            _statusService.Text = "DriveConnect API";
+            _statusRole.Text = UserSession.Role;
+            _statusUser.Text = UserSession.UserId.ToString();
+            _statusUpdated.Text =
+                $"Last checked: {DateTime.Now:MMM dd, yyyy h:mm:ss tt}";
+
+            var unavailableColor = Color.FromArgb(153, 27, 27);
+            _systemStatusValue.ForeColor = unavailableColor;
+            _statusValueLarge.ForeColor = unavailableColor;
+            return;
+        }
+
+        _systemStatusValue.Text = systemStatus.Status;
+        _statusValueLarge.Text = systemStatus.Status;
+        _statusService.Text = systemStatus.Service;
+        _statusRole.Text = systemStatus.Role;
+        _statusUser.Text = systemStatus.UserId;
+        _statusUpdated.Text =
+            $"Last checked: {DateTime.Now:MMM dd, yyyy h:mm:ss tt}";
+
+        var healthy = string.Equals(
+            systemStatus.Status,
+            "Online",
+            StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(
+                systemStatus.Status,
+                "Healthy",
+                StringComparison.OrdinalIgnoreCase);
+
+        var statusColor = healthy
+            ? Color.FromArgb(22, 101, 52)
+            : Color.FromArgb(153, 27, 27);
+
+        _systemStatusValue.ForeColor = statusColor;
+        _statusValueLarge.ForeColor = statusColor;
+    }
+
     private static Panel CreateCard()
     {
         var panel = new Panel
