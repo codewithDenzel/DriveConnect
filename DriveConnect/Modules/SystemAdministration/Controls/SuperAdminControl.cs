@@ -1,4 +1,5 @@
 using System.Drawing;
+using System.Globalization;
 using System.Windows.Forms;
 using DriveConnect.winforms.Services;
 
@@ -14,17 +15,10 @@ public sealed class SuperAdminControl : UserControl
     private readonly UserManagementControl _adminAccountsControl = new();
 
     private readonly List<Button> _navButtons = new();
-    private Button? _activeNavButton;
 
     private Label _pageTitle = new();
     private Label _pageSubtitle = new();
     private Button _refreshButton = new();
-
-    private Label _planValue = new();
-    private Label _feeValue = new();
-    private Label _startValue = new();
-    private Label _endValue = new();
-    private Label _subscriptionStatusValue = new();
 
     private Label _companyCountValue = new();
     private Label _activeCompanyCountValue = new();
@@ -38,6 +32,29 @@ public sealed class SuperAdminControl : UserControl
     private Label _statusUpdated = new();
 
     private DataGridView _companiesGrid = new();
+
+    // Subscription editor
+    private ComboBox _subscriptionCompanyCombo = new();
+    private ComboBox _subscriptionPlanCombo = new();
+    private ComboBox _subscriptionBillingCycleCombo = new();
+    private TextBox _subscriptionAmountTextBox = new();
+    private DateTimePicker _subscriptionStartDatePicker = new();
+    private CheckBox _subscriptionActiveCheckBox = new();
+    private Button _subscriptionSaveButton = new();
+    private Button _subscriptionDeactivateButton = new();
+    private Label _subscriptionEndDateValue = new();
+    private Label _subscriptionMonthlyEquivalentValue = new();
+
+    // Subscription summary
+    private Label _summaryCompanyValue = new();
+    private Label _summaryPlanValue = new();
+    private Label _summaryCycleValue = new();
+    private Label _summaryAmountValue = new();
+    private Label _summaryDatesValue = new();
+    private Label _summaryStatusValue = new();
+
+    private List<CompanyOverview> _loadedCompanies = new();
+    private bool _suppressSubscriptionCompanyChanged;
 
     public SuperAdminControl()
     {
@@ -60,8 +77,7 @@ public sealed class SuperAdminControl : UserControl
         {
             Dock = DockStyle.Top,
             Height = 76,
-            BackColor = Color.White,
-            Padding = new Padding(28, 14, 28, 12)
+            BackColor = Color.White
         };
 
         _pageTitle = new Label
@@ -84,7 +100,7 @@ public sealed class SuperAdminControl : UserControl
 
         _refreshButton = new Button
         {
-            Text = "↻  Refresh",
+            Text = "Refresh",
             Size = new Size(105, 34),
             Anchor = AnchorStyles.Top | AnchorStyles.Right,
             BackColor = Color.White,
@@ -92,7 +108,7 @@ public sealed class SuperAdminControl : UserControl
             FlatStyle = FlatStyle.Flat,
             Font = new Font("Segoe UI Semibold", 9F),
             Cursor = Cursors.Hand,
-            Location = new Point(Math.Max(100, ClientSize.Width - 145), 20)
+            Location = new Point(0, 20)
         };
         _refreshButton.FlatAppearance.BorderColor = Color.FromArgb(229, 231, 235);
         _refreshButton.FlatAppearance.BorderSize = 1;
@@ -134,10 +150,19 @@ public sealed class SuperAdminControl : UserControl
 
         Resize += (_, _) =>
         {
-            _refreshButton.Left = Math.Max(20, _workspace.ClientSize.Width - _refreshButton.Width - 28);
+            _refreshButton.Left = Math.Max(
+                20,
+                _workspace.ClientSize.Width - _refreshButton.Width - 28);
         };
 
-        ShowPanel(_companiesPanel, "Company Management", "Manage company-level system information.");
+        _refreshButton.Left = Math.Max(
+            20,
+            _workspace.ClientSize.Width - _refreshButton.Width - 28);
+
+        ShowPanel(
+            _companiesPanel,
+            "Company Management",
+            "Manage company-level system information.");
     }
 
     private Panel BuildSidebar()
@@ -146,8 +171,7 @@ public sealed class SuperAdminControl : UserControl
         {
             Dock = DockStyle.Left,
             Width = 228,
-            BackColor = Color.White,
-            Padding = new Padding(0)
+            BackColor = Color.White
         };
 
         var divider = new Panel
@@ -161,8 +185,7 @@ public sealed class SuperAdminControl : UserControl
         var brandPanel = new Panel
         {
             Dock = DockStyle.Top,
-            Height = 112,
-            Padding = new Padding(24, 20, 18, 10)
+            Height = 112
         };
 
         var logo = new Label
@@ -205,10 +228,29 @@ public sealed class SuperAdminControl : UserControl
             Padding = new Padding(12, 8, 12, 8)
         };
 
-        AddNavButton(navPanel, "Company Management", _companiesPanel, "System-level company overview.");
-        AddNavButton(navPanel, "Subscription", _subscriptionPanel, "Plan and subscription details.");
-        AddNavButton(navPanel, "Admin Accounts", _adminAccountsControl, "Manage company Admin accounts.");
-        AddNavButton(navPanel, "System Status", _statusPanel, "Connection and system status.");
+        AddNavButton(
+            navPanel,
+            "Company Management",
+            _companiesPanel,
+            "System-level company overview.");
+
+        AddNavButton(
+            navPanel,
+            "Subscription",
+            _subscriptionPanel,
+            "Assign and manage company subscriptions.");
+
+        AddNavButton(
+            navPanel,
+            "Admin Accounts",
+            _adminAccountsControl,
+            "Manage company Admin accounts.");
+
+        AddNavButton(
+            navPanel,
+            "System Status",
+            _statusPanel,
+            "Connection and system status.");
 
         var footer = new Panel
         {
@@ -268,6 +310,7 @@ public sealed class SuperAdminControl : UserControl
         };
 
         button.FlatAppearance.BorderSize = 0;
+
         button.Click += (_, _) =>
         {
             if (button.Tag is NavItem item)
@@ -288,23 +331,16 @@ public sealed class SuperAdminControl : UserControl
         }
 
         if (activeButton == null)
-        {
-            _activeNavButton = null;
             return;
-        }
 
         activeButton.BackColor = Color.FromArgb(245, 243, 255);
         activeButton.ForeColor = Color.FromArgb(109, 40, 217);
         activeButton.FlatAppearance.BorderSize = 1;
         activeButton.FlatAppearance.BorderColor = Color.FromArgb(124, 58, 237);
-        _activeNavButton = activeButton;
     }
 
     private void ShowPanel(Control panel, string title, string subtitle)
     {
-        if (panel == null)
-            return;
-
         foreach (Control control in GetPanelHostControls())
             control.Visible = false;
 
@@ -315,7 +351,8 @@ public sealed class SuperAdminControl : UserControl
         _pageSubtitle.Text = subtitle;
 
         var active = _navButtons.FirstOrDefault(button =>
-            button.Tag is NavItem item && ReferenceEquals(item.Target, panel));
+            button.Tag is NavItem item &&
+            ReferenceEquals(item.Target, panel));
 
         UpdateActiveNav(active);
     }
@@ -358,27 +395,38 @@ public sealed class SuperAdminControl : UserControl
             summary.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25F));
 
         summary.Controls.Add(
-            CreateMetricCard("Companies", "Total companies registered in DriveConnect.", out _companyCountValue),
+            CreateMetricCard(
+                "Companies",
+                "Total companies registered in DriveConnect.",
+                out _companyCountValue),
             0, 0);
 
         summary.Controls.Add(
-            CreateMetricCard("Active Companies", "Companies currently active.", out _activeCompanyCountValue),
+            CreateMetricCard(
+                "Active Companies",
+                "Companies currently active.",
+                out _activeCompanyCountValue),
             1, 0);
 
         summary.Controls.Add(
-            CreateMetricCard("Active Plans", "Companies with an active subscription.", out _activeSubscriptionCountValue),
+            CreateMetricCard(
+                "Active Subscriptions",
+                "Companies with an active subscription.",
+                out _activeSubscriptionCountValue),
             2, 0);
 
         summary.Controls.Add(
-            CreateMetricCard("System", "Current API/system state.", out _systemStatusValue),
+            CreateMetricCard(
+                "System",
+                "Current API/system state.",
+                out _systemStatusValue),
             3, 0);
 
         var tableHeader = new Panel
         {
             Dock = DockStyle.Top,
             Height = 68,
-            BackColor = Color.Transparent,
-            Padding = new Padding(0, 18, 0, 0)
+            BackColor = Color.Transparent
         };
 
         var tableTitle = new Label
@@ -450,7 +498,11 @@ public sealed class SuperAdminControl : UserControl
             if (column == "Status")
             {
                 var status = e.Value?.ToString() ?? string.Empty;
-                e.CellStyle.Font = new Font("Segoe UI Semibold", 9F);
+
+                e.CellStyle.Font = new Font(
+                    "Segoe UI Semibold",
+                    9F);
+
                 e.CellStyle.ForeColor = status == "Active"
                     ? Color.FromArgb(22, 101, 52)
                     : Color.FromArgb(153, 27, 27);
@@ -485,60 +537,210 @@ public sealed class SuperAdminControl : UserControl
         _subscriptionPanel.Dock = DockStyle.Fill;
         _subscriptionPanel.BackColor = Color.Transparent;
 
-        var card = new Panel
-        {
-            Dock = DockStyle.Top,
-            Height = 310,
-            BackColor = Color.White,
-            Padding = new Padding(28)
-        };
-
-        card.Paint += (_, e) =>
-        {
-            ControlPaint.DrawBorder(
-                e.Graphics,
-                card.ClientRectangle,
-                Color.FromArgb(229, 231, 235),
-                ButtonBorderStyle.Solid);
-        };
-
-        _planValue = CreateValueLabel();
-        _feeValue = CreateValueLabel();
-        _startValue = CreateValueLabel();
-        _endValue = CreateValueLabel();
-        _subscriptionStatusValue = CreateValueLabel();
-
-        var grid = new TableLayoutPanel
+        var layout = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
             ColumnCount = 2,
-            RowCount = 5,
-            BackColor = Color.White
+            RowCount = 1,
+            BackColor = Color.Transparent,
+            Padding = new Padding(0)
         };
 
-        grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 34F));
-        grid.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 66F));
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 64F));
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 36F));
 
-        AddValueRow(grid, 0, "Plan", _planValue);
-        AddValueRow(grid, 1, "Monthly Fee", _feeValue);
-        AddValueRow(grid, 2, "Start Date", _startValue);
-        AddValueRow(grid, 3, "End Date", _endValue);
-        AddValueRow(grid, 4, "Status", _subscriptionStatusValue);
+        var editorCard = CreateCard();
+        editorCard.Dock = DockStyle.Fill;
+        editorCard.Padding = new Padding(24);
 
-        card.Controls.Add(grid);
-
-        var note = new Label
+        var editorTitle = new Label
         {
-            Text = "Super Admin view: subscription information is shown at the system level and does not expose CRM records.",
-            Dock = DockStyle.Top,
-            Height = 52,
-            Padding = new Padding(2, 14, 0, 0),
+            Text = "Subscription Setup",
+            AutoSize = true,
+            Location = new Point(24, 20),
+            Font = new Font("Segoe UI Semibold", 14F, FontStyle.Bold),
+            ForeColor = Color.FromArgb(17, 24, 39)
+        };
+
+        var editorSubtitle = new Label
+        {
+            Text = "Set the plan, billing cycle, price, and subscription period for a company.",
+            AutoSize = true,
+            Location = new Point(26, 47),
             Font = new Font("Segoe UI", 8.5F),
             ForeColor = Color.FromArgb(107, 114, 128)
         };
 
-        _subscriptionPanel.Controls.Add(note);
-        _subscriptionPanel.Controls.Add(card);
+        editorCard.Controls.Add(editorTitle);
+        editorCard.Controls.Add(editorSubtitle);
+
+        var form = new TableLayoutPanel
+        {
+            Location = new Point(24, 82),
+            Size = new Size(570, 355),
+            ColumnCount = 2,
+            RowCount = 7,
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
+            BackColor = Color.White
+        };
+
+        form.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 155F));
+        form.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+
+        AddFormLabel(form, 0, "Company");
+        _subscriptionCompanyCombo = CreateComboBox();
+        _subscriptionCompanyCombo.SelectedIndexChanged += async (_, _) =>
+        {
+            if (_suppressSubscriptionCompanyChanged)
+                return;
+
+            if (_subscriptionCompanyCombo.SelectedItem is CompanyChoice choice)
+                await LoadSubscriptionForCompanyAsync(choice.CompanyId);
+        };
+        form.Controls.Add(_subscriptionCompanyCombo, 1, 0);
+
+        AddFormLabel(form, 1, "Plan Name");
+        _subscriptionPlanCombo = CreateComboBox();
+        _subscriptionPlanCombo.DropDownStyle = ComboBoxStyle.DropDown;
+        _subscriptionPlanCombo.Items.AddRange(new object[]
+        {
+            "Starter",
+            "Professional",
+            "Enterprise",
+            "Custom"
+        });
+        form.Controls.Add(_subscriptionPlanCombo, 1, 1);
+
+        AddFormLabel(form, 2, "Billing Cycle");
+        _subscriptionBillingCycleCombo = CreateComboBox();
+        _subscriptionBillingCycleCombo.Items.AddRange(new object[]
+        {
+            "Monthly",
+            "Annual"
+        });
+        _subscriptionBillingCycleCombo.SelectedIndex = 0;
+        _subscriptionBillingCycleCombo.SelectedIndexChanged += (_, _) => UpdateSubscriptionPreview();
+        form.Controls.Add(_subscriptionBillingCycleCombo, 1, 2);
+
+        AddFormLabel(form, 3, "Billing Amount");
+        _subscriptionAmountTextBox = new TextBox
+        {
+            Dock = DockStyle.Fill,
+            Font = new Font("Segoe UI", 10F),
+            BorderStyle = BorderStyle.FixedSingle
+        };
+        _subscriptionAmountTextBox.TextChanged += (_, _) => UpdateSubscriptionPreview();
+        form.Controls.Add(_subscriptionAmountTextBox, 1, 3);
+
+        AddFormLabel(form, 4, "Start Date");
+        _subscriptionStartDatePicker = new DateTimePicker
+        {
+            Dock = DockStyle.Left,
+            Width = 190,
+            Format = DateTimePickerFormat.Custom,
+            CustomFormat = "MMM dd, yyyy"
+        };
+        _subscriptionStartDatePicker.ValueChanged += (_, _) => UpdateSubscriptionPreview();
+        form.Controls.Add(_subscriptionStartDatePicker, 1, 4);
+
+        AddFormLabel(form, 5, "End Date");
+        _subscriptionEndDateValue = CreateFormValueLabel();
+        form.Controls.Add(_subscriptionEndDateValue, 1, 5);
+
+        AddFormLabel(form, 6, "Monthly Equivalent");
+        _subscriptionMonthlyEquivalentValue = CreateFormValueLabel();
+        form.Controls.Add(_subscriptionMonthlyEquivalentValue, 1, 6);
+
+        editorCard.Controls.Add(form);
+
+        _subscriptionActiveCheckBox = new CheckBox
+        {
+            Text = "Subscription is active",
+            AutoSize = true,
+            Location = new Point(24, 450),
+            Checked = true,
+            Font = new Font("Segoe UI Semibold", 9F),
+            ForeColor = Color.FromArgb(55, 65, 81)
+        };
+        editorCard.Controls.Add(_subscriptionActiveCheckBox);
+
+        _subscriptionSaveButton = CreatePrimaryButton(
+            "Save Subscription",
+            24,
+            488,
+            175,
+            40);
+        _subscriptionSaveButton.Click += async (_, _) => await SaveSubscriptionAsync();
+
+        _subscriptionDeactivateButton = CreateSecondaryButton(
+            "Deactivate",
+            210,
+            488,
+            115,
+            40);
+        _subscriptionDeactivateButton.Click += async (_, _) => await DeactivateSubscriptionAsync();
+
+        editorCard.Controls.Add(_subscriptionSaveButton);
+        editorCard.Controls.Add(_subscriptionDeactivateButton);
+
+        var editorNote = new Label
+        {
+            Text = "The billing amount is the amount the company pays for the selected billing cycle. Annual subscriptions also show a monthly equivalent for reference.",
+            Location = new Point(24, 540),
+            Size = new Size(570, 52),
+            Font = new Font("Segoe UI", 8.5F),
+            ForeColor = Color.FromArgb(107, 114, 128)
+        };
+        editorCard.Controls.Add(editorNote);
+
+        var summaryCard = CreateCard();
+        summaryCard.Dock = DockStyle.Fill;
+        summaryCard.Margin = new Padding(12, 0, 0, 0);
+        summaryCard.Padding = new Padding(22);
+
+        var summaryTitle = new Label
+        {
+            Text = "Current Subscription",
+            AutoSize = true,
+            Location = new Point(22, 20),
+            Font = new Font("Segoe UI Semibold", 14F, FontStyle.Bold),
+            ForeColor = Color.FromArgb(17, 24, 39)
+        };
+
+        var summarySubtitle = new Label
+        {
+            Text = "What is currently assigned to the selected company.",
+            AutoSize = true,
+            Location = new Point(24, 47),
+            Font = new Font("Segoe UI", 8.5F),
+            ForeColor = Color.FromArgb(107, 114, 128)
+        };
+
+        summaryCard.Controls.Add(summaryTitle);
+        summaryCard.Controls.Add(summarySubtitle);
+
+        int sy = 92;
+        AddSummaryRow(summaryCard, "Company", ref sy, out _summaryCompanyValue);
+        AddSummaryRow(summaryCard, "Plan", ref sy, out _summaryPlanValue);
+        AddSummaryRow(summaryCard, "Billing", ref sy, out _summaryCycleValue);
+        AddSummaryRow(summaryCard, "Amount", ref sy, out _summaryAmountValue);
+        AddSummaryRow(summaryCard, "Period", ref sy, out _summaryDatesValue);
+        AddSummaryRow(summaryCard, "Status", ref sy, out _summaryStatusValue);
+
+        var summaryHint = new Label
+        {
+            Text = "Use this page when a company purchases, renews, changes, or cancels its DriveConnect subscription.",
+            Location = new Point(22, sy + 20),
+            Size = new Size(300, 80),
+            Font = new Font("Segoe UI", 8.5F),
+            ForeColor = Color.FromArgb(107, 114, 128)
+        };
+        summaryCard.Controls.Add(summaryHint);
+
+        layout.Controls.Add(editorCard, 0, 0);
+        layout.Controls.Add(summaryCard, 1, 0);
+
+        _subscriptionPanel.Controls.Add(layout);
     }
 
     private void BuildStatusPanel()
@@ -574,22 +776,10 @@ public sealed class SuperAdminControl : UserControl
             CreateStatusMetricCard("User ID", out _statusUser),
             3, 0);
 
-        var detailCard = new Panel
-        {
-            Dock = DockStyle.Top,
-            Height = 105,
-            BackColor = Color.White,
-            Padding = new Padding(22)
-        };
-
-        detailCard.Paint += (_, e) =>
-        {
-            ControlPaint.DrawBorder(
-                e.Graphics,
-                detailCard.ClientRectangle,
-                Color.FromArgb(229, 231, 235),
-                ButtonBorderStyle.Solid);
-        };
+        var detailCard = CreateCard();
+        detailCard.Dock = DockStyle.Top;
+        detailCard.Height = 105;
+        detailCard.Padding = new Padding(22);
 
         _statusUpdated = new Label
         {
@@ -629,17 +819,10 @@ public sealed class SuperAdminControl : UserControl
             _companyCountValue.Text = "—";
             _activeCompanyCountValue.Text = "—";
             _activeSubscriptionCountValue.Text = "—";
+            _loadedCompanies = new();
         }
 
-        try
-        {
-            var subscription = await _api.GetSubscriptionAsync(UserSession.CompanyId);
-            BindSubscription(subscription);
-        }
-        catch
-        {
-            BindSubscription(null, true);
-        }
+        await LoadSubscriptionForCompanyAsync(UserSession.CompanyId);
 
         try
         {
@@ -654,6 +837,8 @@ public sealed class SuperAdminControl : UserControl
 
     private void BindCompanies(List<CompanyOverview> companies)
     {
+        _loadedCompanies = companies;
+
         _companyCountValue.Text = companies.Count.ToString();
         _activeCompanyCountValue.Text = companies.Count(x => x.IsActive).ToString();
         _activeSubscriptionCountValue.Text = companies.Count(x =>
@@ -666,8 +851,8 @@ public sealed class SuperAdminControl : UserControl
             Company = x.CompanyName,
             Status = x.IsActive ? "Active" : "Inactive",
             Plan = x.ActivePlanName ?? "None",
-            MonthlyFee = x.ActiveMonthlyFee.HasValue
-                ? $"₱{x.ActiveMonthlyFee.Value:N2}"
+            Billing = x.ActiveBillingAmount.HasValue
+                ? $"₱{x.ActiveBillingAmount.Value:N2} / {x.ActiveBillingCycle?.ToLowerInvariant() ?? "cycle"}"
                 : "-",
             SubscriptionEnd = x.SubscriptionEndDate.HasValue
                 ? x.SubscriptionEndDate.Value.ToLocalTime().ToString("MMM dd, yyyy")
@@ -679,153 +864,503 @@ public sealed class SuperAdminControl : UserControl
         var idColumn = _companiesGrid.Columns["ID"];
         if (idColumn != null)
             idColumn.Visible = false;
+
+        PopulateSubscriptionCompanyCombo();
+    }
+
+    private void PopulateSubscriptionCompanyCombo()
+    {
+        var selectedCompanyId = UserSession.CompanyId;
+
+        _suppressSubscriptionCompanyChanged = true;
+
+        _subscriptionCompanyCombo.Items.Clear();
+
+        foreach (var company in _loadedCompanies)
+        {
+            _subscriptionCompanyCombo.Items.Add(
+                new CompanyChoice(
+                    company.CompanyId,
+                    $"{company.CompanyName} ({company.CompanyCode})"));
+        }
+
+        var selected = _subscriptionCompanyCombo.Items
+            .OfType<CompanyChoice>()
+            .FirstOrDefault(x => x.CompanyId == selectedCompanyId);
+
+        if (selected != null)
+            _subscriptionCompanyCombo.SelectedItem = selected;
+        else if (_subscriptionCompanyCombo.Items.Count > 0)
+            _subscriptionCompanyCombo.SelectedIndex = 0;
+
+        _suppressSubscriptionCompanyChanged = false;
+    }
+
+    private async Task LoadSubscriptionForCompanyAsync(int companyId)
+    {
+        if (companyId <= 0)
+            return;
+
+        try
+        {
+            var subscription = await _api.GetSubscriptionAsync(companyId);
+            BindSubscription(subscription, false);
+        }
+        catch
+        {
+            ClearSubscriptionEditor();
+            SetSubscriptionSummary(
+                _loadedCompanies.FirstOrDefault(x => x.CompanyId == companyId)?.CompanyName
+                ?? "-",
+                "Unavailable",
+                "Unavailable",
+                "-",
+                "-",
+                "API unavailable");
+        }
     }
 
     private void BindSubscription(
         SubscriptionOverview? subscription,
-        bool failed = false)
+        bool failed)
     {
+        var companyId = subscription?.CompanyId
+            ?? (_subscriptionCompanyCombo.SelectedItem as CompanyChoice)?.CompanyId
+            ?? UserSession.CompanyId;
+
+        var company = _loadedCompanies.FirstOrDefault(x => x.CompanyId == companyId);
+
         if (subscription == null)
         {
-            _planValue.Text = failed ? "Unavailable" : "No subscription";
-            _feeValue.Text = "-";
-            _startValue.Text = "-";
-            _endValue.Text = "-";
-            _subscriptionStatusValue.Text = failed
-                ? "API unavailable"
-                : "Not configured";
+            _subscriptionPlanCombo.Text = "";
+            _subscriptionBillingCycleCombo.SelectedItem = "Monthly";
+            _subscriptionAmountTextBox.Text = "";
+            _subscriptionStartDatePicker.Value = DateTime.Today;
+            _subscriptionActiveCheckBox.Checked = false;
+            _subscriptionDeactivateButton.Enabled = false;
+
+            SetSubscriptionSummary(
+                company?.CompanyName ?? "-",
+                "No subscription",
+                "-",
+                "-",
+                "-",
+                failed ? "API unavailable" : "Not configured");
+
+            UpdateSubscriptionPreview();
             return;
         }
 
-        _planValue.Text = subscription.PlanName;
-        _feeValue.Text = $"₱{subscription.MonthlyFee:N2} / month";
-        _startValue.Text = subscription.StartDate.ToLocalTime().ToString("MMM dd, yyyy");
-        _endValue.Text = subscription.EndDate.ToLocalTime().ToString("MMM dd, yyyy");
-        _subscriptionStatusValue.Text = subscription.IsActive ? "Active" : "Inactive";
+        _subscriptionPlanCombo.Text = subscription.PlanName;
+        _subscriptionBillingCycleCombo.SelectedItem =
+            subscription.BillingCycle == "Annual"
+                ? "Annual"
+                : "Monthly";
 
-        _subscriptionStatusValue.ForeColor = subscription.IsActive
-            ? Color.FromArgb(22, 101, 52)
-            : Color.FromArgb(153, 27, 27);
+        _subscriptionAmountTextBox.Text =
+            subscription.BillingAmount.ToString("N2");
+
+        var localStart = subscription.StartDate.ToLocalTime().Date;
+        if (localStart < _subscriptionStartDatePicker.MinDate)
+            localStart = _subscriptionStartDatePicker.MinDate;
+
+        if (localStart > _subscriptionStartDatePicker.MaxDate)
+            localStart = _subscriptionStartDatePicker.MaxDate;
+
+        _subscriptionStartDatePicker.Value = localStart;
+        _subscriptionActiveCheckBox.Checked = subscription.IsActive;
+        _subscriptionDeactivateButton.Enabled = subscription.IsActive;
+
+        SetSubscriptionSummary(
+            company?.CompanyName ?? "-",
+            subscription.PlanName,
+            subscription.BillingCycle,
+            $"₱{subscription.BillingAmount:N2}",
+            $"{subscription.StartDate.ToLocalTime():MMM dd, yyyy} - {subscription.EndDate.ToLocalTime():MMM dd, yyyy}",
+            subscription.IsActive ? "Active" : "Inactive");
+
+        UpdateSubscriptionPreview();
     }
 
-    private void BindSystemStatus(
-        SystemStatusOverview? systemStatus,
-        bool failed = false)
+    private void ClearSubscriptionEditor()
     {
-        if (systemStatus == null)
-        {
-            var status = failed ? "Unavailable" : "Unknown";
+        _subscriptionPlanCombo.Text = "";
+        _subscriptionBillingCycleCombo.SelectedItem = "Monthly";
+        _subscriptionAmountTextBox.Text = "";
+        _subscriptionStartDatePicker.Value = DateTime.Today;
+        _subscriptionActiveCheckBox.Checked = false;
+        _subscriptionDeactivateButton.Enabled = false;
+        UpdateSubscriptionPreview();
+    }
 
-            _systemStatusValue.Text = status;
-            _statusValueLarge.Text = status;
-            _statusService.Text = "DriveConnect API";
-            _statusRole.Text = UserSession.Role;
-            _statusUser.Text = UserSession.UserId.ToString();
-            _statusUpdated.Text = $"Last checked: {DateTime.Now:MMM dd, yyyy h:mm:ss tt}";
+    private async Task SaveSubscriptionAsync()
+    {
+        var choice = _subscriptionCompanyCombo.SelectedItem as CompanyChoice;
+
+        if (choice == null)
+        {
+            MessageBox.Show(
+                "Select a company first.",
+                "Subscription",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
             return;
         }
 
-        _systemStatusValue.Text = systemStatus.Status;
-        _statusValueLarge.Text = systemStatus.Status;
-        _statusService.Text = systemStatus.Service;
-        _statusRole.Text = systemStatus.Role;
-        _statusUser.Text = systemStatus.UserId;
-        _statusUpdated.Text = $"Last checked: {DateTime.Now:MMM dd, yyyy h:mm:ss tt}";
+        var planName = _subscriptionPlanCombo.Text.Trim();
+        var billingCycle = _subscriptionBillingCycleCombo.SelectedItem?.ToString() ?? "Monthly";
 
-        var statusIsHealthy = string.Equals(
-            systemStatus.Status,
-            "Online",
-            StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(
-                systemStatus.Status,
-                "Healthy",
-                StringComparison.OrdinalIgnoreCase);
+        if (string.IsNullOrWhiteSpace(planName))
+        {
+            MessageBox.Show(
+                "Enter a plan name.",
+                "Subscription",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+            return;
+        }
 
-        var statusColor = statusIsHealthy
-            ? Color.FromArgb(22, 101, 52)
-            : Color.FromArgb(153, 27, 27);
+        if (!decimal.TryParse(
+                _subscriptionAmountTextBox.Text.Trim(),
+                NumberStyles.Number,
+                CultureInfo.CurrentCulture,
+                out var billingAmount) ||
+            billingAmount <= 0)
+        {
+            MessageBox.Show(
+                "Enter a valid billing amount greater than zero.",
+                "Subscription",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning);
+            return;
+        }
 
-        _systemStatusValue.ForeColor = statusColor;
-        _statusValueLarge.ForeColor = statusColor;
+        var request = new SubscriptionRequest(
+            planName,
+            billingCycle,
+            decimal.Round(billingAmount, 2, MidpointRounding.AwayFromZero),
+            _subscriptionStartDatePicker.Value.Date,
+            _subscriptionActiveCheckBox.Checked);
+
+        _subscriptionSaveButton.Enabled = false;
+        _subscriptionDeactivateButton.Enabled = false;
+
+        try
+        {
+            var response = await _api.SaveSubscriptionAsync(
+                choice.CompanyId,
+                request);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var message = await response.Content.ReadAsStringAsync();
+
+                MessageBox.Show(
+                    string.IsNullOrWhiteSpace(message)
+                        ? "The subscription could not be saved."
+                        : message.Trim('"'),
+                    "Subscription Error",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+
+                return;
+            }
+
+            MessageBox.Show(
+                "The company subscription has been saved.",
+                "Subscription Saved",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+
+            await LoadDashboardAsync();
+
+            _suppressSubscriptionCompanyChanged = true;
+            var selected = _subscriptionCompanyCombo.Items
+                .OfType<CompanyChoice>()
+                .FirstOrDefault(x => x.CompanyId == choice.CompanyId);
+
+            if (selected != null)
+                _subscriptionCompanyCombo.SelectedItem = selected;
+
+            _suppressSubscriptionCompanyChanged = false;
+
+            await LoadSubscriptionForCompanyAsync(choice.CompanyId);
+        }
+        catch
+        {
+            MessageBox.Show(
+                "Unable to save the subscription. Make sure the API is running and the Master database migration has been applied.",
+                "Subscription Error",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Error);
+        }
+        finally
+        {
+            _subscriptionSaveButton.Enabled = true;
+            _subscriptionDeactivateButton.Enabled =
+                _subscriptionActiveCheckBox.Checked;
+        }
     }
 
-    private static Panel CreateMetricCard(
-        string title,
-        string subtitle,
-        out Label valueLabel)
+    private async Task DeactivateSubscriptionAsync()
     {
-        var card = new Panel
+        var choice = _subscriptionCompanyCombo.SelectedItem as CompanyChoice;
+
+        if (choice == null)
+            return;
+
+        var confirm = MessageBox.Show(
+            "Deactivate this company's DriveConnect subscription?",
+            "Confirm Deactivation",
+            MessageBoxButtons.YesNo,
+            MessageBoxIcon.Warning);
+
+        if (confirm != DialogResult.Yes)
+            return;
+
+        _subscriptionDeactivateButton.Enabled = false;
+
+        try
         {
-            Dock = DockStyle.Fill,
-            Margin = new Padding(0, 0, 10, 0),
+            var response = await _api.DeactivateSubscriptionAsync(choice.CompanyId);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var message = await response.Content.ReadAsStringAsync();
+
+                MessageBox.Show(
+                    string.IsNullOrWhiteSpace(message)
+                        ? "The subscription could not be deactivated."
+                        : message.Trim('"'),
+                    "Subscription Error",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+
+                return;
+            }
+
+            MessageBox.Show(
+                "The company subscription is now inactive.",
+                "Subscription Updated",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+
+            await LoadDashboardAsync();
+        }
+        catch
+        {
+            MessageBox.Show(
+                "Unable to deactivate the subscription. Make sure the API is running.",
+                "Subscription Error",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Error);
+        }
+        finally
+        {
+            _subscriptionDeactivateButton.Enabled = _subscriptionActiveCheckBox.Checked;
+        }
+    }
+
+    private void UpdateSubscriptionPreview()
+    {
+        var cycle = _subscriptionBillingCycleCombo.SelectedItem?.ToString() ?? "Monthly";
+        var start = _subscriptionStartDatePicker.Value.Date;
+
+        var end = cycle == "Annual"
+            ? start.AddYears(1).AddDays(-1)
+            : start.AddMonths(1).AddDays(-1);
+
+        _subscriptionEndDateValue.Text =
+            end.ToString("MMM dd, yyyy");
+
+        if (decimal.TryParse(
+                _subscriptionAmountTextBox.Text.Trim(),
+                NumberStyles.Number,
+                CultureInfo.CurrentCulture,
+                out var amount) &&
+            amount > 0)
+        {
+            var monthlyEquivalent = cycle == "Annual"
+                ? decimal.Round(amount / 12m, 2, MidpointRounding.AwayFromZero)
+                : amount;
+
+            _subscriptionMonthlyEquivalentValue.Text =
+                $"₱{monthlyEquivalent:N2} / month";
+        }
+        else
+        {
+            _subscriptionMonthlyEquivalentValue.Text = "-";
+        }
+    }
+
+    private void SetSubscriptionSummary(
+        string company,
+        string plan,
+        string cycle,
+        string amount,
+        string period,
+        string status)
+    {
+        _summaryCompanyValue.Text = company;
+        _summaryPlanValue.Text = plan;
+        _summaryCycleValue.Text = cycle;
+        _summaryAmountValue.Text = amount;
+        _summaryDatesValue.Text = period;
+        _summaryStatusValue.Text = status;
+
+        _summaryStatusValue.ForeColor = status == "Active"
+            ? Color.FromArgb(22, 101, 52)
+            : status is "Inactive" or "Not configured"
+                ? Color.FromArgb(107, 114, 128)
+                : Color.FromArgb(153, 27, 27);
+    }
+
+    private static Panel CreateCard()
+    {
+        var panel = new Panel
+        {
             BackColor = Color.White,
-            Padding = new Padding(16)
+            Padding = new Padding(1)
         };
 
-        card.Paint += (_, e) =>
+        panel.Paint += (_, e) =>
         {
             ControlPaint.DrawBorder(
                 e.Graphics,
-                card.ClientRectangle,
+                panel.ClientRectangle,
                 Color.FromArgb(229, 231, 235),
                 ButtonBorderStyle.Solid);
         };
 
-        var titleLabel = new Label
+        return panel;
+    }
+
+    private static ComboBox CreateComboBox()
+    {
+        return new ComboBox
+        {
+            Dock = DockStyle.Fill,
+            Font = new Font("Segoe UI", 10F),
+            DropDownStyle = ComboBoxStyle.DropDownList
+        };
+    }
+
+    private static void AddFormLabel(
+        TableLayoutPanel form,
+        int row,
+        string text)
+    {
+        var label = new Label
+        {
+            Text = text,
+            Dock = DockStyle.Fill,
+            Font = new Font("Segoe UI Semibold", 9F),
+            ForeColor = Color.FromArgb(75, 85, 99),
+            TextAlign = ContentAlignment.MiddleLeft
+        };
+
+        form.RowStyles.Add(new RowStyle(SizeType.Absolute, 46F));
+        form.Controls.Add(label, 0, row);
+    }
+
+    private static Label CreateFormValueLabel()
+    {
+        return new Label
+        {
+            Dock = DockStyle.Fill,
+            Font = new Font("Segoe UI Semibold", 10F),
+            ForeColor = Color.FromArgb(55, 65, 81),
+            TextAlign = ContentAlignment.MiddleLeft
+        };
+    }
+
+    private static void AddSummaryRow(
+        Panel parent,
+        string title,
+        ref int y,
+        out Label value)
+    {
+        var label = new Label
         {
             Text = title,
             AutoSize = true,
-            Location = new Point(16, 13),
+            Location = new Point(22, y),
             Font = new Font("Segoe UI Semibold", 8.5F),
             ForeColor = Color.FromArgb(107, 114, 128)
         };
 
-        valueLabel = new Label
+        value = new Label
         {
-            Text = "—",
-            AutoSize = true,
-            Location = new Point(16, 38),
-            Font = new Font("Segoe UI Semibold", 19F, FontStyle.Bold),
-            ForeColor = Color.FromArgb(17, 24, 39)
-        };
-
-        var subtitleLabel = new Label
-        {
-            Text = subtitle,
+            Text = "-",
             AutoEllipsis = true,
-            Size = new Size(220, 30),
-            Location = new Point(16, 68),
-            Font = new Font("Segoe UI", 7.5F),
-            ForeColor = Color.FromArgb(156, 163, 175)
+            Size = new Size(260, 34),
+            Location = new Point(22, y + 18),
+            Font = new Font("Segoe UI Semibold", 10.5F),
+            ForeColor = Color.FromArgb(31, 41, 55)
         };
 
-        card.Controls.Add(titleLabel);
-        card.Controls.Add(valueLabel);
-        card.Controls.Add(subtitleLabel);
+        parent.Controls.Add(label);
+        parent.Controls.Add(value);
 
-        return card;
+        y += 58;
+    }
+
+    private static Button CreatePrimaryButton(
+        string text,
+        int x,
+        int y,
+        int width,
+        int height)
+    {
+        var button = new Button
+        {
+            Text = text,
+            Location = new Point(x, y),
+            Size = new Size(width, height),
+            BackColor = Color.FromArgb(79, 70, 229),
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat,
+            Font = new Font("Segoe UI Semibold", 9F),
+            Cursor = Cursors.Hand
+        };
+
+        button.FlatAppearance.BorderSize = 0;
+        return button;
+    }
+
+    private static Button CreateSecondaryButton(
+        string text,
+        int x,
+        int y,
+        int width,
+        int height)
+    {
+        var button = new Button
+        {
+            Text = text,
+            Location = new Point(x, y),
+            Size = new Size(width, height),
+            BackColor = Color.White,
+            ForeColor = Color.FromArgb(75, 85, 99),
+            FlatStyle = FlatStyle.Flat,
+            Font = new Font("Segoe UI Semibold", 9F),
+            Cursor = Cursors.Hand
+        };
+
+        button.FlatAppearance.BorderSize = 1;
+        button.FlatAppearance.BorderColor = Color.FromArgb(229, 231, 235);
+        return button;
     }
 
     private static Panel CreateStatusMetricCard(
         string title,
         out Label valueLabel)
     {
-        var card = new Panel
-        {
-            Dock = DockStyle.Fill,
-            Margin = new Padding(0, 0, 10, 0),
-            BackColor = Color.White,
-            Padding = new Padding(18)
-        };
+        var card = CreateCard();
 
-        card.Paint += (_, e) =>
-        {
-            ControlPaint.DrawBorder(
-                e.Graphics,
-                card.ClientRectangle,
-                Color.FromArgb(229, 231, 235),
-                ButtonBorderStyle.Solid);
-        };
+        card.Dock = DockStyle.Fill;
+        card.Margin = new Padding(0, 0, 10, 0);
+        card.Padding = new Padding(18);
 
         var titleLabel = new Label
         {
@@ -853,36 +1388,55 @@ public sealed class SuperAdminControl : UserControl
         return card;
     }
 
-    private static Label CreateValueLabel()
+    private static Panel CreateMetricCard(
+        string title,
+        string subtitle,
+        out Label valueLabel)
     {
-        return new Label
+        var card = CreateCard();
+
+        card.Dock = DockStyle.Fill;
+        card.Margin = new Padding(0, 0, 10, 0);
+        card.Padding = new Padding(16);
+
+        var titleLabel = new Label
         {
-            Dock = DockStyle.Fill,
-            Font = new Font("Segoe UI Semibold", 11F),
-            ForeColor = Color.FromArgb(31, 41, 55),
-            TextAlign = ContentAlignment.MiddleLeft
+            Text = title,
+            AutoSize = true,
+            Location = new Point(16, 13),
+            Font = new Font("Segoe UI Semibold", 8.5F),
+            ForeColor = Color.FromArgb(107, 114, 128)
         };
+
+        valueLabel = new Label
+        {
+            Text = "—",
+            AutoSize = true,
+            Location = new Point(16, 38),
+            Font = new Font("Segoe UI Semibold", 19F, FontStyle.Bold),
+            ForeColor = Color.FromArgb(17, 24, 39)
+        };
+
+        var subtitleLabel = new Label
+        {
+            Text = subtitle,
+            AutoEllipsis = true,
+            Size = new Size(210, 30),
+            Location = new Point(16, 68),
+            Font = new Font("Segoe UI", 7.5F),
+            ForeColor = Color.FromArgb(156, 163, 175)
+        };
+
+        card.Controls.Add(titleLabel);
+        card.Controls.Add(valueLabel);
+        card.Controls.Add(subtitleLabel);
+
+        return card;
     }
 
-    private static void AddValueRow(
-        TableLayoutPanel grid,
-        int row,
-        string labelText,
-        Label valueLabel)
+    private sealed record CompanyChoice(int CompanyId, string DisplayName)
     {
-        grid.RowStyles.Add(new RowStyle(SizeType.Absolute, 48F));
-
-        var label = new Label
-        {
-            Text = labelText,
-            Dock = DockStyle.Fill,
-            Font = new Font("Segoe UI Semibold", 9.5F),
-            ForeColor = Color.FromArgb(107, 114, 128),
-            TextAlign = ContentAlignment.MiddleLeft
-        };
-
-        grid.Controls.Add(label, 0, row);
-        grid.Controls.Add(valueLabel, 1, row);
+        public override string ToString() => DisplayName;
     }
 
     private sealed record NavItem(
