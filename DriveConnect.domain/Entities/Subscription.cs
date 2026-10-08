@@ -7,6 +7,8 @@ public class Subscription
     public int SubscriptionId { get; set; }
     public int CompanyId { get; set; }
     public string PlanName { get; set; } = string.Empty;
+    public string BillingCycle { get; set; } = "Monthly";
+    public decimal BillingAmount { get; set; }
     public decimal MonthlyFee { get; set; }
     public DateTime StartDate { get; set; } = DateTime.UtcNow;
     public DateTime EndDate { get; set; }
