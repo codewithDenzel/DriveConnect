@@ -63,6 +63,9 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
         private DataGridView gridView = new DataGridView();
         private TextBox txtSearch = new TextBox();
         private Button btnNewRecord = new Button();
+        private readonly ComboBox cbAnalyticsBranch = new ComboBox();
+        private readonly Panel analyticsContentPanel = new Panel();
+        private bool _analyticsBranchLoading;
 
         // --- STATE and DATA ---
         private string currentMainTab = "Car Sales and Leads";
@@ -129,7 +132,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
             if (IsAdminRole())
             {
                 sidebarFlow.Controls.Add(CreateAccordion("nav_bi", "📊 Business Intelligence",
-                    new[] { "Dashboard", "KPI", "Reports", "Graphs" }));
+                    new[] { "Analytics", "Reports" }));
 
                 sidebarFlow.Controls.Add(CreateAccordion("nav_users", "👤 Staff Management",
                     new[] { "Manage Staff" }));
@@ -383,25 +386,14 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                     return;
 
                 topActionBar.Visible = false;
+                txtSearch.Visible = false;
                 txtSearch.PlaceholderText = "Search by Name, Phone, or Model...";
 
-                if (subTab == "Dashboard")
-                {
-                    panelBI_Dashboard.Visible = true;
-                    panelBI_Dashboard.BringToFront();
-                    RefreshDashboardMetrics();
-                }
-                else if (subTab == "KPI")
+                if (subTab == "Analytics")
                 {
                     panelBI_KPI.Visible = true;
                     panelBI_KPI.BringToFront();
-                    RefreshKpiView();
-                }
-                else if (subTab == "Graphs")
-                {
-                    panelBI_Graphs.Visible = true;
-                    panelBI_Graphs.BringToFront();
-                    RefreshGraphsView();
+                    RefreshAnalyticsView();
                 }
                 else if (subTab == "Reports")
                 {
@@ -610,63 +602,618 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
         private void BuildKpiView()
         {
             panelBI_KPI.Dock = DockStyle.Fill;
-            panelBI_KPI.BackColor = Color.Transparent;
+            panelBI_KPI.BackColor = Color.FromArgb(243, 244, 246);
             panelBI_KPI.AutoScroll = true;
             panelBI_KPI.Padding = new Padding(0);
+            panelBI_KPI.Controls.Clear();
 
-            TableLayoutPanel cards = new TableLayoutPanel
+            var header = new Panel
             {
                 Dock = DockStyle.Top,
-                Height = 300,
-                ColumnCount = 4,
-                RowCount = 3,
-                Padding = new Padding(0, 0, 0, 8)
+                Height = 82,
+                BackColor = Color.White,
+                Padding = new Padding(18, 12, 18, 10)
+            };
+            header.Paint += (s, e) => ControlPaint.DrawBorder(
+                e.Graphics, header.ClientRectangle,
+                Color.FromArgb(229, 231, 235), ButtonBorderStyle.Solid);
+
+            var title = new Label
+            {
+                Text = "Analytics",
+                AutoSize = true,
+                Location = new Point(18, 10),
+                Font = new Font("Segoe UI Semibold", 16F, FontStyle.Bold),
+                ForeColor = Color.FromArgb(17, 24, 39)
+            };
+            var subtitle = new Label
+            {
+                Text = "Interactive KPIs and charts for company and branch performance.",
+                AutoSize = true,
+                Location = new Point(20, 42),
+                Font = new Font("Segoe UI", 9F),
+                ForeColor = Color.FromArgb(107, 114, 128)
             };
 
-            for (int i = 0; i < 4; i++)
-                cards.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25F));
-            cards.RowStyles.Add(new RowStyle(SizeType.Absolute, 94F));
-            cards.RowStyles.Add(new RowStyle(SizeType.Absolute, 94F));
-            cards.RowStyles.Add(new RowStyle(SizeType.Absolute, 94F));
+            var scopeLabel = new Label
+            {
+                Text = "Branch",
+                AutoSize = true,
+                Location = new Point(610, 20),
+                Font = new Font("Segoe UI Semibold", 9F),
+                ForeColor = Color.FromArgb(75, 85, 99)
+            };
 
-            cards.Controls.Add(CreateStatCard("Active Leads", lblKpiActiveLeads, Color.FromArgb(124, 58, 237)), 0, 0);
-            cards.Controls.Add(CreateStatCard("Closed Won", lblKpiClosedWon, Color.FromArgb(16, 185, 129)), 1, 0);
-            cards.Controls.Add(CreateStatCard("Closed Lost", lblKpiClosedLost, Color.FromArgb(239, 68, 68)), 2, 0);
-            cards.Controls.Add(CreateStatCard("Average Closed Deal", lblKpiAverageDeal, Color.FromArgb(59, 130, 246)), 3, 0);
-            cards.Controls.Add(CreateStatCard("Open Pipeline", lblKpiPipeline, Color.FromArgb(245, 158, 11)), 0, 1);
-            cards.Controls.Add(CreateStatCard("Active Repairs", lblKpiActiveRepairs, Color.FromArgb(124, 58, 237)), 1, 1);
-            cards.Controls.Add(CreateStatCard("Repaired", lblKpiRepaired, Color.FromArgb(16, 185, 129)), 2, 1);
-            cards.Controls.Add(CreateStatCard("Picked Up", lblKpiPickedUp, Color.FromArgb(59, 130, 246)), 3, 1);
-            cards.Controls.Add(CreateStatCard("Active Warranties", lblKpiActiveWarranties, Color.FromArgb(16, 185, 129)), 0, 2);
-            cards.Controls.Add(CreateStatCard("Open Warranty Claims", lblKpiOpenClaims, Color.FromArgb(245, 158, 11)), 1, 2);
-            cards.Controls.Add(CreateStatCard("Open Complaints", lblKpiOpenComplaints, Color.FromArgb(239, 68, 68)), 2, 2);
-            cards.Controls.Add(CreateStatCard("Scheduled Maintenance", lblKpiScheduledMaintenance, Color.FromArgb(59, 130, 246)), 3, 2);
+            cbAnalyticsBranch.DropDownStyle = ComboBoxStyle.DropDownList;
+            cbAnalyticsBranch.Width = 230;
+            cbAnalyticsBranch.Location = new Point(660, 16);
+            cbAnalyticsBranch.Font = new Font("Segoe UI", 9.5F);
+            cbAnalyticsBranch.SelectedIndexChanged -= AnalyticsBranch_SelectedIndexChanged;
+            cbAnalyticsBranch.SelectedIndexChanged += AnalyticsBranch_SelectedIndexChanged;
 
-            TableLayoutPanel tables = new TableLayoutPanel
+            header.Controls.Add(title);
+            header.Controls.Add(subtitle);
+            header.Controls.Add(scopeLabel);
+            header.Controls.Add(cbAnalyticsBranch);
+
+            analyticsContentPanel.Dock = DockStyle.Fill;
+            analyticsContentPanel.BackColor = Color.FromArgb(243, 244, 246);
+            analyticsContentPanel.AutoScroll = true;
+            analyticsContentPanel.Padding = new Padding(12);
+
+            panelBI_KPI.Controls.Add(analyticsContentPanel);
+            panelBI_KPI.Controls.Add(header);
+        }
+
+        private void AnalyticsBranch_SelectedIndexChanged(object? sender, EventArgs e)
+        {
+            if (_analyticsBranchLoading)
+                return;
+
+            RefreshAnalyticsView();
+        }
+
+        private void RefreshAnalyticsView()
+        {
+            if (cbAnalyticsBranch.Items.Count == 0 && _allBranches.Count > 0)
+            {
+                _analyticsBranchLoading = true;
+                cbAnalyticsBranch.Items.Clear();
+                cbAnalyticsBranch.Items.Add(new AnalyticsBranchChoice(null, "All Branches"));
+                foreach (var branch in _allBranches.Where(x => x.IsActive).OrderBy(x => x.BranchName))
+                    cbAnalyticsBranch.Items.Add(new AnalyticsBranchChoice(branch.BranchId, branch.BranchName));
+                cbAnalyticsBranch.SelectedIndex = 0;
+                _analyticsBranchLoading = false;
+            }
+
+            int? branchId = null;
+            if (cbAnalyticsBranch.SelectedItem is AnalyticsBranchChoice selected)
+                branchId = selected.Id;
+
+            IEnumerable<SalesLead> sales = _allSales;
+            IEnumerable<RepairTicket> repairs = _allRepairs;
+            IEnumerable<Feedback> feedback = _allFeedback;
+            IEnumerable<Complaint> complaints = _allComplaints;
+            IEnumerable<VehicleWarranty> warranties = _allWarranties;
+            IEnumerable<WarrantyClaim> claims = _allWarrantyClaims;
+            IEnumerable<MaintenanceRecord> maintenance = _allMaintenance;
+
+            if (branchId.HasValue)
+            {
+                sales = sales.Where(x => x.BranchId == branchId);
+                repairs = repairs.Where(x => x.BranchId == branchId);
+                feedback = feedback.Where(x => x.BranchId == branchId);
+                complaints = complaints.Where(x => x.BranchId == branchId);
+                warranties = warranties.Where(x => x.BranchId == branchId);
+                claims = claims.Where(x => x.BranchId == branchId);
+                maintenance = maintenance.Where(x => x.BranchId == branchId);
+            }
+
+            var scopedSales = sales.Where(x => x.Status != "Archived").ToList();
+            var scopedRepairs = repairs.Where(x => x.Status != "Archived").ToList();
+            var scopedFeedback = feedback.ToList();
+            var scopedComplaints = complaints.ToList();
+            var scopedWarranties = warranties.ToList();
+            var scopedClaims = claims.ToList();
+            var scopedMaintenance = maintenance.ToList();
+
+            var activeLeads = scopedSales.Where(x => x.Status != "Closed Won" && x.Status != "Closed Lost").ToList();
+            var closedWon = scopedSales.Where(x => x.Status == "Closed Won").ToList();
+            var closedLost = scopedSales.Where(x => x.Status == "Closed Lost").ToList();
+            var activeRepairs = scopedRepairs;
+            var repaired = activeRepairs.Count(x => x.Status == "Repaired");
+            var pickedUp = activeRepairs.Count(x => x.PickupStatus == "Picked Up");
+            var activeWarranties = scopedWarranties.Count(x => x.Status == "Active");
+            var openClaims = scopedClaims.Count(x => x.Status != "Resolved" && x.Status != "Rejected");
+            var openComplaints = scopedComplaints.Count(x => x.Status != "Resolved" && x.Status != "Closed");
+            var scheduledMaintenance = scopedMaintenance.Count(x => x.Status == "Scheduled" || x.Status == "Rescheduled");
+
+            analyticsContentPanel.Controls.Clear();
+
+            var flow = new FlowLayoutPanel
             {
                 Dock = DockStyle.Fill,
-                ColumnCount = 2,
-                RowCount = 1,
-                Padding = new Padding(0, 0, 0, 0)
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = true,
+                AutoScroll = true,
+                Padding = new Padding(4),
+                BackColor = Color.FromArgb(243, 244, 246)
             };
-            tables.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
-            tables.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
 
-            Panel stageCard = CreateCardPanel();
-            AddHeader(stageCard, "Sales Stage KPI", "Number of leads in each sales stage");
-            dgvKpiStages = CreateDashboardGridView();
-            stageCard.Controls.Add(dgvKpiStages);
+            flow.Controls.Add(CreateAnalyticsMetricCard(
+                "Sales Pipeline",
+                $"{activeLeads.Count:N0} Active Leads",
+                $"₱{activeLeads.Sum(x => x.EstimatedCost):N2} Pipeline",
+                "Click for sales-stage details",
+                Color.FromArgb(124, 58, 237),
+                () => ShowAnalyticsDetails("Sales Pipeline", new[]
+                {
+                    ("Active Leads", activeLeads.Count.ToString("N0")),
+                    ("Pipeline Value", $"₱{activeLeads.Sum(x => x.EstimatedCost):N2}"),
+                    ("New Inquiry", activeLeads.Count(x => x.Status == "New Inquiry").ToString("N0")),
+                    ("Test Drive Scheduled", activeLeads.Count(x => x.Status == "Test Drive Scheduled").ToString("N0")),
+                    ("Negotiation", activeLeads.Count(x => x.Status == "Negotiation").ToString("N0"))
+                })));
 
-            Panel staffCard = CreateCardPanel();
-            AddHeader(staffCard, "Staff KPI", "Sales activity grouped by handled staff");
-            dgvKpiStaff = CreateDashboardGridView();
-            staffCard.Controls.Add(dgvKpiStaff);
+            flow.Controls.Add(CreateAnalyticsMetricCard(
+                "Sales Results",
+                $"{closedWon.Count:N0} Won • {closedLost.Count:N0} Lost",
+                closedWon.Count > 0 ? $"₱{closedWon.Average(x => x.EstimatedCost):N2} Avg Deal" : "₱0.00 Avg Deal",
+                "Click for closed-sale details",
+                Color.FromArgb(16, 185, 129),
+                () => ShowAnalyticsDetails("Sales Results", new[]
+                {
+                    ("Closed Won", closedWon.Count.ToString("N0")),
+                    ("Closed Lost", closedLost.Count.ToString("N0")),
+                    ("Average Closed Deal", closedWon.Count > 0 ? $"₱{closedWon.Average(x => x.EstimatedCost):N2}" : "₱0.00"),
+                    ("Won Value", $"₱{closedWon.Sum(x => x.EstimatedCost):N2}"),
+                    ("Lost Value", $"₱{closedLost.Sum(x => x.EstimatedCost):N2}")
+                })));
 
-            tables.Controls.Add(stageCard, 0, 0);
-            tables.Controls.Add(staffCard, 1, 0);
+            flow.Controls.Add(CreateAnalyticsMetricCard(
+                "Service Performance",
+                $"{activeRepairs.Count:N0} Active Repairs",
+                $"{repaired:N0} Repaired • {pickedUp:N0} Picked Up",
+                "Click for repair details",
+                Color.FromArgb(59, 130, 246),
+                () => ShowAnalyticsDetails("Service Performance", new[]
+                {
+                    ("Active Repairs", activeRepairs.Count.ToString("N0")),
+                    ("Repaired", repaired.ToString("N0")),
+                    ("Picked Up", pickedUp.ToString("N0")),
+                    ("Waiting for Parts", activeRepairs.Count(x => x.Status == "Waiting for Parts").ToString("N0")),
+                    ("In Repair", activeRepairs.Count(x => x.Status == "In Repair").ToString("N0"))
+                })));
 
-            panelBI_KPI.Controls.Add(tables);
-            panelBI_KPI.Controls.Add(cards);
+            flow.Controls.Add(CreateAnalyticsMetricCard(
+                "After-Sales",
+                $"{activeWarranties:N0} Active Warranties",
+                $"{openClaims:N0} Claims • {openComplaints:N0} Complaints",
+                $"{scheduledMaintenance:N0} Scheduled Maintenance",
+                Color.FromArgb(245, 158, 11),
+                () => ShowAnalyticsDetails("After-Sales", new[]
+                {
+                    ("Active Warranties", activeWarranties.ToString("N0")),
+                    ("Open Warranty Claims", openClaims.ToString("N0")),
+                    ("Open Complaints", openComplaints.ToString("N0")),
+                    ("Scheduled Maintenance", scheduledMaintenance.ToString("N0"))
+                })));
+
+            var branchRows = BuildBranchPerformanceRows();
+            string topBranch = branchRows.OrderByDescending(x => x.Value).FirstOrDefault().Key ?? "-";
+            flow.Controls.Add(CreateAnalyticsMetricCard(
+                "Branch Performance",
+                $"{_allBranches.Count(x => x.IsActive):N0} Active Branches",
+                $"Top Sales: {topBranch}",
+                "Click for branch comparison",
+                Color.FromArgb(79, 70, 229),
+                () => ShowBranchPerformanceDetails()));
+
+            flow.Controls.Add(CreateAnalyticsChartCard(
+                "Sales Pipeline",
+                "Funnel shows movement through the active sales process",
+                CreateFunnelChart(new[]
+                {
+                    ("New Inquiry", activeLeads.Count(x => x.Status == "New Inquiry")),
+                    ("Test Drive Scheduled", activeLeads.Count(x => x.Status == "Test Drive Scheduled")),
+                    ("Negotiation", activeLeads.Count(x => x.Status == "Negotiation")),
+                    ("Closed Won", closedWon.Count)
+                }),
+                () => ShowAnalyticsDetails("Sales Pipeline", new[]
+                {
+                    ("New Inquiry", activeLeads.Count(x => x.Status == "New Inquiry").ToString("N0")),
+                    ("Test Drive Scheduled", activeLeads.Count(x => x.Status == "Test Drive Scheduled").ToString("N0")),
+                    ("Negotiation", activeLeads.Count(x => x.Status == "Negotiation").ToString("N0")),
+                    ("Closed Won", closedWon.Count.ToString("N0"))
+                })));
+
+            flow.Controls.Add(CreateAnalyticsChartCard(
+                "Sales Results",
+                "Distribution of current sales outcomes",
+                CreatePieChart(new[]
+                {
+                    ("Active", activeLeads.Count),
+                    ("Closed Won", closedWon.Count),
+                    ("Closed Lost", closedLost.Count)
+                }),
+                () => ShowAnalyticsDetails("Sales Results", new[]
+                {
+                    ("Active", activeLeads.Count.ToString("N0")),
+                    ("Closed Won", closedWon.Count.ToString("N0")),
+                    ("Closed Lost", closedLost.Count.ToString("N0"))
+                })));
+
+            flow.Controls.Add(CreateAnalyticsChartCard(
+                "Monthly Sales Growth",
+                "Closed-won sales value across the last 6 months",
+                CreateLineChart(BuildMonthlySalesRows(scopedSales)),
+                () => ShowAnalyticsDetails("Monthly Sales Growth", BuildMonthlySalesRows(scopedSales).Select(x => (x.Key, $"₱{x.Value:N2}")))));
+
+            flow.Controls.Add(CreateAnalyticsChartCard(
+                "Branch Sales Comparison",
+                "Closed-won sales value by active branch",
+                CreateHorizontalBarChart(branchRows, true),
+                () => ShowBranchPerformanceDetails()));
+
+            var staffRows = scopedSales
+                .Where(x => !string.IsNullOrWhiteSpace(x.HandledBy))
+                .GroupBy(x => x.HandledBy!)
+                .Select(g => new KeyValuePair<string, decimal>(g.Key, g.Count(x => x.Status == "Closed Won")))
+                .OrderByDescending(x => x.Value)
+                .Take(8)
+                .ToList();
+            flow.Controls.Add(CreateAnalyticsChartCard(
+                "Staff Performance",
+                "Closed-won deals by handled staff",
+                CreateHorizontalBarChart(staffRows, false),
+                () => ShowAnalyticsDetails("Staff Performance", staffRows.Select(x => (x.Key, x.Value.ToString("N0"))))));
+
+            var repairStatus = activeRepairs
+                .GroupBy(x => string.IsNullOrWhiteSpace(x.Status) ? "New Diagnose" : x.Status)
+                .Select(g => (g.Key, g.Count()))
+                .ToArray();
+            flow.Controls.Add(CreateAnalyticsChartCard(
+                "Repair Status",
+                "Current distribution of repair tickets",
+                CreatePieChart(repairStatus),
+                () => ShowAnalyticsDetails("Repair Status", repairStatus.Select(x => (x.Key, x.Item2.ToString("N0"))))));
+
+            var feedbackRows = scopedFeedback
+                .GroupBy(x => x.Rating)
+                .OrderBy(g => g.Key)
+                .Select(g => new KeyValuePair<string, decimal>($"{g.Key} Star", g.Count()))
+                .ToList();
+            flow.Controls.Add(CreateAnalyticsChartCard(
+                "Customer Feedback",
+                "Feedback rating distribution",
+                CreateColumnChart(feedbackRows),
+                () => ShowAnalyticsDetails("Customer Feedback", feedbackRows.Select(x => (x.Key, x.Value.ToString("N0"))))));
+
+            var complaintStatus = scopedComplaints
+                .GroupBy(x => string.IsNullOrWhiteSpace(x.Status) ? "New" : x.Status)
+                .Select(g => (g.Key, g.Count()))
+                .ToArray();
+            flow.Controls.Add(CreateAnalyticsChartCard(
+                "Complaint Status",
+                "Current complaint distribution",
+                CreatePieChart(complaintStatus),
+                () => ShowAnalyticsDetails("Complaint Status", complaintStatus.Select(x => (x.Key, x.Item2.ToString("N0"))))));
+
+            var warrantyStatus = scopedWarranties
+                .GroupBy(x => string.IsNullOrWhiteSpace(x.Status) ? "Unknown" : x.Status)
+                .Select(g => (g.Key, g.Count()))
+                .ToArray();
+            flow.Controls.Add(CreateAnalyticsChartCard(
+                "Warranty Status",
+                "Warranty distribution by status",
+                CreatePieChart(warrantyStatus),
+                () => ShowAnalyticsDetails("Warranty Status", warrantyStatus.Select(x => (x.Key, x.Item2.ToString("N0"))))));
+
+            var maintenanceRows = scopedMaintenance
+                .GroupBy(x => string.IsNullOrWhiteSpace(x.Status) ? "Scheduled" : x.Status)
+                .Select(g => new KeyValuePair<string, decimal>(g.Key, g.Count()))
+                .ToList();
+            flow.Controls.Add(CreateAnalyticsChartCard(
+                "Maintenance Activity",
+                "Maintenance records by status",
+                CreateColumnChart(maintenanceRows),
+                () => ShowAnalyticsDetails("Maintenance Activity", maintenanceRows.Select(x => (x.Key, x.Value.ToString("N0"))))));
+
+            analyticsContentPanel.Controls.Add(flow);
+        }
+
+        private Panel CreateAnalyticsMetricCard(string title, string value, string secondary, string hint, Color accent, Action click)
+        {
+            var card = new Panel
+            {
+                Width = 315,
+                Height = 118,
+                Margin = new Padding(6),
+                Padding = new Padding(16),
+                BackColor = Color.White,
+                Cursor = Cursors.Hand
+            };
+            card.Paint += (s, e) =>
+            {
+                using var border = new Pen(Color.FromArgb(229, 231, 235));
+                e.Graphics.DrawRectangle(border, 0, 0, card.Width - 1, card.Height - 1);
+                using var accentPen = new Pen(accent, 4);
+                e.Graphics.DrawLine(accentPen, 0, 0, 0, card.Height);
+            };
+
+            var lblTitle = new Label { Text = title, AutoSize = true, Location = new Point(14, 12), Font = new Font("Segoe UI Semibold", 10F), ForeColor = Color.FromArgb(75, 85, 99) };
+            var lblValue = new Label { Text = value, AutoSize = true, Location = new Point(14, 36), Font = new Font("Segoe UI Semibold", 15F, FontStyle.Bold), ForeColor = accent };
+            var lblSecondary = new Label { Text = secondary, AutoSize = true, Location = new Point(14, 66), Font = new Font("Segoe UI", 9F), ForeColor = Color.FromArgb(55, 65, 81) };
+            var lblHint = new Label { Text = hint, AutoSize = true, Location = new Point(14, 90), Font = new Font("Segoe UI", 7.5F), ForeColor = Color.FromArgb(156, 163, 175) };
+
+            card.Controls.Add(lblTitle); card.Controls.Add(lblValue); card.Controls.Add(lblSecondary); card.Controls.Add(lblHint);
+            WireAnalyticsClick(card, click);
+            return card;
+        }
+
+        private Panel CreateAnalyticsChartCard(string title, string subtitle, Control chart, Action click)
+        {
+            var card = new Panel
+            {
+                Width = 520,
+                Height = 310,
+                Margin = new Padding(6),
+                Padding = new Padding(12),
+                BackColor = Color.White,
+                Cursor = Cursors.Hand
+            };
+            card.Paint += (s, e) => ControlPaint.DrawBorder(e.Graphics, card.ClientRectangle, Color.FromArgb(229, 231, 235), ButtonBorderStyle.Solid);
+
+            var lblTitle = new Label { Text = title, AutoSize = true, Location = new Point(15, 12), Font = new Font("Segoe UI Semibold", 11F, FontStyle.Bold), ForeColor = Color.FromArgb(79, 70, 229) };
+            var lblSubtitle = new Label { Text = subtitle, AutoSize = true, Location = new Point(15, 37), Font = new Font("Segoe UI", 8.5F), ForeColor = Color.FromArgb(107, 114, 128) };
+
+            chart.Location = new Point(12, 62);
+            chart.Size = new Size(496, 228);
+            chart.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom;
+            chart.BackColor = Color.White;
+
+            card.Controls.Add(lblTitle); card.Controls.Add(lblSubtitle); card.Controls.Add(chart);
+            WireAnalyticsClick(card, click);
+            return card;
+        }
+
+        private void WireAnalyticsClick(Control root, Action click)
+        {
+            root.Click += (s, e) => click();
+            foreach (Control child in root.Controls)
+            {
+                child.Cursor = Cursors.Hand;
+                WireAnalyticsClick(child, click);
+            }
+        }
+
+        private Panel CreateFunnelChart(IEnumerable<(string Label, int Value)> source)
+        {
+            var data = source.ToList();
+            var p = new Panel { BackColor = Color.White };
+            p.Paint += (s, e) =>
+            {
+                e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                e.Graphics.Clear(Color.White);
+                if (data.Count == 0) { DrawNoData(e.Graphics, p.ClientSize); return; }
+                int max = Math.Max(1, data.Max(x => x.Value));
+                int center = p.ClientSize.Width / 2;
+                int top = 12;
+                int rowH = Math.Max(30, (p.ClientSize.Height - 28) / data.Count);
+                Color[] fills = { Color.FromArgb(124,58,237), Color.FromArgb(139,92,246), Color.FromArgb(168,85,247), Color.FromArgb(192,132,252) };
+                for (int i=0;i<data.Count;i++)
+                {
+                    int width = Math.Max(90, (int)((p.ClientSize.Width - 180) * (data[i].Value / (double)max)) + 90);
+                    int x = center - width/2;
+                    var rect = new Rectangle(x, top + i*rowH, width, Math.Min(34,rowH-4));
+                    using var brush = new SolidBrush(fills[i % fills.Length]);
+                    e.Graphics.FillRectangle(brush, rect);
+                    TextRenderer.DrawText(e.Graphics, data[i].Label, new Font("Segoe UI",8.5F,FontStyle.Bold), rect, Color.White, TextFormatFlags.HorizontalCenter|TextFormatFlags.VerticalCenter);
+                    TextRenderer.DrawText(e.Graphics, data[i].Value.ToString("N0"), new Font("Segoe UI",8.5F), new Rectangle(rect.Right+8,rect.Top,70,rect.Height), Color.FromArgb(55,65,81), TextFormatFlags.VerticalCenter);
+                }
+            };
+            return p;
+        }
+
+        private Panel CreatePieChart(IEnumerable<(string Label, int Value)> source)
+        {
+            var data = source.Where(x => x.Value > 0).ToList();
+            var p = new Panel { BackColor = Color.White };
+            p.Paint += (s,e) =>
+            {
+                e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                e.Graphics.Clear(Color.White);
+                if (data.Count == 0) { DrawNoData(e.Graphics,p.ClientSize); return; }
+                int total = Math.Max(1,data.Sum(x=>x.Value));
+                int size = Math.Min(p.ClientSize.Height-28, 160);
+                var pieRect = new Rectangle(18, Math.Max(18,(p.ClientSize.Height-size)/2), size, size);
+                Color[] colors={Color.FromArgb(124,58,237),Color.FromArgb(16,185,129),Color.FromArgb(239,68,68),Color.FromArgb(59,130,246),Color.FromArgb(245,158,11),Color.FromArgb(107,114,128)};
+                float start=0;
+                for(int i=0;i<data.Count;i++)
+                {
+                    float sweep=360f*data[i].Value/total;
+                    using var b=new SolidBrush(colors[i%colors.Length]);
+                    e.Graphics.FillPie(b,pieRect,start,sweep);
+                    start+=sweep;
+                }
+                int y=18;
+                for(int i=0;i<data.Count;i++)
+                {
+                    using var b=new SolidBrush(colors[i%colors.Length]);
+                    e.Graphics.FillRectangle(b,pieRect.Right+22,y,12,12);
+                    TextRenderer.DrawText(e.Graphics,$"{data[i].Label}  {data[i].Value:N0}",new Font("Segoe UI",8.5F),new Rectangle(pieRect.Right+42,y-4,p.ClientSize.Width-pieRect.Right-45,24),Color.FromArgb(55,65,81),TextFormatFlags.VerticalCenter);
+                    y+=28;
+                }
+            };
+            return p;
+        }
+
+        private Panel CreateLineChart(List<KeyValuePair<string, decimal>> data)
+        {
+            var p=new Panel{BackColor=Color.White};
+            p.Paint+=(s,e)=>
+            {
+                e.Graphics.SmoothingMode=System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                e.Graphics.Clear(Color.White);
+                if(data.Count==0){DrawNoData(e.Graphics,p.ClientSize);return;}
+                var plot=new Rectangle(42,18,Math.Max(120,p.ClientSize.Width-68),Math.Max(100,p.ClientSize.Height-52));
+                decimal max=data.Max(x=>x.Value); if(max<=0)max=1;
+                using var axis=new Pen(Color.FromArgb(209,213,219)); e.Graphics.DrawLine(axis,plot.Left,plot.Bottom,plot.Right,plot.Bottom); e.Graphics.DrawLine(axis,plot.Left,plot.Top,plot.Left,plot.Bottom);
+                using var pen=new Pen(Color.FromArgb(124,58,237),3);
+                PointF? prev=null;
+                for(int i=0;i<data.Count;i++)
+                {
+                    float x=plot.Left+(data.Count==1?0:(plot.Width-10f)*i/(data.Count-1));
+                    float y=plot.Bottom-(float)(data[i].Value/max)*(plot.Height-10);
+                    if(prev.HasValue)e.Graphics.DrawLine(pen,prev.Value,new PointF(x,y));
+                    using var dot=new SolidBrush(Color.FromArgb(124,58,237)); e.Graphics.FillEllipse(dot,x-4,y-4,8,8);
+                    TextRenderer.DrawText(e.Graphics,data[i].Key,new Font("Segoe UI",7.5F),new Rectangle((int)x-35,plot.Bottom+4,70,20),Color.FromArgb(75,85,99),TextFormatFlags.HorizontalCenter);
+                    prev=new PointF(x,y);
+                }
+            };
+            return p;
+        }
+
+        private Panel CreateHorizontalBarChart(List<KeyValuePair<string, decimal>> data, bool currency)
+        {
+            var p=new Panel{BackColor=Color.White};
+            p.Paint+=(s,e)=>
+            {
+                e.Graphics.Clear(Color.White);
+                if(data.Count==0){DrawNoData(e.Graphics,p.ClientSize);return;}
+                decimal max=Math.Max(1,data.Max(x=>x.Value)); int rowH=Math.Max(28,(p.ClientSize.Height-10)/Math.Max(1,data.Count));
+                for(int i=0;i<data.Count;i++)
+                {
+                    int y=8+i*rowH; int labelW=130; int barW=Math.Max(5,(int)((p.ClientSize.Width-labelW-90)*(double)(data[i].Value/max)));
+                    TextRenderer.DrawText(e.Graphics,data[i].Key,new Font("Segoe UI",8.5F),new Rectangle(0,y,labelW-8,rowH),Color.FromArgb(75,85,99),TextFormatFlags.VerticalCenter|TextFormatFlags.EndEllipsis);
+                    using var b=new SolidBrush(Color.FromArgb(124,58,237)); e.Graphics.FillRectangle(b,labelW,y+7,barW,16);
+                    string val=currency?$"₱{data[i].Value:N0}":data[i].Value.ToString("N0");
+                    TextRenderer.DrawText(e.Graphics,val,new Font("Segoe UI",8.5F,FontStyle.Bold),new Rectangle(labelW+barW+8,y,85,rowH),Color.FromArgb(55,65,81),TextFormatFlags.VerticalCenter);
+                }
+            };
+            return p;
+        }
+
+        private Panel CreateColumnChart(List<KeyValuePair<string, decimal>> data)
+        {
+            var p=new Panel{BackColor=Color.White};
+            p.Paint+=(s,e)=>
+            {
+                e.Graphics.SmoothingMode=System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                e.Graphics.Clear(Color.White);
+                if(data.Count==0){DrawNoData(e.Graphics,p.ClientSize);return;}
+                decimal max=Math.Max(1,data.Max(x=>x.Value)); var plot=new Rectangle(36,12,Math.Max(140,p.ClientSize.Width-52),Math.Max(120,p.ClientSize.Height-50));
+                using var axis=new Pen(Color.FromArgb(209,213,219)); e.Graphics.DrawLine(axis,plot.Left,plot.Bottom,plot.Right,plot.Bottom); e.Graphics.DrawLine(axis,plot.Left,plot.Top,plot.Left,plot.Bottom);
+                int gap=12; int barW=Math.Max(18,(plot.Width-gap*Math.Max(0,data.Count-1)-10)/Math.Max(1,data.Count));
+                for(int i=0;i<data.Count;i++)
+                {
+                    int h=(int)((plot.Height-14)*(double)(data[i].Value/max));
+                    int x=plot.Left+8+i*(barW+gap); int y=plot.Bottom-h;
+                    using var b=new SolidBrush(Color.FromArgb(124,58,237)); e.Graphics.FillRectangle(b,x,y,barW,h);
+                    TextRenderer.DrawText(e.Graphics,data[i].Value.ToString("N0"),new Font("Segoe UI",7.5F,FontStyle.Bold),new Rectangle(x,y-20,barW,18),Color.FromArgb(55,65,81),TextFormatFlags.HorizontalCenter);
+                    TextRenderer.DrawText(e.Graphics,data[i].Key,new Font("Segoe UI",7.5F),new Rectangle(x,plot.Bottom+4,barW,30),Color.FromArgb(75,85,99),TextFormatFlags.HorizontalCenter|TextFormatFlags.WordBreak);
+                }
+            };
+            return p;
+        }
+
+        private void DrawNoData(Graphics g, Size size)
+        {
+            TextRenderer.DrawText(g,"No data available",new Font("Segoe UI",9F,FontStyle.Italic),new Rectangle(Point.Empty,size),Color.FromArgb(156,163,175),TextFormatFlags.HorizontalCenter|TextFormatFlags.VerticalCenter);
+        }
+
+        private List<KeyValuePair<string, decimal>> BuildMonthlySalesRows(IEnumerable<SalesLead> source)
+        {
+            var monthStart = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1).AddMonths(-5);
+            var rows = new List<KeyValuePair<string, decimal>>();
+            for(int i=0;i<6;i++)
+            {
+                var month = monthStart.AddMonths(i);
+                decimal value = source.Where(x => x.Status == "Closed Won" && x.CreatedAt.ToLocalTime().Year == month.Year && x.CreatedAt.ToLocalTime().Month == month.Month).Sum(x => x.EstimatedCost);
+                rows.Add(new KeyValuePair<string, decimal>(month.ToString("MMM"),value));
+            }
+            return rows;
+        }
+
+        private List<KeyValuePair<string, decimal>> BuildBranchPerformanceRows()
+        {
+            return _allBranches
+                .Where(x => x.IsActive)
+                .OrderBy(x => x.BranchName)
+                .Select(branch => new KeyValuePair<string, decimal>(
+                    branch.BranchName,
+                    _allSales.Where(x => x.BranchId == branch.BranchId && x.Status == "Closed Won").Sum(x => x.EstimatedCost)))
+                .ToList();
+        }
+
+        private void ShowBranchPerformanceDetails()
+        {
+            var rows = _allBranches
+                .Where(x => x.IsActive)
+                .OrderBy(x => x.BranchName)
+                .Select(branch =>
+                {
+                    var sales = _allSales.Where(x => x.BranchId == branch.BranchId && x.Status != "Archived").ToList();
+                    int won = sales.Count(x => x.Status == "Closed Won");
+                    int lost = sales.Count(x => x.Status == "Closed Lost");
+                    decimal value = sales.Where(x => x.Status == "Closed Won").Sum(x => x.EstimatedCost);
+                    decimal conversion = won + lost == 0 ? 0 : Math.Round((decimal)won / (won + lost) * 100, 1);
+                    return (branch.BranchName, $"{sales.Count:N0} leads | {won:N0} won | {lost:N0} lost | ₱{value:N2} | {conversion:N1}% conversion");
+                })
+                .ToList();
+            ShowAnalyticsDetails("Branch Performance", rows);
+        }
+
+        private void ShowAnalyticsDetails(string title, IEnumerable<(string Label, string Value)> rows)
+        {
+            using var form = new Form
+            {
+                Text = title,
+                ClientSize = new Size(720, 430),
+                StartPosition = FormStartPosition.CenterParent,
+                FormBorderStyle = FormBorderStyle.FixedDialog,
+                MaximizeBox = false,
+                MinimizeBox = false,
+                BackColor = Color.White
+            };
+
+            var heading = new Label
+            {
+                Text = title,
+                AutoSize = true,
+                Location = new Point(24, 20),
+                Font = new Font("Segoe UI Semibold", 16F, FontStyle.Bold),
+                ForeColor = Color.FromArgb(79, 70, 229)
+            };
+            form.Controls.Add(heading);
+
+            var grid = CreateDashboardGridView();
+            grid.Location = new Point(24, 62);
+            grid.Size = new Size(672, 300);
+            grid.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            grid.DataSource = rows.Select(x => new { Metric = x.Label, Value = x.Value }).ToList();
+            form.Controls.Add(grid);
+
+            var close = new Button
+            {
+                Text = "Close",
+                Width = 100,
+                Height = 34,
+                Location = new Point(596, 375),
+                BackColor = Color.FromArgb(79, 70, 229),
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                DialogResult = DialogResult.OK
+            };
+            close.FlatAppearance.BorderSize = 0;
+            form.Controls.Add(close);
+            form.AcceptButton = close;
+            form.ShowDialog(FindForm());
+        }
+
+        private sealed record AnalyticsBranchChoice(int? Id, string Name)
+        {
+            public override string ToString() => Name;
         }
 
         private void RefreshKpiView()
@@ -1291,9 +1838,14 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
 
                 if (currentMainTab == "Business Intelligence")
                 {
-                    RefreshDashboardMetrics();
-                    RefreshKpiView();
-                    RefreshGraphsView();
+                    if (currentSubTab == "Analytics")
+                        RefreshAnalyticsView();
+                    else
+                    {
+                        RefreshDashboardMetrics();
+                        RefreshKpiView();
+                        RefreshGraphsView();
+                    }
                 }
                 else
                 {
