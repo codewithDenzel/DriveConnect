@@ -11,7 +11,7 @@ public sealed class SuperAdminApiService
     {
         _http = new HttpClient
         {
-            BaseAddress = new Uri("https://localhost:7162")
+            BaseAddress = DriveConnectApiConfiguration.BaseUri
         };
 
         if (!string.IsNullOrWhiteSpace(UserSession.Token))
