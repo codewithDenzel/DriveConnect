@@ -9,6 +9,13 @@ namespace DriveConnect.winforms.Modules.SystemAdministration.Controls;
 
 public sealed class UserManagementControl : UserControl
 {
+    private static readonly Color UiBackground = Color.FromArgb(15, 17, 23);
+    private static readonly Color UiPanel = Color.FromArgb(24, 27, 35);
+    private static readonly Color UiPanelAlt = Color.FromArgb(27, 31, 40);
+    private static readonly Color UiBorder = Color.FromArgb(45, 50, 61);
+    private static readonly Color UiText = Color.FromArgb(241, 245, 249);
+    private static readonly Color UiMuted = Color.FromArgb(148, 163, 184);
+    private static readonly Color UiAccent = Color.FromArgb(34, 211, 238);
     private readonly UserManagementApiService _api = new();
     private readonly DataGridView _grid = new();
     private readonly TextBox _txtSearch = new();
@@ -31,7 +38,7 @@ public sealed class UserManagementControl : UserControl
     private void BuildUi()
     {
         Dock = DockStyle.Fill;
-        BackColor = Color.FromArgb(243, 244, 246);
+        BackColor = UiBackground;
         Font = new Font("Segoe UI", 10F);
 
         var topBar = new Panel
@@ -52,7 +59,7 @@ public sealed class UserManagementControl : UserControl
             AutoSize = true,
             Location = new Point(0, 3),
             Font = new Font("Segoe UI Semibold", 18F, FontStyle.Bold),
-            ForeColor = Color.FromArgb(17, 24, 39)
+            ForeColor = UiText
         };
 
         var subtitle = new Label
@@ -66,14 +73,14 @@ public sealed class UserManagementControl : UserControl
             AutoSize = true,
             Location = new Point(2, 37),
             Font = new Font("Segoe UI", 9F),
-            ForeColor = Color.FromArgb(107, 114, 128)
+            ForeColor = UiMuted
         };
 
         _btnNew.Text = "+ New User";
         _btnNew.Size = new Size(125, 38);
         _btnNew.Location = new Point(0, 75);
-        _btnNew.BackColor = Color.FromArgb(79, 70, 229);
-        _btnNew.ForeColor = Color.White;
+        _btnNew.BackColor = UiAccent;
+        _btnNew.ForeColor = Color.FromArgb(8, 15, 18);
         _btnNew.FlatStyle = FlatStyle.Flat;
         _btnNew.FlatAppearance.BorderSize = 0;
         _btnNew.Font = new Font("Segoe UI Semibold", 9.5F);
@@ -84,13 +91,15 @@ public sealed class UserManagementControl : UserControl
         _txtSearch.Width = 340;
         _txtSearch.Height = 36;
         _txtSearch.Location = new Point(140, 76);
-        _txtSearch.BorderStyle = BorderStyle.FixedSingle;
+        _txtSearch.BorderStyle = BorderStyle.FixedSingle, BackColor = UiPanelAlt, ForeColor = UiText;
+        _txtSearch.BackColor = UiPanel;
+        _txtSearch.ForeColor = UiText;
         _txtSearch.TextChanged += (_, _) => BindGrid();
 
         _lblStatus.AutoSize = true;
         _lblStatus.Location = new Point(500, 86);
         _lblStatus.Font = new Font("Segoe UI", 9F);
-        _lblStatus.ForeColor = Color.FromArgb(107, 114, 128);
+        _lblStatus.ForeColor = UiMuted;
 
         topBar.Controls.Add(title);
         topBar.Controls.Add(subtitle);
@@ -99,10 +108,10 @@ public sealed class UserManagementControl : UserControl
         topBar.Controls.Add(_lblStatus);
 
         _grid.Dock = DockStyle.Fill;
-        _grid.BackgroundColor = Color.White;
+        _grid.BackgroundColor = UiPanel;
         _grid.BorderStyle = BorderStyle.None;
         _grid.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
-        _grid.GridColor = Color.FromArgb(243, 244, 246);
+        _grid.GridColor = UiBorder;
         _grid.AllowUserToAddRows = false;
         _grid.ReadOnly = true;
         _grid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
@@ -113,15 +122,16 @@ public sealed class UserManagementControl : UserControl
         {
             Padding = new Padding(12, 8, 12, 8),
             Font = new Font("Segoe UI", 9.5F),
-            ForeColor = Color.FromArgb(55, 65, 81),
-            SelectionBackColor = Color.FromArgb(238, 242, 255),
-            SelectionForeColor = Color.FromArgb(79, 70, 229)
+            ForeColor = UiText,
+            BackColor = UiPanel,
+            SelectionBackColor = Color.FromArgb(24, 55, 64),
+            SelectionForeColor = UiAccent
         };
         _grid.ColumnHeadersDefaultCellStyle = new DataGridViewCellStyle
         {
-            BackColor = Color.FromArgb(249, 250, 251),
+            BackColor = UiPanelAlt,
             Font = new Font("Segoe UI Semibold", 9.5F),
-            ForeColor = Color.FromArgb(107, 114, 128),
+            ForeColor = UiMuted,
             Padding = new Padding(12)
         };
         _grid.EnableHeadersVisualStyles = false;
@@ -130,13 +140,13 @@ public sealed class UserManagementControl : UserControl
         var wrapper = new Panel
         {
             Dock = DockStyle.Fill,
-            BackColor = Color.White,
+            BackColor = UiPanel,
             Padding = new Padding(1)
         };
         wrapper.Paint += (_, e) => ControlPaint.DrawBorder(
             e.Graphics,
             wrapper.ClientRectangle,
-            Color.FromArgb(229, 231, 235),
+            UiBorder,
             ButtonBorderStyle.Solid);
         wrapper.Controls.Add(_grid);
 
@@ -270,7 +280,7 @@ public sealed class UserManagementControl : UserControl
             FormBorderStyle = FormBorderStyle.FixedDialog,
             MaximizeBox = false,
             MinimizeBox = false,
-            BackColor = Color.White
+            BackColor = UiPanel
         };
 
         var title = new Label
@@ -332,7 +342,7 @@ public sealed class UserManagementControl : UserControl
             Location = new Point(30, y + 5),
             AutoSize = true,
             Font = new Font("Segoe UI Semibold", 9.5F),
-            ForeColor = Color.FromArgb(75, 85, 99),
+            ForeColor = UiText,
             Enabled = !isEditingSuperAdmin
         };
         form.Controls.Add(chkActive);
@@ -354,7 +364,7 @@ public sealed class UserManagementControl : UserControl
             Text = existing == null ? "Create User" : "Save Changes",
             Size = new Size(400, 44),
             Location = new Point(30, y),
-            BackColor = Color.FromArgb(79, 70, 229),
+            BackColor = UiAccent,
             ForeColor = Color.White,
             FlatStyle = FlatStyle.Flat,
             Font = new Font("Segoe UI Semibold", 10F),
