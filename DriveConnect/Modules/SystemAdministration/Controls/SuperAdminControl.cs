@@ -84,7 +84,7 @@ public sealed class SuperAdminControl : UserControl
         {
             Text = "Company Management",
             AutoSize = true,
-            Location = new Point(28, 12),
+            Location = new Point(28, 8),
             Font = new Font("Segoe UI Semibold", 18F, FontStyle.Bold),
             ForeColor = Color.FromArgb(17, 24, 39)
         };
@@ -93,7 +93,7 @@ public sealed class SuperAdminControl : UserControl
         {
             Text = "Manage company-level system information.",
             AutoSize = true,
-            Location = new Point(30, 43),
+            Location = new Point(30, 45),
             Font = new Font("Segoe UI", 9F),
             ForeColor = Color.FromArgb(107, 114, 128)
         };
@@ -185,7 +185,7 @@ public sealed class SuperAdminControl : UserControl
         var brandPanel = new Panel
         {
             Dock = DockStyle.Top,
-            Height = 112
+            Height = 88
         };
 
         var logo = new Label
@@ -206,21 +206,8 @@ public sealed class SuperAdminControl : UserControl
             ForeColor = Color.FromArgb(124, 58, 237)
         };
 
-        var userName = new Label
-        {
-            Text = string.IsNullOrWhiteSpace(UserSession.FullName)
-                ? "Super Admin"
-                : UserSession.FullName,
-            AutoEllipsis = true,
-            Size = new Size(172, 20),
-            Location = new Point(26, 73),
-            Font = new Font("Segoe UI Semibold", 9F),
-            ForeColor = Color.FromArgb(55, 65, 81)
-        };
-
         brandPanel.Controls.Add(logo);
         brandPanel.Controls.Add(eyebrow);
-        brandPanel.Controls.Add(userName);
 
         var navPanel = new Panel
         {
@@ -228,17 +215,13 @@ public sealed class SuperAdminControl : UserControl
             Padding = new Padding(12, 8, 12, 8)
         };
 
+        // DockStyle.Top stacks newly-added controls above older ones,
+        // so add these in reverse order to display the intended menu order.
         AddNavButton(
             navPanel,
-            "Company Management",
-            _companiesPanel,
-            "System-level company overview.");
-
-        AddNavButton(
-            navPanel,
-            "Subscription",
-            _subscriptionPanel,
-            "Assign and manage company subscriptions.");
+            "System Status",
+            _statusPanel,
+            "Connection and system status.");
 
         AddNavButton(
             navPanel,
@@ -248,9 +231,15 @@ public sealed class SuperAdminControl : UserControl
 
         AddNavButton(
             navPanel,
-            "System Status",
-            _statusPanel,
-            "Connection and system status.");
+            "Subscription",
+            _subscriptionPanel,
+            "Assign and manage company subscriptions.");
+
+        AddNavButton(
+            navPanel,
+            "Company Management",
+            _companiesPanel,
+            "System-level company overview.");
 
         var footer = new Panel
         {
@@ -557,7 +546,7 @@ public sealed class SuperAdminControl : UserControl
         {
             Text = "Subscription Setup",
             AutoSize = true,
-            Location = new Point(24, 20),
+            Location = new Point(24, 16),
             Font = new Font("Segoe UI Semibold", 14F, FontStyle.Bold),
             ForeColor = Color.FromArgb(17, 24, 39)
         };
@@ -566,7 +555,7 @@ public sealed class SuperAdminControl : UserControl
         {
             Text = "Set the plan, billing cycle, price, and subscription period for a company.",
             AutoSize = true,
-            Location = new Point(26, 47),
+            Location = new Point(26, 49),
             Font = new Font("Segoe UI", 8.5F),
             ForeColor = Color.FromArgb(107, 114, 128)
         };
@@ -576,7 +565,7 @@ public sealed class SuperAdminControl : UserControl
 
         var form = new TableLayoutPanel
         {
-            Location = new Point(24, 82),
+            Location = new Point(24, 88),
             Size = new Size(570, 355),
             ColumnCount = 2,
             RowCount = 7,
@@ -702,7 +691,7 @@ public sealed class SuperAdminControl : UserControl
         {
             Text = "Current Subscription",
             AutoSize = true,
-            Location = new Point(22, 20),
+            Location = new Point(22, 16),
             Font = new Font("Segoe UI Semibold", 14F, FontStyle.Bold),
             ForeColor = Color.FromArgb(17, 24, 39)
         };
@@ -711,7 +700,7 @@ public sealed class SuperAdminControl : UserControl
         {
             Text = "What is currently assigned to the selected company.",
             AutoSize = true,
-            Location = new Point(24, 47),
+            Location = new Point(24, 49),
             Font = new Font("Segoe UI", 8.5F),
             ForeColor = Color.FromArgb(107, 114, 128)
         };
@@ -719,7 +708,7 @@ public sealed class SuperAdminControl : UserControl
         summaryCard.Controls.Add(summaryTitle);
         summaryCard.Controls.Add(summarySubtitle);
 
-        int sy = 92;
+        int sy = 100;
         AddSummaryRow(summaryCard, "Company", ref sy, out _summaryCompanyValue);
         AddSummaryRow(summaryCard, "Plan", ref sy, out _summaryPlanValue);
         AddSummaryRow(summaryCard, "Billing", ref sy, out _summaryCycleValue);
