@@ -71,6 +71,8 @@ public class MasterDriveConnectDbContext : DbContext
         {
             entity.HasKey(x => x.SubscriptionId);
             entity.Property(x => x.PlanName).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.BillingCycle).HasMaxLength(20).IsRequired();
+            entity.Property(x => x.BillingAmount).HasPrecision(18, 2);
             entity.Property(x => x.MonthlyFee).HasPrecision(18, 2);
             entity.HasOne(x => x.Company)
                 .WithMany(x => x.Subscriptions)
