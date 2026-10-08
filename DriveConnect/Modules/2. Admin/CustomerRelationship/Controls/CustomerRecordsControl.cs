@@ -64,6 +64,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
         private TextBox txtSearch = new TextBox();
         private Button btnNewRecord = new Button();
         private readonly ComboBox cbAnalyticsBranch = new ComboBox();
+        private readonly ComboBox cbReportBranch = new ComboBox();
         private readonly Panel analyticsContentPanel = new Panel();
         private bool _analyticsBranchLoading;
 
@@ -1468,6 +1469,18 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
             });
             cbReportType.SelectedIndex = 0;
 
+            cbReportBranch.DropDownStyle = ComboBoxStyle.DropDownList;
+            cbReportBranch.Width = 180;
+            cbReportBranch.Height = 34;
+            cbReportBranch.Margin = new Padding(0, 2, 10, 0);
+            cbReportBranch.Items.Clear();
+            cbReportBranch.Items.Add(new ReportBranchChoice(null, "All Branches"));
+            foreach (var branch in _allBranches.Where(x => x.IsActive).OrderBy(x => x.BranchName))
+                cbReportBranch.Items.Add(new ReportBranchChoice(branch.BranchId, branch.BranchName));
+            cbReportBranch.SelectedIndex = 0;
+            cbReportBranch.BackColor = Color.White;
+            cbReportBranch.ForeColor = Color.FromArgb(55, 65, 81);
+
             dtReportFrom.Format = DateTimePickerFormat.Short;
             dtReportFrom.Width = 120;
             dtReportFrom.Height = 34;
@@ -1492,6 +1505,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
             btnGenerateReport.Click += (s, e) => GenerateSelectedReport();
 
             filterBar.Controls.Add(cbReportType);
+            filterBar.Controls.Add(cbReportBranch);
             filterBar.Controls.Add(dtReportFrom);
             filterBar.Controls.Add(dtReportTo);
             filterBar.Controls.Add(btnGenerateReport);
@@ -1563,7 +1577,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
         private void GenerateSelectedReport()
         {
             DateTime from = dtReportFrom.Value.Date;
-            DateTime to = dtReportTo.Value.Date.AddDays(1).AddTicks(-1);
+            DateTime to = dtReportTo.Value.Date;
 
             if (from > to)
             {
@@ -1571,195 +1585,12 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                 return;
             }
 
-            string report = cbReportType.SelectedItem?.ToString() ?? "Sales Report";
+            string reportType = cbReportType.SelectedItem?.ToString() ?? "Sales Report";
+            int? branchId = cbReportBranch.SelectedItem is ReportBranchChoice choice ? choice.Id : null;
+            var report = BuildManagementReport(reportType, from, to, branchId);
 
-            if (report == "Sales Report")
-            {
-                var rows = _allSales
-                    .Where(x => x.CreatedAt >= from && x.CreatedAt <= to && x.Status != "Archived")
-                    .Select(x => new
-                    {
-                        ID = x.InquiryId,
-                        Customer = ($"{x.FirstName} {x.LastName}").Trim(),
-                        Model = x.CarModel,
-                        Stage = x.Status,
-                        DealValue = x.EstimatedCost,
-                        HandledBy = x.HandledBy,
-                        Date = x.CreatedAt.ToLocalTime().ToString("MMM dd, yyyy")
-                    }).ToList();
-
-                dgvReport.DataSource = rows;
-                FormatCurrencyColumn("DealValue");
-                lblReportSummary.Text = $"Sales records: {rows.Count} | Value: ₱{rows.Sum(x => x.DealValue):N2}";
-            }
-            else if (report == "Lead Report")
-            {
-                var rows = _allSales
-                    .Where(x => x.CreatedAt >= from && x.CreatedAt <= to && x.Status != "Archived")
-                    .Select(x => new
-                    {
-                        ID = x.InquiryId,
-                        Customer = ($"{x.FirstName} {x.LastName}").Trim(),
-                        Model = x.CarModel,
-                        Stage = x.Status,
-                        HandledBy = x.HandledBy,
-                        Date = x.CreatedAt.ToLocalTime().ToString("MMM dd, yyyy")
-                    }).ToList();
-
-                dgvReport.DataSource = rows;
-                lblReportSummary.Text = $"Leads: {rows.Count}";
-            }
-            else if (report == "Staff Performance")
-            {
-                var rows = _allSales
-                    .Where(x => x.CreatedAt >= from && x.CreatedAt <= to && x.Status != "Archived" && !string.IsNullOrWhiteSpace(x.HandledBy))
-                    .GroupBy(x => x.HandledBy)
-                    .Select(g => new
-                    {
-                        Staff = g.Key,
-                        Leads = g.Count(),
-                        ClosedWon = g.Count(x => x.Status == "Closed Won"),
-                        ClosedLost = g.Count(x => x.Status == "Closed Lost"),
-                        ClosedValue = g.Where(x => x.Status == "Closed Won").Sum(x => x.EstimatedCost)
-                    })
-                    .OrderByDescending(x => x.ClosedWon)
-                    .ToList();
-
-                dgvReport.DataSource = rows;
-                FormatCurrencyColumn("ClosedValue");
-                lblReportSummary.Text = $"Staff records: {rows.Count}";
-            }
-            else if (report == "Repair Report")
-            {
-                var rows = _allRepairs
-                    .Where(x => x.CreatedAt >= from && x.CreatedAt <= to && x.Status != "Archived")
-                    .Select(x => new
-                    {
-                        ID = x.TicketId,
-                        Customer = ($"{x.FirstName} {x.LastName}").Trim(),
-                        Model = x.CarModel,
-                        Issue = x.Concern,
-                        Status = x.Status,
-                        Pickup = x.PickupStatus,
-                        EstimatedCost = x.EstimatedCost,
-                        HandledBy = x.HandledBy,
-                        Date = x.CreatedAt.ToLocalTime().ToString("MMM dd, yyyy")
-                    }).ToList();
-
-                dgvReport.DataSource = rows;
-                FormatCurrencyColumn("EstimatedCost");
-                lblReportSummary.Text = $"Repair records: {rows.Count} | Estimated cost: ₱{rows.Sum(x => x.EstimatedCost):N2}";
-            }
-            else if (report == "Feedback Report")
-            {
-                var rows = _allFeedback
-                    .Where(x => x.CreatedAt >= from && x.CreatedAt <= to)
-                    .Select(x => new
-                    {
-                        ID = x.FeedbackId,
-                        Customer = x.CustomerName,
-                        Type = x.Type,
-                        Rating = x.Rating,
-                        Status = x.Status,
-                        HandledBy = x.HandledBy,
-                        Date = x.CreatedAt.ToLocalTime().ToString("MMM dd, yyyy")
-                    }).ToList();
-
-                dgvReport.DataSource = rows;
-                lblReportSummary.Text = $"Feedback records: {rows.Count} | Average rating: {(rows.Count > 0 ? rows.Average(x => x.Rating).ToString("N1") : "0.0")} / 5";
-            }
-            else if (report == "Complaint Report")
-            {
-                var rows = _allComplaints
-                    .Where(x => x.CreatedAt >= from && x.CreatedAt <= to)
-                    .Select(x => new
-                    {
-                        ID = x.ComplaintId,
-                        Customer = x.CustomerName,
-                        Category = x.Category,
-                        Priority = x.Priority,
-                        Status = x.Status,
-                        HandledBy = x.HandledBy,
-                        Date = x.CreatedAt.ToLocalTime().ToString("MMM dd, yyyy")
-                    }).ToList();
-
-                dgvReport.DataSource = rows;
-                lblReportSummary.Text = $"Complaint records: {rows.Count} | Open: {rows.Count(x => x.Status != "Resolved" && x.Status != "Closed")}";
-            }
-            else if (report == "Warranty Report")
-            {
-                var rows = _allWarranties
-                    .Where(x => x.WarrantyStart >= from && x.WarrantyStart <= to)
-                    .Select(x => new
-                    {
-                        ID = x.WarrantyId,
-                        Customer = x.CustomerName,
-                        Vehicle = x.VehicleModel,
-                        WarrantyStart = x.WarrantyStart.ToLocalTime().ToString("MMM dd, yyyy"),
-                        WarrantyEnd = x.WarrantyEnd.ToLocalTime().ToString("MMM dd, yyyy"),
-                        Coverage = x.Coverage,
-                        Status = x.Status
-                    }).ToList();
-
-                dgvReport.DataSource = rows;
-                lblReportSummary.Text = $"Warranty records: {rows.Count} | Active: {rows.Count(x => x.Status == "Active")}";
-            }
-            else if (report == "Maintenance Report")
-            {
-                var rows = _allMaintenance
-                    .Where(x => x.ServiceDate >= from && x.ServiceDate <= to)
-                    .Select(x => new
-                    {
-                        ID = x.MaintenanceId,
-                        Customer = x.CustomerName,
-                        Vehicle = x.VehicleModel,
-                        ServiceType = x.ServiceType,
-                        PlanCoverage = x.PlanCoverage,
-                        AssignedStaff = x.AssignedStaff,
-                        Status = x.Status,
-                        ServiceDate = x.ServiceDate.ToLocalTime().ToString("MMM dd, yyyy")
-                    }).ToList();
-
-                dgvReport.DataSource = rows;
-                lblReportSummary.Text = $"Maintenance records: {rows.Count} | Scheduled: {rows.Count(x => x.Status == "Scheduled" || x.Status == "Rescheduled")}";
-            }
-            else if (report == "Archived Sales")
-            {
-                var rows = _allSales
-                    .Where(x => x.Status == "Archived" && x.CompletedAt.HasValue && x.CompletedAt.Value >= from && x.CompletedAt.Value <= to)
-                    .Select(x => new
-                    {
-                        ID = x.InquiryId,
-                        Customer = ($"{x.FirstName} {x.LastName}").Trim(),
-                        Model = x.CarModel,
-                        DealValue = x.EstimatedCost,
-                        ArchivedOn = x.CompletedAt!.Value.ToLocalTime().ToString("MMM dd, yyyy"),
-                        HandledBy = x.HandledBy
-                    }).ToList();
-
-                dgvReport.DataSource = rows;
-                FormatCurrencyColumn("DealValue");
-                lblReportSummary.Text = $"Archived sales: {rows.Count}";
-            }
-            else
-            {
-                var rows = _allRepairs
-                    .Where(x => x.Status == "Archived" && x.CompletedAt.HasValue && x.CompletedAt.Value >= from && x.CompletedAt.Value <= to)
-                    .Select(x => new
-                    {
-                        ID = x.TicketId,
-                        Customer = ($"{x.FirstName} {x.LastName}").Trim(),
-                        Model = x.CarModel,
-                        Issue = x.Concern,
-                        EstimatedCost = x.EstimatedCost,
-                        ArchivedOn = x.CompletedAt?.ToLocalTime().ToString("MMM dd, yyyy") ?? "-",
-                        HandledBy = x.HandledBy
-                    }).ToList();
-
-                dgvReport.DataSource = rows;
-                FormatCurrencyColumn("EstimatedCost");
-                lblReportSummary.Text = $"Archived repairs: {rows.Count}";
-            }
+            using var preview = new DriveConnect.winforms.Report.ReportPreviewForm(report);
+            preview.ShowDialog(FindForm());
         }
 
         private void FormatCurrencyColumn(string columnName)
