@@ -179,7 +179,7 @@ public sealed class ReportPreviewForm : Form
             grid.Columns.Add(header, header);
 
         foreach (var row in _report.DetailRows)
-            grid.Rows.Add(row.Take(_report.DetailHeaders.Count).Cast<object?>().ToArray());
+            grid.Rows.Add(row.Take(_report.DetailHeaders.Count).Select(x => (object)(x ?? string.Empty)).ToArray());
 
         panel.Controls.Add(grid);
         return panel;
