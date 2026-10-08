@@ -596,9 +596,9 @@ BEGIN TRY
     SELECT
         w.BranchId,
         w.WarrantyId,
-        c.FullName,
-        c.PhoneNumber,
-        m.Model,
+        w.CustomerName,
+        w.PhoneNumber,
+        w.VehicleModel,
         CASE n.n % 5
             WHEN 0 THEN N'Air conditioning system stopped cooling properly.'
             WHEN 1 THEN N'Power window mechanism requires inspection.'
@@ -625,8 +625,6 @@ BEGIN TRY
     FROM N n
     JOIN #WarrantyMap wm ON wm.RowNo = n.n
     JOIN VehicleWarranties w ON w.WarrantyId = wm.WarrantyId
-    JOIN #Customers c ON c.RowNo = ((n.n + 79) % 120) + 1
-    JOIN #Models m ON m.RowNo = ((n.n + 11) % 18) + 1
     JOIN #Staff s ON s.RowNo = ((n.n - 1) % 2) + 1;
 
     /* ------------------------------------------------------------
@@ -784,13 +782,31 @@ BEGIN TRY
         s.RowNo,
         s.FullName AS StaffName,
         s.BranchId,
-        COUNT(*) AS ExpectedSeedShare
+        (
+            (SELECT COUNT(*) FROM SalesLeads x WHERE x.HandledBy = s.FullName) +
+            (SELECT COUNT(*) FROM RepairTickets x WHERE x.HandledBy = s.FullName) +
+            (SELECT COUNT(*) FROM InteractionLogs x WHERE x.HandledBy = s.FullName) +
+            (SELECT COUNT(*) FROM Feedback x WHERE x.HandledBy = s.FullName) +
+            (SELECT COUNT(*) FROM Complaints x WHERE x.HandledBy = s.FullName) +
+            (SELECT COUNT(*) FROM WarrantyClaims x WHERE x.HandledBy = s.FullName) +
+            (SELECT COUNT(*) FROM MaintenanceRecords x WHERE x.AssignedStaff = s.FullName) +
+            (SELECT COUNT(*) FROM Promotions x WHERE x.CreatedBy = s.FullName)
+        ) AS StaffAssignedRows,
+        (
+            (SELECT COUNT(*) FROM SalesLeads x WHERE x.BranchId = s.BranchId) +
+            (SELECT COUNT(*) FROM RepairTickets x WHERE x.BranchId = s.BranchId) +
+            (SELECT COUNT(*) FROM InteractionLogs x WHERE x.BranchId = s.BranchId) +
+            (SELECT COUNT(*) FROM Feedback x WHERE x.BranchId = s.BranchId) +
+            (SELECT COUNT(*) FROM Complaints x WHERE x.BranchId = s.BranchId) +
+            (SELECT COUNT(*) FROM VehicleWarranties x WHERE x.BranchId = s.BranchId) +
+            (SELECT COUNT(*) FROM WarrantyClaims x WHERE x.BranchId = s.BranchId) +
+            (SELECT COUNT(*) FROM MaintenanceRecords x WHERE x.BranchId = s.BranchId) +
+            (SELECT COUNT(*) FROM Promotions x WHERE x.BranchId = s.BranchId)
+        ) AS BranchRows
     FROM #Staff s
-    CROSS JOIN (SELECT 1 AS Dummy) d
-    GROUP BY s.RowNo, s.FullName, s.BranchId
     ORDER BY s.RowNo;
 
-    PRINT 'DriveConnect realistic demo data reset + seed completed successfully. Total tenant rows: 300.';
+    PRINT 'DriveConnect realistic demo data reset + seed completed successfully. Total tenant rows: 300. Each staff receives an equal 135 staff-assigned rows.';
 END TRY
 BEGIN CATCH
     IF XACT_STATE() <> 0
