@@ -29,8 +29,31 @@ public sealed class SuperAdminApiService
 
     public async Task<SubscriptionOverview?> GetSubscriptionAsync(int companyId)
     {
-        return await _http.GetFromJsonAsync<SubscriptionOverview>(
+        using var response = await _http.GetAsync(
             $"/super-admin/companies/{companyId}/subscription");
+
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            return null;
+
+        response.EnsureSuccessStatusCode();
+
+        return await response.Content.ReadFromJsonAsync<SubscriptionOverview>();
+    }
+
+    public async Task<HttpResponseMessage> SaveSubscriptionAsync(
+        int companyId,
+        SubscriptionRequest request)
+    {
+        return await _http.PutAsJsonAsync(
+            $"/super-admin/companies/{companyId}/subscription",
+            request);
+    }
+
+    public async Task<HttpResponseMessage> DeactivateSubscriptionAsync(int companyId)
+    {
+        return await _http.PostAsync(
+            $"/super-admin/companies/{companyId}/subscription/deactivate",
+            content: null);
     }
 
     public async Task<SystemStatusOverview?> GetSystemStatusAsync()
@@ -47,16 +70,26 @@ public sealed record CompanyOverview(
     bool IsActive,
     DateTime CreatedAt,
     string? ActivePlanName,
-    decimal? ActiveMonthlyFee,
+    decimal? ActiveBillingAmount,
+    string? ActiveBillingCycle,
     DateTime? SubscriptionEndDate);
 
 public sealed record SubscriptionOverview(
     int SubscriptionId,
     int CompanyId,
     string PlanName,
+    string BillingCycle,
+    decimal BillingAmount,
     decimal MonthlyFee,
     DateTime StartDate,
     DateTime EndDate,
+    bool IsActive);
+
+public sealed record SubscriptionRequest(
+    string PlanName,
+    string BillingCycle,
+    decimal BillingAmount,
+    DateTime StartDate,
     bool IsActive);
 
 public sealed record SystemStatusOverview(
