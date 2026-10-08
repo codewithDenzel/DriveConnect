@@ -768,7 +768,7 @@ BEGIN TRY
     COMMIT TRANSACTION;
 
     SELECT
-        'SalesLeads' AS TableName, COUNT(*) AS RowCount FROM SalesLeads
+        'SalesLeads' AS TableName, COUNT(*) AS TotalRows FROM SalesLeads
     UNION ALL SELECT 'RepairTickets', COUNT(*) FROM RepairTickets
     UNION ALL SELECT 'InteractionLogs', COUNT(*) FROM InteractionLogs
     UNION ALL SELECT 'Feedback', COUNT(*) FROM Feedback
