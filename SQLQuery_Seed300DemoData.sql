@@ -716,7 +716,7 @@ BEGIN TRY
     COMMIT TRANSACTION;
 
     SELECT
-        'SalesLeads' AS TableName, COUNT(*) AS RowCount FROM dbo.SalesLeads
+        'SalesLeads' AS TableName, COUNT(*) AS RecordCount FROM dbo.SalesLeads
     UNION ALL
     SELECT 'RepairTickets', COUNT(*) FROM dbo.RepairTickets
     UNION ALL
@@ -737,7 +737,7 @@ BEGIN TRY
 
     SELECT
         'TOTAL' AS TableName,
-        @TotalRows AS RowCount;
+        @TotalRows AS RecordCount;
 
 END TRY
 BEGIN CATCH
