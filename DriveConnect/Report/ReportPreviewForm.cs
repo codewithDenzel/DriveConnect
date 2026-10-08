@@ -13,7 +13,7 @@ public sealed class ReportPreviewForm : Form
     {
         _report = report;
         Text = report.Title;
-        ClientSize = new Size(1180, 820);
+        ClientSize = new Size(1040, 760);
         StartPosition = FormStartPosition.CenterParent;
         BackColor = Color.FromArgb(243, 244, 246);
         MinimizeBox = true;
@@ -26,16 +26,27 @@ public sealed class ReportPreviewForm : Form
         var top = new Panel
         {
             Dock = DockStyle.Top,
-            Height = 72,
+            Height = 76,
             BackColor = Color.White,
             Padding = new Padding(18, 10, 18, 10)
         };
-        top.Paint += (s, e) => ControlPaint.DrawBorder(e.Graphics, top.ClientRectangle, Color.FromArgb(229, 231, 235), ButtonBorderStyle.Solid);
+        top.Paint += (s, e) => ControlPaint.DrawBorder(
+            e.Graphics,
+            top.ClientRectangle,
+            Color.FromArgb(229, 231, 235),
+            ButtonBorderStyle.Solid);
+
+        var headerText = new Panel
+        {
+            Dock = DockStyle.Fill,
+            BackColor = Color.Transparent,
+            Margin = new Padding(0)
+        };
 
         var title = new Label
         {
             Text = _report.Title,
-            Location = new Point(18, 10),
+            Location = new Point(0, 0),
             AutoSize = true,
             Font = new Font("Segoe UI Semibold", 16F, FontStyle.Bold),
             ForeColor = Color.FromArgb(17, 24, 39)
@@ -43,30 +54,31 @@ public sealed class ReportPreviewForm : Form
         var subtitle = new Label
         {
             Text = $"{_report.Period}  •  {_report.Branch}",
-            Location = new Point(20, 42),
+            Location = new Point(2, 34),
             AutoSize = true,
             Font = new Font("Segoe UI", 8.5F),
             ForeColor = Color.FromArgb(107, 114, 128)
         };
+        headerText.Controls.Add(title);
+        headerText.Controls.Add(subtitle);
 
         var export = new Button
         {
             Text = "Export PDF",
-            Width = 125,
-            Height = 36,
-            Anchor = AnchorStyles.Top | AnchorStyles.Right,
-            Location = new Point(ClientSize.Width - 160, 18),
+            Dock = DockStyle.Right,
+            Width = 135,
+            Height = 38,
             BackColor = Color.FromArgb(79, 70, 229),
             ForeColor = Color.White,
             FlatStyle = FlatStyle.Flat,
-            Font = new Font("Segoe UI Semibold", 9F),
-            Cursor = Cursors.Hand
+            Font = new Font("Segoe UI Semibold", 9.5F),
+            Cursor = Cursors.Hand,
+            Margin = new Padding(8, 8, 0, 8)
         };
         export.FlatAppearance.BorderSize = 0;
         export.Click += Export_Click;
 
-        top.Controls.Add(title);
-        top.Controls.Add(subtitle);
+        top.Controls.Add(headerText);
         top.Controls.Add(export);
 
         var scroll = new Panel
@@ -85,7 +97,8 @@ public sealed class ReportPreviewForm : Form
             FlowDirection = FlowDirection.TopDown,
             WrapContents = false,
             Padding = new Padding(0),
-            Margin = new Padding(0)
+            Margin = new Padding(0),
+            Width = 950
         };
 
         content.Controls.Add(CreateSummaryPanel());
@@ -107,16 +120,16 @@ public sealed class ReportPreviewForm : Form
 
     private Panel CreateSummaryPanel()
     {
-        var panel = CreateCard(new Size(1100, 115));
+        var panel = CreateCard(new Size(950, 115));
         var title = new Label { Text = "Executive Summary", AutoSize = true, Location = new Point(18, 15), Font = new Font("Segoe UI Semibold", 12F, FontStyle.Bold), ForeColor = Color.FromArgb(67, 56, 202) };
-        var text = new Label { Text = _report.ExecutiveSummary, Location = new Point(18, 47), Size = new Size(1050, 55), Font = new Font("Segoe UI", 9.5F), ForeColor = Color.FromArgb(55, 65, 81), AutoEllipsis = false };
+        var text = new Label { Text = _report.ExecutiveSummary, Location = new Point(18, 47), Size = new Size(900, 55), Font = new Font("Segoe UI", 9.5F), ForeColor = Color.FromArgb(55, 65, 81), AutoEllipsis = false };
         panel.Controls.Add(title); panel.Controls.Add(text);
         return panel;
     }
 
     private Panel CreateMetricPanel()
     {
-        var panel = CreateCard(new Size(1100, 100));
+        var panel = CreateCard(new Size(950, 100));
         var flow = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.LeftToRight, WrapContents = false, Padding = new Padding(0), Margin = new Padding(0) };
         foreach (var metric in _report.Metrics.Take(5))
         {
@@ -133,10 +146,10 @@ public sealed class ReportPreviewForm : Form
 
     private Panel CreateChartPanel(ManagementReportChart chart)
     {
-        var panel = CreateCard(new Size(1100, 390));
+        var panel = CreateCard(new Size(950, 390));
         var title = new Label { Text = chart.Title, AutoSize = true, Location = new Point(18, 14), Font = new Font("Segoe UI Semibold", 12F, FontStyle.Bold), ForeColor = Color.FromArgb(67, 56, 202) };
         var subtitle = new Label { Text = chart.Subtitle, AutoSize = true, Location = new Point(18, 40), Font = new Font("Segoe UI", 8.5F), ForeColor = Color.FromArgb(107, 114, 128) };
-        var picture = new PictureBox { Location = new Point(18, 68), Size = new Size(1050, 300), SizeMode = PictureBoxSizeMode.Zoom, BackColor = Color.White };
+        var picture = new PictureBox { Location = new Point(18, 68), Size = new Size(900, 300), SizeMode = PictureBoxSizeMode.Zoom, BackColor = Color.White };
         picture.Image = ReportChartRenderer.Render(chart, 1050, 300);
         panel.Controls.Add(title); panel.Controls.Add(subtitle); panel.Controls.Add(picture);
         return panel;
@@ -150,7 +163,7 @@ public sealed class ReportPreviewForm : Form
         int y = 48;
         foreach (var finding in _report.Findings)
         {
-            panel.Controls.Add(new Label { Text = "• " + finding, AutoSize = false, Size = new Size(1040, 24), Location = new Point(20, y), Font = new Font("Segoe UI", 9F), ForeColor = Color.FromArgb(55, 65, 81) });
+            panel.Controls.Add(new Label { Text = "• " + finding, AutoSize = false, Size = new Size(900, 24), Location = new Point(20, y), Font = new Font("Segoe UI", 9F), ForeColor = Color.FromArgb(55, 65, 81) });
             y += 28;
         }
         return panel;
@@ -158,13 +171,13 @@ public sealed class ReportPreviewForm : Form
 
     private Panel CreateDetailPanel()
     {
-        var panel = CreateCard(new Size(1100, 390));
+        var panel = CreateCard(new Size(950, 390));
         panel.Controls.Add(new Label { Text = "Detailed Records", AutoSize = true, Location = new Point(18, 14), Font = new Font("Segoe UI Semibold", 12F, FontStyle.Bold), ForeColor = Color.FromArgb(67, 56, 202) });
 
         var grid = new DataGridView
         {
             Location = new Point(18, 48),
-            Size = new Size(1050, 320),
+            Size = new Size(900, 320),
             Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
             ReadOnly = true,
             AllowUserToAddRows = false,
