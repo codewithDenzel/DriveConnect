@@ -607,22 +607,25 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
             panelBI_KPI.Padding = new Padding(0);
             panelBI_KPI.Controls.Clear();
 
-            var header = new Panel
+            var header = new TableLayoutPanel
             {
                 Dock = DockStyle.Top,
-                Height = 82,
+                Height = 92,
+                ColumnCount = 2,
+                RowCount = 1,
                 BackColor = Color.White,
-                Padding = new Padding(18, 12, 18, 10)
+                Padding = new Padding(18, 10, 18, 10),
+                Margin = new Padding(0)
             };
-            header.Paint += (s, e) => ControlPaint.DrawBorder(
-                e.Graphics, header.ClientRectangle,
-                Color.FromArgb(229, 231, 235), ButtonBorderStyle.Solid);
+            header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 68F));
+            header.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 32F));
 
+            var titlePanel = new Panel { Dock = DockStyle.Fill, Margin = new Padding(0) };
             var title = new Label
             {
                 Text = "Analytics",
                 AutoSize = true,
-                Location = new Point(18, 10),
+                Location = new Point(0, 0),
                 Font = new Font("Segoe UI Semibold", 16F, FontStyle.Bold),
                 ForeColor = Color.FromArgb(17, 24, 39)
             };
@@ -630,36 +633,51 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
             {
                 Text = "Interactive KPIs and charts for company and branch performance.",
                 AutoSize = true,
-                Location = new Point(20, 42),
+                Location = new Point(2, 36),
                 Font = new Font("Segoe UI", 9F),
                 ForeColor = Color.FromArgb(107, 114, 128)
             };
+            titlePanel.Controls.Add(title);
+            titlePanel.Controls.Add(subtitle);
+
+            var branchPanel = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 2,
+                RowCount = 1,
+                Padding = new Padding(8, 8, 0, 8),
+                Margin = new Padding(0)
+            };
+            branchPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 60F));
+            branchPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
 
             var scopeLabel = new Label
             {
                 Text = "Branch",
-                AutoSize = true,
-                Location = new Point(610, 20),
+                Dock = DockStyle.Fill,
+                TextAlign = ContentAlignment.MiddleLeft,
                 Font = new Font("Segoe UI Semibold", 9F),
-                ForeColor = Color.FromArgb(75, 85, 99)
+                ForeColor = Color.FromArgb(75, 85, 99),
+                Margin = new Padding(0, 0, 8, 0)
             };
 
             cbAnalyticsBranch.DropDownStyle = ComboBoxStyle.DropDownList;
-            cbAnalyticsBranch.Width = 230;
-            cbAnalyticsBranch.Location = new Point(660, 16);
+            cbAnalyticsBranch.Dock = DockStyle.Fill;
             cbAnalyticsBranch.Font = new Font("Segoe UI", 9.5F);
+            cbAnalyticsBranch.Margin = new Padding(0);
             cbAnalyticsBranch.SelectedIndexChanged -= AnalyticsBranch_SelectedIndexChanged;
             cbAnalyticsBranch.SelectedIndexChanged += AnalyticsBranch_SelectedIndexChanged;
 
-            header.Controls.Add(title);
-            header.Controls.Add(subtitle);
-            header.Controls.Add(scopeLabel);
-            header.Controls.Add(cbAnalyticsBranch);
+            branchPanel.Controls.Add(scopeLabel, 0, 0);
+            branchPanel.Controls.Add(cbAnalyticsBranch, 1, 0);
+            header.Controls.Add(titlePanel, 0, 0);
+            header.Controls.Add(branchPanel, 1, 0);
 
             analyticsContentPanel.Dock = DockStyle.Fill;
             analyticsContentPanel.BackColor = Color.FromArgb(243, 244, 246);
             analyticsContentPanel.AutoScroll = true;
             analyticsContentPanel.Padding = new Padding(12);
+            analyticsContentPanel.Margin = new Padding(0);
 
             panelBI_KPI.Controls.Add(analyticsContentPanel);
             panelBI_KPI.Controls.Add(header);
@@ -927,12 +945,13 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
             var card = new Panel
             {
                 Width = 315,
-                Height = 118,
+                Height = 142,
                 Margin = new Padding(6),
-                Padding = new Padding(16),
+                Padding = new Padding(14),
                 BackColor = Color.White,
                 Cursor = Cursors.Hand
             };
+
             card.Paint += (s, e) =>
             {
                 using var border = new Pen(Color.FromArgb(229, 231, 235));
@@ -941,12 +960,65 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                 e.Graphics.DrawLine(accentPen, 0, 0, 0, card.Height);
             };
 
-            var lblTitle = new Label { Text = title, AutoSize = true, Location = new Point(14, 12), Font = new Font("Segoe UI Semibold", 10F), ForeColor = Color.FromArgb(75, 85, 99) };
-            var lblValue = new Label { Text = value, AutoSize = true, Location = new Point(14, 36), Font = new Font("Segoe UI Semibold", 15F, FontStyle.Bold), ForeColor = accent };
-            var lblSecondary = new Label { Text = secondary, AutoSize = true, Location = new Point(14, 66), Font = new Font("Segoe UI", 9F), ForeColor = Color.FromArgb(55, 65, 81) };
-            var lblHint = new Label { Text = hint, AutoSize = true, Location = new Point(14, 90), Font = new Font("Segoe UI", 7.5F), ForeColor = Color.FromArgb(156, 163, 175) };
+            var layout = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 1,
+                RowCount = 4,
+                Margin = new Padding(0),
+                Padding = new Padding(0)
+            };
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 22F));
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 34F));
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 28F));
+            layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
 
-            card.Controls.Add(lblTitle); card.Controls.Add(lblValue); card.Controls.Add(lblSecondary); card.Controls.Add(lblHint);
+            var lblTitle = new Label
+            {
+                Text = title,
+                Dock = DockStyle.Fill,
+                Font = new Font("Segoe UI Semibold", 10F),
+                ForeColor = Color.FromArgb(75, 85, 99),
+                TextAlign = ContentAlignment.MiddleLeft,
+                AutoEllipsis = true,
+                Margin = new Padding(0)
+            };
+            var lblValue = new Label
+            {
+                Text = value,
+                Dock = DockStyle.Fill,
+                Font = new Font("Segoe UI Semibold", 15F, FontStyle.Bold),
+                ForeColor = accent,
+                TextAlign = ContentAlignment.MiddleLeft,
+                AutoEllipsis = true,
+                Margin = new Padding(0)
+            };
+            var lblSecondary = new Label
+            {
+                Text = secondary,
+                Dock = DockStyle.Fill,
+                Font = new Font("Segoe UI", 9F),
+                ForeColor = Color.FromArgb(55, 65, 81),
+                TextAlign = ContentAlignment.MiddleLeft,
+                AutoEllipsis = true,
+                Margin = new Padding(0)
+            };
+            var lblHint = new Label
+            {
+                Text = hint,
+                Dock = DockStyle.Fill,
+                Font = new Font("Segoe UI", 8F),
+                ForeColor = Color.FromArgb(156, 163, 175),
+                TextAlign = ContentAlignment.BottomLeft,
+                AutoEllipsis = true,
+                Margin = new Padding(0)
+            };
+
+            layout.Controls.Add(lblTitle, 0, 0);
+            layout.Controls.Add(lblValue, 0, 1);
+            layout.Controls.Add(lblSecondary, 0, 2);
+            layout.Controls.Add(lblHint, 0, 3);
+            card.Controls.Add(layout);
             WireAnalyticsClick(card, click);
             return card;
         }
@@ -956,7 +1028,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
             var card = new Panel
             {
                 Width = 520,
-                Height = 310,
+                Height = 340,
                 Margin = new Padding(6),
                 Padding = new Padding(12),
                 BackColor = Color.White,
@@ -964,15 +1036,42 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
             };
             card.Paint += (s, e) => ControlPaint.DrawBorder(e.Graphics, card.ClientRectangle, Color.FromArgb(229, 231, 235), ButtonBorderStyle.Solid);
 
-            var lblTitle = new Label { Text = title, AutoSize = true, Location = new Point(15, 12), Font = new Font("Segoe UI Semibold", 11F, FontStyle.Bold), ForeColor = Color.FromArgb(79, 70, 229) };
-            var lblSubtitle = new Label { Text = subtitle, AutoSize = true, Location = new Point(15, 37), Font = new Font("Segoe UI", 8.5F), ForeColor = Color.FromArgb(107, 114, 128) };
+            var titlePanel = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 48,
+                BackColor = Color.Transparent,
+                Margin = new Padding(0)
+            };
 
-            chart.Location = new Point(12, 62);
-            chart.Size = new Size(496, 228);
-            chart.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom;
+            var lblTitle = new Label
+            {
+                Text = title,
+                Dock = DockStyle.Top,
+                Height = 24,
+                Font = new Font("Segoe UI Semibold", 11F, FontStyle.Bold),
+                ForeColor = Color.FromArgb(79, 70, 229),
+                AutoEllipsis = true,
+                Margin = new Padding(0)
+            };
+            var lblSubtitle = new Label
+            {
+                Text = subtitle,
+                Dock = DockStyle.Fill,
+                Font = new Font("Segoe UI", 8.5F),
+                ForeColor = Color.FromArgb(107, 114, 128),
+                AutoEllipsis = true,
+                Margin = new Padding(0)
+            };
+            titlePanel.Controls.Add(lblSubtitle);
+            titlePanel.Controls.Add(lblTitle);
+
+            chart.Dock = DockStyle.Fill;
+            chart.Margin = new Padding(0);
             chart.BackColor = Color.White;
 
-            card.Controls.Add(lblTitle); card.Controls.Add(lblSubtitle); card.Controls.Add(chart);
+            card.Controls.Add(chart);
+            card.Controls.Add(titlePanel);
             WireAnalyticsClick(card, click);
             return card;
         }
@@ -996,20 +1095,46 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                 e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
                 e.Graphics.Clear(Color.White);
                 if (data.Count == 0) { DrawNoData(e.Graphics, p.ClientSize); return; }
+
                 int max = Math.Max(1, data.Max(x => x.Value));
-                int center = p.ClientSize.Width / 2;
-                int top = 12;
-                int rowH = Math.Max(30, (p.ClientSize.Height - 28) / data.Count);
-                Color[] fills = { Color.FromArgb(124,58,237), Color.FromArgb(139,92,246), Color.FromArgb(168,85,247), Color.FromArgb(192,132,252) };
-                for (int i=0;i<data.Count;i++)
+                int labelW = 150;
+                int valueW = 48;
+                int availableBar = Math.Max(80, p.ClientSize.Width - labelW - valueW - 24);
+                int rowH = Math.Max(36, (p.ClientSize.Height - 12) / data.Count);
+                Color[] fills =
                 {
-                    int width = Math.Max(90, (int)((p.ClientSize.Width - 180) * (data[i].Value / (double)max)) + 90);
-                    int x = center - width/2;
-                    var rect = new Rectangle(x, top + i*rowH, width, Math.Min(34,rowH-4));
-                    using var brush = new SolidBrush(fills[i % fills.Length]);
-                    e.Graphics.FillRectangle(brush, rect);
-                    TextRenderer.DrawText(e.Graphics, data[i].Label, new Font("Segoe UI",8.5F,FontStyle.Bold), rect, Color.White, TextFormatFlags.HorizontalCenter|TextFormatFlags.VerticalCenter);
-                    TextRenderer.DrawText(e.Graphics, data[i].Value.ToString("N0"), new Font("Segoe UI",8.5F), new Rectangle(rect.Right+8,rect.Top,70,rect.Height), Color.FromArgb(55,65,81), TextFormatFlags.VerticalCenter);
+                    Color.FromArgb(124,58,237),
+                    Color.FromArgb(139,92,246),
+                    Color.FromArgb(168,85,247),
+                    Color.FromArgb(192,132,252)
+                };
+
+                for (int i = 0; i < data.Count; i++)
+                {
+                    int y = 6 + i * rowH;
+                    int width = Math.Max(data[i].Value > 0 ? 8 : 0, (int)(availableBar * (data[i].Value / (double)max)));
+
+                    TextRenderer.DrawText(
+                        e.Graphics,
+                        data[i].Label,
+                        new Font("Segoe UI", 8.5F),
+                        new Rectangle(0, y, labelW - 8, 28),
+                        Color.FromArgb(55,65,81),
+                        TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
+
+                    if (width > 0)
+                    {
+                        using var brush = new SolidBrush(fills[i % fills.Length]);
+                        e.Graphics.FillRectangle(brush, labelW, y + 4, width, 20);
+                    }
+
+                    TextRenderer.DrawText(
+                        e.Graphics,
+                        data[i].Value.ToString("N0"),
+                        new Font("Segoe UI", 8.5F, FontStyle.Bold),
+                        new Rectangle(labelW + availableBar + 8, y, valueW, 28),
+                        Color.FromArgb(55,65,81),
+                        TextFormatFlags.VerticalCenter);
                 }
             };
             return p;
@@ -1276,25 +1401,57 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
         private void BuildReportsView()
         {
             panelBI_Reports.Dock = DockStyle.Fill;
-            panelBI_Reports.BackColor = Color.Transparent;
+            panelBI_Reports.BackColor = Color.FromArgb(243, 244, 246);
+            panelBI_Reports.AutoScroll = true;
+            panelBI_Reports.Padding = new Padding(0);
+            panelBI_Reports.Controls.Clear();
 
-            Panel filterBar = new Panel
+            var header = new Panel
             {
                 Dock = DockStyle.Top,
-                Height = 70,
+                Height = 72,
                 BackColor = Color.White,
-                Padding = new Padding(12)
+                Padding = new Padding(18, 10, 18, 8),
+                Margin = new Padding(0)
             };
+            header.Paint += (s, e) => ControlPaint.DrawBorder(e.Graphics, header.ClientRectangle, Color.FromArgb(229, 231, 235), ButtonBorderStyle.Solid);
 
-            filterBar.Paint += (s, e) => ControlPaint.DrawBorder(
-                e.Graphics,
-                filterBar.ClientRectangle,
-                Color.FromArgb(229, 231, 235),
-                ButtonBorderStyle.Solid);
+            var title = new Label
+            {
+                Text = "Business Intelligence Reports",
+                AutoSize = true,
+                Location = new Point(18, 10),
+                Font = new Font("Segoe UI Semibold", 15F, FontStyle.Bold),
+                ForeColor = Color.FromArgb(79, 70, 229)
+            };
+            var subtitle = new Label
+            {
+                Text = "Choose a report, branch, and date range, then generate the results.",
+                AutoSize = true,
+                Location = new Point(20, 39),
+                Font = new Font("Segoe UI", 8.5F),
+                ForeColor = Color.FromArgb(107, 114, 128)
+            };
+            header.Controls.Add(title);
+            header.Controls.Add(subtitle);
+
+            var filterBar = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Top,
+                Height = 64,
+                BackColor = Color.White,
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = false,
+                AutoScroll = true,
+                Padding = new Padding(12, 10, 12, 8),
+                Margin = new Padding(0)
+            };
+            filterBar.Paint += (s, e) => ControlPaint.DrawBorder(e.Graphics, filterBar.ClientRectangle, Color.FromArgb(229, 231, 235), ButtonBorderStyle.Solid);
 
             cbReportType.DropDownStyle = ComboBoxStyle.DropDownList;
             cbReportType.Width = 180;
-            cbReportType.Height = 32;
+            cbReportType.Height = 34;
+            cbReportType.Margin = new Padding(0, 2, 10, 0);
             cbReportType.Items.Clear();
             cbReportType.Items.AddRange(new object[]
             {
@@ -1310,28 +1467,28 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                 "Archived Repairs"
             });
             cbReportType.SelectedIndex = 0;
-            cbReportType.Location = new Point(12, 18);
 
             dtReportFrom.Format = DateTimePickerFormat.Short;
+            dtReportFrom.Width = 120;
+            dtReportFrom.Height = 34;
             dtReportFrom.Value = DateTime.Today.AddMonths(-1);
-            dtReportFrom.Width = 125;
-            dtReportFrom.Height = 32;
-            dtReportFrom.Location = new Point(205, 18);
+            dtReportFrom.Margin = new Padding(0, 2, 10, 0);
 
             dtReportTo.Format = DateTimePickerFormat.Short;
+            dtReportTo.Width = 120;
+            dtReportTo.Height = 34;
             dtReportTo.Value = DateTime.Today;
-            dtReportTo.Width = 125;
-            dtReportTo.Height = 32;
-            dtReportTo.Location = new Point(345, 18);
+            dtReportTo.Margin = new Padding(0, 2, 10, 0);
 
             btnGenerateReport.Text = "Generate Report";
             btnGenerateReport.Width = 135;
-            btnGenerateReport.Height = 32;
-            btnGenerateReport.Location = new Point(485, 17);
+            btnGenerateReport.Height = 34;
+            btnGenerateReport.Margin = new Padding(0, 2, 0, 0);
             btnGenerateReport.BackColor = Color.FromArgb(79, 70, 229);
             btnGenerateReport.ForeColor = Color.White;
             btnGenerateReport.FlatStyle = FlatStyle.Flat;
             btnGenerateReport.FlatAppearance.BorderSize = 0;
+            btnGenerateReport.Click -= (s, e) => GenerateSelectedReport();
             btnGenerateReport.Click += (s, e) => GenerateSelectedReport();
 
             filterBar.Controls.Add(cbReportType);
@@ -1339,10 +1496,16 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
             filterBar.Controls.Add(dtReportTo);
             filterBar.Controls.Add(btnGenerateReport);
 
-            Panel reportCard = CreateCardPanel();
-            reportCard.Padding = new Padding(10);
+            var reportCard = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = Color.White,
+                Padding = new Padding(12),
+                Margin = new Padding(0)
+            };
+            reportCard.Paint += (s, e) => ControlPaint.DrawBorder(e.Graphics, reportCard.ClientRectangle, Color.FromArgb(229, 231, 235), ButtonBorderStyle.Solid);
 
-            TableLayoutPanel reportLayout = new TableLayoutPanel
+            var reportLayout = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
                 ColumnCount = 1,
@@ -1350,36 +1513,28 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                 Margin = new Padding(0),
                 Padding = new Padding(0)
             };
-
             reportLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
-            reportLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 62F));
+            reportLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 54F));
             reportLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-            reportLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 35F));
+            reportLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 34F));
 
-            Panel reportHeader = new Panel
+            var reportHeader = new Panel { Dock = DockStyle.Fill, Margin = new Padding(0) };
+            var reportTitle = new Label
             {
-                Dock = DockStyle.Fill,
-                Margin = new Padding(0)
-            };
-
-            Label reportTitle = new Label
-            {
-                Text = "Business Intelligence Reports",
-                Location = new Point(10, 2),
+                Text = "Report Results",
+                Location = new Point(2, 1),
                 AutoSize = true,
-                Font = new Font("Segoe UI Semibold", 13F, FontStyle.Bold),
-                ForeColor = Color.FromArgb(124, 58, 237)
+                Font = new Font("Segoe UI Semibold", 12F, FontStyle.Bold),
+                ForeColor = Color.FromArgb(17, 24, 39)
             };
-
-            Label reportSubtitle = new Label
+            var reportSubtitle = new Label
             {
-                Text = "Select a report and date range, then generate the table below.",
-                Location = new Point(10, 32),
+                Text = "Generated data appears below.",
+                Location = new Point(2, 28),
                 AutoSize = true,
-                Font = new Font("Segoe UI", 9F),
+                Font = new Font("Segoe UI", 8.5F),
                 ForeColor = Color.FromArgb(107, 114, 128)
             };
-
             reportHeader.Controls.Add(reportTitle);
             reportHeader.Controls.Add(reportSubtitle);
 
@@ -1389,7 +1544,6 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
 
             lblReportSummary.AutoSize = false;
             lblReportSummary.Dock = DockStyle.Fill;
-            lblReportSummary.Height = 35;
             lblReportSummary.TextAlign = ContentAlignment.MiddleLeft;
             lblReportSummary.ForeColor = Color.FromArgb(107, 114, 128);
             lblReportSummary.Margin = new Padding(0);
@@ -1397,11 +1551,11 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
             reportLayout.Controls.Add(reportHeader, 0, 0);
             reportLayout.Controls.Add(dgvReport, 0, 1);
             reportLayout.Controls.Add(lblReportSummary, 0, 2);
-
             reportCard.Controls.Add(reportLayout);
 
             panelBI_Reports.Controls.Add(reportCard);
             panelBI_Reports.Controls.Add(filterBar);
+            panelBI_Reports.Controls.Add(header);
 
             GenerateSelectedReport();
         }
@@ -1621,22 +1775,25 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
         private void BuildGraphsView()
         {
             panelBI_Graphs.Dock = DockStyle.Fill;
-            panelBI_Graphs.BackColor = Color.Transparent;
-
+            panelBI_Graphs.BackColor = Color.FromArgb(243, 244, 246);
             panelBI_Graphs.AutoScroll = true;
+            panelBI_Graphs.Padding = new Padding(8);
+            panelBI_Graphs.Controls.Clear();
 
-            TableLayoutPanel layout = new TableLayoutPanel
+            var layout = new TableLayoutPanel
             {
-                Dock = DockStyle.Fill,
+                Dock = DockStyle.Top,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 ColumnCount = 2,
                 RowCount = 4,
-                Padding = new Padding(0),
-                AutoScroll = true
+                Margin = new Padding(0),
+                Padding = new Padding(0)
             };
             layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
             layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50F));
             for (int i = 0; i < 4; i++)
-                layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 250F));
+                layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 280F));
 
             layout.Controls.Add(CreateGraphCard("Sales Pipeline by Stage", "graphPipeline"), 0, 0);
             layout.Controls.Add(CreateGraphCard("Closed Deals by Staff", "graphStaff"), 1, 0);
@@ -1652,22 +1809,52 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
 
         private Panel CreateGraphCard(string title, string graphName)
         {
-            Panel card = CreateCardPanel();
-            card.Padding = new Padding(15, 55, 15, 15);
-            AddHeader(card, title, "Current CRM data");
+            var card = new Panel
+            {
+                Dock = DockStyle.Fill,
+                Margin = new Padding(6),
+                Padding = new Padding(12),
+                BackColor = Color.White
+            };
+            card.Paint += (s, e) => ControlPaint.DrawBorder(e.Graphics, card.ClientRectangle, Color.FromArgb(229,231,235), ButtonBorderStyle.Solid);
+
+            var header = new Panel { Dock = DockStyle.Top, Height = 48, Margin = new Padding(0) };
+            var titleLabel = new Label
+            {
+                Text = title,
+                Dock = DockStyle.Top,
+                Height = 24,
+                Font = new Font("Segoe UI Semibold", 11F, FontStyle.Bold),
+                ForeColor = Color.FromArgb(79,70,229),
+                AutoEllipsis = true
+            };
+            var subtitle = new Label
+            {
+                Text = "Current CRM data",
+                Dock = DockStyle.Fill,
+                Font = new Font("Segoe UI", 8.5F),
+                ForeColor = Color.FromArgb(107,114,128),
+                AutoEllipsis = true
+            };
+            header.Controls.Add(subtitle);
+            header.Controls.Add(titleLabel);
+
             Panel graph = new Panel
             {
                 Name = graphName,
                 Dock = DockStyle.Fill,
                 BackColor = Color.White,
-                AutoScroll = true
+                AutoScroll = true,
+                Margin = new Padding(0)
             };
             graph.Resize += (s, e) =>
             {
                 if (graph.ClientSize.Width > 0 && graph.ClientSize.Height > 0)
                     DrawSimpleBars(graph, GetGraphData(graph.Name));
             };
+
             card.Controls.Add(graph);
+            card.Controls.Add(header);
             return card;
         }
 
