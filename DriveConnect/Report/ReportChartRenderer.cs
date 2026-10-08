@@ -5,6 +5,7 @@ using System.Drawing.Drawing2D;
 using System.Linq;
 using System.IO;
 using System.Drawing.Text;
+using System.Windows.Forms;
 
 namespace DriveConnect.winforms.Report;
 
