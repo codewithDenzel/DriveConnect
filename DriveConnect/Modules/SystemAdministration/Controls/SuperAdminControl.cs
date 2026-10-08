@@ -284,14 +284,18 @@ public sealed class SuperAdminControl : UserControl
         {
             button.BackColor = Color.White;
             button.ForeColor = Color.FromArgb(75, 85, 99);
-            button.FlatAppearance.BorderColor = Color.Transparent;
+            button.FlatAppearance.BorderSize = 0;
         }
 
         if (activeButton == null)
+        {
+            _activeNavButton = null;
             return;
+        }
 
         activeButton.BackColor = Color.FromArgb(245, 243, 255);
         activeButton.ForeColor = Color.FromArgb(109, 40, 217);
+        activeButton.FlatAppearance.BorderSize = 1;
         activeButton.FlatAppearance.BorderColor = Color.FromArgb(124, 58, 237);
         _activeNavButton = activeButton;
     }
