@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Linq;
+using System.IO;
 using System.Drawing.Text;
 
 namespace DriveConnect.winforms.Report;
