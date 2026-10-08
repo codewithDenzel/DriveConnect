@@ -21,13 +21,20 @@ BEGIN TRY
             CONSTRAINT DF_Subscriptions_BillingAmount DEFAULT (0);
     END;
 
-    UPDATE dbo.Subscriptions
-    SET BillingAmount = MonthlyFee
-    WHERE BillingAmount = 0 AND MonthlyFee > 0;
+    /*
+       SQL Server can compile a whole batch before the ALTER TABLE statements
+       are executed. Use dynamic SQL for the statements that reference the
+       newly-added columns so the columns are resolved after they exist.
+    */
+    EXEC sys.sp_executesql N'
+        UPDATE dbo.Subscriptions
+        SET BillingAmount = MonthlyFee
+        WHERE BillingAmount = 0 AND MonthlyFee > 0;
 
-    UPDATE dbo.Subscriptions
-    SET BillingCycle = 'Monthly'
-    WHERE BillingCycle IS NULL OR LTRIM(RTRIM(BillingCycle)) = '';
+        UPDATE dbo.Subscriptions
+        SET BillingCycle = ''Monthly''
+        WHERE BillingCycle IS NULL OR LTRIM(RTRIM(BillingCycle)) = '''';
+    ';
 
     IF OBJECT_ID(N'dbo.__EFMigrationsHistory', N'U') IS NOT NULL
        AND NOT EXISTS
