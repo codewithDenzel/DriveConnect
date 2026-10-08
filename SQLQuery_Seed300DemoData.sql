@@ -34,6 +34,64 @@ DECLARE @Branch1 INT = 1;
 DECLARE @Branch2 INT = 2;
 DECLARE @Now DATETIME2 = SYSUTCDATETIME();
 
+DECLARE @StaffBranch1 NVARCHAR(100);
+DECLARE @StaffBranch2 NVARCHAR(100);
+DECLARE @AdminName NVARCHAR(100);
+
+SELECT TOP (1)
+    @StaffBranch1 = COALESCE(
+        NULLIF(CONCAT_WS(' ',
+            NULLIF(LTRIM(RTRIM(FirstName)), ''),
+            NULLIF(LTRIM(RTRIM(MiddleName)), ''),
+            NULLIF(LTRIM(RTRIM(LastName)), '')
+        ), ''),
+        Username
+    )
+FROM DriveConnectMaster.dbo.AppUsers
+WHERE Role = 'Staff'
+  AND IsActive = 1
+  AND BranchId = @Branch1
+ORDER BY UserId;
+
+SELECT TOP (1)
+    @StaffBranch2 = COALESCE(
+        NULLIF(CONCAT_WS(' ',
+            NULLIF(LTRIM(RTRIM(FirstName)), ''),
+            NULLIF(LTRIM(RTRIM(MiddleName)), ''),
+            NULLIF(LTRIM(RTRIM(LastName)), '')
+        ), ''),
+        Username
+    )
+FROM DriveConnectMaster.dbo.AppUsers
+WHERE Role = 'Staff'
+  AND IsActive = 1
+  AND BranchId = @Branch2
+ORDER BY UserId;
+
+SELECT TOP (1)
+    @AdminName = COALESCE(
+        NULLIF(CONCAT_WS(' ',
+            NULLIF(LTRIM(RTRIM(FirstName)), ''),
+            NULLIF(LTRIM(RTRIM(MiddleName)), ''),
+            NULLIF(LTRIM(RTRIM(LastName)), '')
+        ), ''),
+        Username
+    )
+FROM DriveConnectMaster.dbo.AppUsers
+WHERE Role = 'Admin'
+  AND IsActive = 1
+ORDER BY UserId;
+
+IF @StaffBranch1 IS NULL
+    THROW 50003, 'No active Staff account was found for Branch 1.', 1;
+
+IF @StaffBranch2 IS NULL
+    THROW 50004, 'No active Staff account was found for Branch 2.', 1;
+
+IF @AdminName IS NULL
+    THROW 50005, 'No active Admin account was found.', 1;
+
+
 -- Safety check: make sure the two branches supplied above are actually used by the system.
 IF @Branch1 = @Branch2
     THROW 50001, 'Branch 1 and Branch 2 cannot be the same.', 1;
@@ -127,12 +185,7 @@ BEGIN TRY
             END,
             @SalesStatus,
             CAST(850000 + ((@i * 37500) % 2200000) AS DECIMAL(18,2)),
-            CASE @i % 4
-                WHEN 0 THEN 'Juan Dela Cruz'
-                WHEN 1 THEN 'Maria Santos'
-                WHEN 2 THEN 'Carlo Reyes'
-                ELSE 'Angela Cruz'
-            END,
+            CASE WHEN @i % 2 = 0 THEN @StaffBranch1 ELSE @StaffBranch2 END,
             @SalesCreated,
             CASE
                 WHEN @SalesStatus IN ('Closed Won', 'Closed Lost', 'Archived')
@@ -214,12 +267,7 @@ BEGIN TRY
             END,
             @RepairStatus,
             CAST(3500 + ((@i * 725) % 42000) AS DECIMAL(18,2)),
-            CASE @i % 4
-                WHEN 0 THEN 'Juan Dela Cruz'
-                WHEN 1 THEN 'Maria Santos'
-                WHEN 2 THEN 'Carlo Reyes'
-                ELSE 'Angela Cruz'
-            END,
+            CASE WHEN @i % 2 = 0 THEN @StaffBranch1 ELSE @StaffBranch2 END,
             @RepairCreated,
             CASE
                 WHEN @RepairStatus IN ('Repaired', 'Archived')
@@ -281,13 +329,9 @@ BEGIN TRY
             CAST(CASE WHEN @i % 2 = 0 THEN 5 + (@i % 11) ELSE 2000 + (@i * 250) END AS DECIMAL(18,2)),
             DATEADD(DAY, -30 + (@i * 2), @Now),
             DATEADD(DAY, 15 + (@i * 3), @Now),
-            CASE @i % 3
-                WHEN 0 THEN 'Juan Dela Cruz'
-                WHEN 1 THEN 'Maria Santos'
-                ELSE 'Carlo Reyes'
-            END,
+            CASE WHEN @i % 2 = 0 THEN @StaffBranch1 ELSE @StaffBranch2 END,
             CASE
-                WHEN @PromotionStatus = 'Active' THEN 'Admin Manager'
+                WHEN @PromotionStatus IN ('Active', 'Expired') THEN @AdminName
                 ELSE NULL
             END,
             @PromotionStatus,
@@ -349,12 +393,7 @@ BEGIN TRY
                 WHEN 3 THEN 'Acceptable service but room for improvement.'
                 ELSE 'Customer reported concerns requiring follow-up.'
             END,
-            CASE @i % 4
-                WHEN 0 THEN 'Juan Dela Cruz'
-                WHEN 1 THEN 'Maria Santos'
-                WHEN 2 THEN 'Carlo Reyes'
-                ELSE 'Angela Cruz'
-            END,
+            CASE WHEN @i % 2 = 0 THEN @StaffBranch1 ELSE @StaffBranch2 END,
             @FeedbackStatus,
             @FeedbackCreated,
             CASE
@@ -420,12 +459,7 @@ BEGIN TRY
             END,
             'Sample complaint created for management reporting and follow-up testing.',
             @Priority,
-            CASE @i % 4
-                WHEN 0 THEN 'Juan Dela Cruz'
-                WHEN 1 THEN 'Maria Santos'
-                WHEN 2 THEN 'Carlo Reyes'
-                ELSE 'Angela Cruz'
-            END,
+            CASE WHEN @i % 2 = 0 THEN @StaffBranch1 ELSE @StaffBranch2 END,
             @ComplaintStatus,
             CASE
                 WHEN @ComplaintStatus IN ('Resolved', 'Closed')
@@ -557,12 +591,7 @@ BEGIN TRY
                 ELSE 'Parts failure'
             END,
             @ClaimDate,
-            CASE @i % 4
-                WHEN 0 THEN 'Juan Dela Cruz'
-                WHEN 1 THEN 'Maria Santos'
-                WHEN 2 THEN 'Carlo Reyes'
-                ELSE 'Angela Cruz'
-            END,
+            CASE WHEN @i % 2 = 0 THEN @StaffBranch1 ELSE @StaffBranch2 END,
             @ClaimStatus,
             CASE
                 WHEN @ClaimStatus = 'Resolved' THEN 'Warranty claim approved and service completed.'
@@ -632,12 +661,7 @@ BEGIN TRY
                 WHEN 1 THEN 'Premium Plan'
                 ELSE 'Customer Paid'
             END,
-            CASE @i % 4
-                WHEN 0 THEN 'Juan Dela Cruz'
-                WHEN 1 THEN 'Maria Santos'
-                WHEN 2 THEN 'Carlo Reyes'
-                ELSE 'Angela Cruz'
-            END,
+            CASE WHEN @i % 2 = 0 THEN @StaffBranch1 ELSE @StaffBranch2 END,
             @MaintenanceStatus,
             'Demo maintenance record for operational and BI testing.'
         );
@@ -681,12 +705,7 @@ BEGIN TRY
                 ELSE 'Customer inquiry'
             END,
             'Demo interaction record for customer history testing.',
-            CASE @i % 4
-                WHEN 0 THEN 'Juan Dela Cruz'
-                WHEN 1 THEN 'Maria Santos'
-                WHEN 2 THEN 'Carlo Reyes'
-                ELSE 'Angela Cruz'
-            END,
+            CASE WHEN @i % 2 = 0 THEN @StaffBranch1 ELSE @StaffBranch2 END,
             DATEADD(DAY, -((@i * 10) % 180), @Now)
         );
 
