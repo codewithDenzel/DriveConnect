@@ -1473,11 +1473,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
             cbReportBranch.Width = 180;
             cbReportBranch.Height = 34;
             cbReportBranch.Margin = new Padding(0, 2, 10, 0);
-            cbReportBranch.Items.Clear();
-            cbReportBranch.Items.Add(new ReportBranchChoice(null, "All Branches"));
-            foreach (var branch in _allBranches.Where(x => x.IsActive).OrderBy(x => x.BranchName))
-                cbReportBranch.Items.Add(new ReportBranchChoice(branch.BranchId, branch.BranchName));
-            cbReportBranch.SelectedIndex = 0;
+            RefreshReportBranchOptions();
             cbReportBranch.BackColor = Color.White;
             cbReportBranch.ForeColor = Color.FromArgb(55, 65, 81);
 
@@ -1571,7 +1567,22 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
             panelBI_Reports.Controls.Add(filterBar);
             panelBI_Reports.Controls.Add(header);
 
-            GenerateSelectedReport();
+        }
+
+        private void RefreshReportBranchOptions()
+        {
+            var currentId = (cbReportBranch.SelectedItem as ReportBranchChoice)?.Id;
+            cbReportBranch.Items.Clear();
+            cbReportBranch.Items.Add(new ReportBranchChoice(null, "All Branches"));
+
+            foreach (var branch in _allBranches.Where(x => x.IsActive).OrderBy(x => x.BranchName))
+                cbReportBranch.Items.Add(new ReportBranchChoice(branch.BranchId, branch.BranchName));
+
+            var selected = cbReportBranch.Items
+                .OfType<ReportBranchChoice>()
+                .FirstOrDefault(x => x.Id == currentId);
+
+            cbReportBranch.SelectedItem = selected ?? cbReportBranch.Items[0];
         }
 
         private void GenerateSelectedReport()
@@ -1852,6 +1863,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                 _allSales = await _apiService.GetSalesAsync(CurrentCompanyId) ?? new List<SalesLead>();
                 _allRepairs = await _apiService.GetRepairsAsync(CurrentCompanyId) ?? new List<RepairTicket>();
                 await LoadBranchesAsync();
+                RefreshReportBranchOptions();
                 await LoadAdditionalDataAsync();
 
                 if (currentMainTab == "Business Intelligence")
