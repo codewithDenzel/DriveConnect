@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using DriveConnect.domain.Entities;
+using DriveConnect.domain.DTO;
 using DriveConnect.winforms.Services;
 using DriveConnect.winforms.Modules.SystemAdministration.Controls;
 
@@ -79,14 +80,34 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
         private UserManagementControl? userManagementControl;
 
         private readonly CrmApiService _apiService = new CrmApiService();
-        private const int CurrentCompanyId = 1;
+        private TenantPlanFeatures _tenantPlanFeatures = new();
+        private int CurrentCompanyId => UserSession.CompanyId;
 
         public CustomerRecordsControl()
         {
             InitializeComponent();
             this.Controls.Clear();
+            _ = InitializeTenantWorkspaceAsync();
+        }
+
+        private async Task InitializeTenantWorkspaceAsync()
+        {
+            try
+            {
+                _tenantPlanFeatures = await _apiService.GetTenantPlanFeaturesAsync(CurrentCompanyId);
+            }
+            catch
+            {
+                // If plan information cannot be loaded, default to the Basic feature set.
+                _tenantPlanFeatures = new TenantPlanFeatures();
+            }
+
+            if (IsDisposed)
+                return;
+
+            _allAccordionButtons.Clear();
             SetupLightModernUI();
-            _ = LoadDataFromApiAsync();
+            await LoadDataFromApiAsync();
         }
 
         private bool IsAdminRole()
@@ -175,16 +196,29 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                 AutoScroll = true
             };
 
+            // The static dashboard and exportable reports are available on every plan.
+            sidebarFlow.Controls.Add(CreateAccordion("nav_dashboard", "🏠 Dashboard",
+                new[] { "Overview" }));
+
             if (IsAdminRole())
             {
-                sidebarFlow.Controls.Add(CreateAccordion("nav_bi", "📊 Business Intelligence",
-                    new[] { "Analytics", "Reports" }));
+                if (_tenantPlanFeatures.CanUseBusinessIntelligence)
+                {
+                    sidebarFlow.Controls.Add(CreateAccordion("nav_bi", "📊 Business Intelligence",
+                        new[] { "Analytics" }));
+                }
+
+                sidebarFlow.Controls.Add(CreateAccordion("nav_reports", "📈 Reports",
+                    new[] { "Generate Reports" }));
 
                 sidebarFlow.Controls.Add(CreateAccordion("nav_users", "👤 Staff Management",
                     new[] { "Manage Staff" }));
 
-                sidebarFlow.Controls.Add(CreateAccordion("nav_branching", "🏢 Branching",
-                    new[] { "Manage Branches" }));
+                if (_tenantPlanFeatures.CanUseBranching)
+                {
+                    sidebarFlow.Controls.Add(CreateAccordion("nav_branching", "🏢 Branching",
+                        new[] { "Manage Branches" }));
+                }
             }
 
             if (IsStaffRole())
@@ -196,12 +230,15 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                     new[] { "New Diagnose", "In Repair", "Waiting for Parts", "Repaired", "Ready for Pickup", "Picked Up" }));
             }
 
-            sidebarFlow.Controls.Add(CreateAccordion(
-                "nav_promotions2",
-                "📢 Promotions",
-                IsAdminRole()
-                    ? new[] { "Pending Approval", "Active Promos" }
-                    : new[] { "Active Promos", "Drafts" }));
+            if (_tenantPlanFeatures.CanUsePromotions)
+            {
+                sidebarFlow.Controls.Add(CreateAccordion(
+                    "nav_promotions2",
+                    "📢 Promotions",
+                    IsAdminRole()
+                        ? new[] { "Pending Approval", "Active Promos" }
+                        : new[] { "Active Promos", "Drafts" }));
+            }
 
             sidebarFlow.Controls.Add(CreateAccordion("nav_history", "🕒 Customer History",
                 new[] { "Customer Profile", "Sales and Lead History", "Service and Repair History", "Interaction History", "Feedback History", "Complaint History", "Warranty History", "Maintenance History" }));
@@ -331,7 +368,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
             this.Controls.Add(sidebarPanel);
             mainContentPanel.BringToFront();
 
-            TriggerTabSwitch("Car Sales and Leads", "New Inquiry", null);
+            TriggerTabSwitch("Dashboard", "Overview", null);
         }
 
         // --- ACCORDION GENERATOR ---
@@ -344,7 +381,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
 
             Panel subContainer = new Panel { AutoSize = true, Width = 270, Dock = DockStyle.Top, Visible = false };
 
-            string cleanMainTitle = mainTitle.Replace("📊 ", "").Replace("👤 ", "").Replace("🏢 ", "").Replace("🚗 ", "").Replace("🔧 ", "").Replace("📢 ", "").Replace("🕒 ", "").Replace("💬 ", "").Replace("⚠ ", "").Replace("🛡 ", "").Replace("🧰 ", "").Replace("📁 ", "").Trim();
+            string cleanMainTitle = mainTitle.Replace("📊 ", "").Replace("👤 ", "").Replace("🏢 ", "").Replace("🚗 ", "").Replace("🔧 ", "").Replace("📢 ", "").Replace("🕒 ", "").Replace("💬 ", "").Replace("⚠ ", "").Replace("🛡 ", "").Replace("🧰 ", "").Replace("📁 ", "").Replace("🏠 ", "").Replace("📈 ", "").Trim();
 
             for (int i = subTitles.Length - 1; i >= 0; i--)
             {
@@ -423,7 +460,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
 
             if (mainTab == "Branching")
             {
-                if (!IsAdminRole())
+                if (!IsAdminRole() || !_tenantPlanFeatures.CanUseBranching)
                     return;
 
                 topActionBar.Visible = true;
@@ -436,9 +473,32 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                 lblPlaceholderMessage.Visible = false;
                 BindBranchGrid();
             }
+            else if (mainTab == "Dashboard")
+            {
+                if (!_tenantPlanFeatures.CanUseStaticDashboard)
+                    return;
+
+                topActionBar.Visible = false;
+                txtSearch.Visible = false;
+                btnNewRecord.Visible = false;
+                panelBI_Dashboard.Visible = true;
+                panelBI_Dashboard.BringToFront();
+                RefreshDashboardMetrics();
+            }
+            else if (mainTab == "Reports")
+            {
+                if (!IsAdminRole() || !_tenantPlanFeatures.CanGenerateReports)
+                    return;
+
+                topActionBar.Visible = false;
+                txtSearch.Visible = false;
+                btnNewRecord.Visible = false;
+                panelBI_Reports.Visible = true;
+                panelBI_Reports.BringToFront();
+            }
             else if (mainTab == "Business Intelligence")
             {
-                if (!IsAdminRole())
+                if (!IsAdminRole() || !_tenantPlanFeatures.CanUseBusinessIntelligence)
                     return;
 
                 topActionBar.Visible = false;
@@ -1523,7 +1583,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
 
             header.Controls.Add(new Label
             {
-                Text = "Business Intelligence Reports",
+                Text = "Reports",
                 AutoSize = true,
                 Location = new Point(18, 10),
                 Font = new Font("Segoe UI Semibold", 15F, FontStyle.Bold),
@@ -1532,7 +1592,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
 
             header.Controls.Add(new Label
             {
-                Text = "Select a report, branch, and date range, then generate the management report preview.",
+                Text = _tenantPlanFeatures.CanUseBranching\n                    ? "Select a report, branch, and date range, then generate the management report preview."\n                    : "Select a report and date range, then generate an exportable report.",
                 AutoSize = true,
                 Location = new Point(20, 39),
                 Font = new Font("Segoe UI", 8.5F),
@@ -1577,6 +1637,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
             cbReportType.SelectedIndex = 0;
 
             cbReportBranch.DropDownStyle = ComboBoxStyle.DropDownList;
+            cbReportBranch.Visible = _tenantPlanFeatures.CanUseBranching;
             cbReportBranch.Width = 180;
             cbReportBranch.Height = 34;
             cbReportBranch.Margin = new Padding(0, 2, 10, 0);
@@ -1968,7 +2029,11 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                 RefreshReportBranchOptions();
                 await LoadAdditionalDataAsync();
 
-                if (currentMainTab == "Business Intelligence")
+                if (currentMainTab == "Dashboard")
+                {
+                    RefreshDashboardMetrics();
+                }
+                else if (currentMainTab == "Business Intelligence")
                 {
                     if (currentSubTab == "Analytics")
                         RefreshAnalyticsView();
@@ -1979,7 +2044,7 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
                         RefreshGraphsView();
                     }
                 }
-                else
+                else if (currentMainTab != "Reports")
                 {
                     FilterAndBindGrid();
                 }
