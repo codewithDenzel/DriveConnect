@@ -1,5 +1,6 @@
 using DriveConnect.domain.Entities;
 using DriveConnect.infrastructure.Data;
+using DriveConnect.infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -12,10 +13,14 @@ namespace DriveConnect.api.Controllers;
 public sealed class BranchesController : ControllerBase
 {
     private readonly MasterDriveConnectDbContext _masterDb;
+    private readonly ITenantPlanService _tenantPlanService;
 
-    public BranchesController(MasterDriveConnectDbContext masterDb)
+    public BranchesController(
+        MasterDriveConnectDbContext masterDb,
+        ITenantPlanService tenantPlanService)
     {
         _masterDb = masterDb;
+        _tenantPlanService = tenantPlanService;
     }
 
     [HttpGet]
@@ -41,6 +46,10 @@ public sealed class BranchesController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<Branch>> Create(int companyId, Branch branch)
     {
+        if (!(await _tenantPlanService.GetFeaturesAsync(companyId)).CanUseBranching)
+            return StatusCode(StatusCodes.Status403Forbidden, "Branch management requires the Pro Max plan.");
+
+
         if (string.IsNullOrWhiteSpace(branch.BranchCode) ||
             string.IsNullOrWhiteSpace(branch.BranchName))
         {
@@ -87,6 +96,10 @@ public sealed class BranchesController : ControllerBase
     [HttpPut("{id:int}")]
     public async Task<ActionResult<Branch>> Update(int companyId, int id, Branch updated)
     {
+        if (!(await _tenantPlanService.GetFeaturesAsync(companyId)).CanUseBranching)
+            return StatusCode(StatusCodes.Status403Forbidden, "Branch management requires the Pro Max plan.");
+
+
         var branch = await _masterDb.Branches
             .FirstOrDefaultAsync(x => x.BranchId == id && x.CompanyId == companyId);
 
@@ -127,6 +140,10 @@ public sealed class BranchesController : ControllerBase
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int companyId, int id)
     {
+        if (!(await _tenantPlanService.GetFeaturesAsync(companyId)).CanUseBranching)
+            return StatusCode(StatusCodes.Status403Forbidden, "Branch management requires the Pro Max plan.");
+
+
         var branch = await _masterDb.Branches
             .FirstOrDefaultAsync(x => x.BranchId == id && x.CompanyId == companyId);
 
