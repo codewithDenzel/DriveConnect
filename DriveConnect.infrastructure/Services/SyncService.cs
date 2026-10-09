@@ -61,6 +61,35 @@ CREATE INDEX IX_SyncQueue_Pending ON dbo.SyncQueue(SyncedAt,CreatedAt,SyncQueueI
                 ("@e",entityType),("@o",operation),("@l",localId),("@s",syncId),("@p",(object?)json??DBNull.Value));
         }
 
+        public async Task<bool> EnqueueIfMissingAsync(
+            TenantDriveConnectDbContext db,
+            string entityType,
+            string operation,
+            int localId,
+            object? payload)
+        {
+            await EnsureSchemaAsync(db);
+            var cn = db.Database.GetDbConnection();
+            if (cn.State != ConnectionState.Open) await cn.OpenAsync();
+
+            await using var cmd = cn.CreateCommand();
+            cmd.CommandText = @"
+SELECT CASE WHEN EXISTS (
+    SELECT 1
+    FROM dbo.SyncQueue
+    WHERE EntityType = @e AND LocalId = @l
+) THEN 1 ELSE 0 END";
+            Add(cmd, "@e", entityType);
+            Add(cmd, "@l", localId);
+
+            var exists = Convert.ToInt32(await cmd.ExecuteScalarAsync()) == 1;
+            if (exists)
+                return false;
+
+            await EnqueueAsync(db, entityType, operation, localId, payload);
+            return true;
+        }
+
         public async Task<IReadOnlyList<SyncQueueItem>> GetPendingAsync(TenantDriveConnectDbContext db,int take=25)
         {
             await EnsureSchemaAsync(db);
