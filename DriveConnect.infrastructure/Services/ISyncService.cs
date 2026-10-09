@@ -16,6 +16,13 @@ namespace DriveConnect.infrastructure.Services
             int localId,
             object? payload);
 
+        Task<bool> EnqueueIfMissingAsync(
+            TenantDriveConnectDbContext db,
+            string entityType,
+            string operation,
+            int localId,
+            object? payload);
+
         Task<IReadOnlyList<SyncQueueItem>> GetPendingAsync(
             TenantDriveConnectDbContext db,
             int take = 25);
