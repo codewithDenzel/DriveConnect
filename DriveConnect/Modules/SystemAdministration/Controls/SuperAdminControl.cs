@@ -590,13 +590,12 @@ public sealed class SuperAdminControl : UserControl
 
         AddFormLabel(form, 1, "Plan Name");
         _subscriptionPlanCombo = CreateComboBox();
-        _subscriptionPlanCombo.DropDownStyle = ComboBoxStyle.DropDown;
+        _subscriptionPlanCombo.DropDownStyle = ComboBoxStyle.DropDownList;
         _subscriptionPlanCombo.Items.AddRange(new object[]
         {
-            "Starter",
-            "Professional",
-            "Enterprise",
-            "Custom"
+            "Basic",
+            "Pro",
+            "Pro Max"
         });
         form.Controls.Add(_subscriptionPlanCombo, 1, 1);
 
