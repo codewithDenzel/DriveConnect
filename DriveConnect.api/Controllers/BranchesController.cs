@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using DriveConnect.domain.Entities;
 using DriveConnect.infrastructure.Data;
 using DriveConnect.infrastructure.Services;
@@ -23,9 +24,23 @@ public sealed class BranchesController : ControllerBase
         _tenantPlanService = tenantPlanService;
     }
 
+    private bool CanAccessCompany(int companyId)
+    {
+        var role = User.FindFirstValue(ClaimTypes.Role);
+
+        if (string.Equals(role, "Super Admin", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        return int.TryParse(User.FindFirstValue("companyId"), out var userCompanyId)
+            && userCompanyId == companyId;
+    }
+
     [HttpGet]
     public async Task<ActionResult<List<Branch>>> GetAll(int companyId)
     {
+        if (!CanAccessCompany(companyId))
+            return Forbid();
+
         var companyExists = await _masterDb.Companies
             .AsNoTracking()
             .AnyAsync(x => x.CompanyId == companyId && x.IsActive);
@@ -46,6 +61,9 @@ public sealed class BranchesController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<Branch>> Create(int companyId, Branch branch)
     {
+        if (!CanAccessCompany(companyId))
+            return Forbid();
+
         if (!(await _tenantPlanService.GetFeaturesAsync(companyId)).CanUseBranching)
             return StatusCode(StatusCodes.Status403Forbidden, "Branch management requires the Pro Max plan.");
 
@@ -96,6 +114,9 @@ public sealed class BranchesController : ControllerBase
     [HttpPut("{id:int}")]
     public async Task<ActionResult<Branch>> Update(int companyId, int id, Branch updated)
     {
+        if (!CanAccessCompany(companyId))
+            return Forbid();
+
         if (!(await _tenantPlanService.GetFeaturesAsync(companyId)).CanUseBranching)
             return StatusCode(StatusCodes.Status403Forbidden, "Branch management requires the Pro Max plan.");
 
@@ -140,6 +161,9 @@ public sealed class BranchesController : ControllerBase
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int companyId, int id)
     {
+        if (!CanAccessCompany(companyId))
+            return Forbid();
+
         if (!(await _tenantPlanService.GetFeaturesAsync(companyId)).CanUseBranching)
             return StatusCode(StatusCodes.Status403Forbidden, "Branch management requires the Pro Max plan.");
 
