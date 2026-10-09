@@ -1151,6 +1151,23 @@ public sealed class SuperAdminControl : UserControl
         }
     }
 
+    private static string NormalizePlanNameForDisplay(string? planName)
+    {
+        if (string.Equals(planName, "Starter", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(planName, "Basic", StringComparison.OrdinalIgnoreCase))
+            return "Basic";
+
+        if (string.Equals(planName, "Professional", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(planName, "Pro", StringComparison.OrdinalIgnoreCase))
+            return "Pro";
+
+        if (string.Equals(planName, "Enterprise", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(planName, "Pro Max", StringComparison.OrdinalIgnoreCase))
+            return "Pro Max";
+
+        return "Basic";
+    }
+
     private void BindSubscription(
         SubscriptionOverview? subscription,
         bool failed)
@@ -1182,7 +1199,7 @@ public sealed class SuperAdminControl : UserControl
             return;
         }
 
-        _subscriptionPlanCombo.Text = subscription.PlanName;
+        _subscriptionPlanCombo.Text = NormalizePlanNameForDisplay(subscription.PlanName);
         _subscriptionBillingCycleCombo.SelectedItem =
             subscription.BillingCycle == "Annual"
                 ? "Annual"
@@ -1204,7 +1221,7 @@ public sealed class SuperAdminControl : UserControl
 
         SetSubscriptionSummary(
             company?.CompanyName ?? "-",
-            subscription.PlanName,
+            NormalizePlanNameForDisplay(subscription.PlanName),
             subscription.BillingCycle,
             $"₱{subscription.BillingAmount:N2}",
             $"{subscription.StartDate.ToLocalTime():MMM dd, yyyy} - {subscription.EndDate.ToLocalTime():MMM dd, yyyy}",
