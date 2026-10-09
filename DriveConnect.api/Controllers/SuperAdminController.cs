@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using DriveConnect.domain.Entities;
 using DriveConnect.infrastructure.Data;
+using DriveConnect.infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -89,6 +90,9 @@ public sealed class SuperAdminController : ControllerBase
         if (string.IsNullOrWhiteSpace(request.PlanName))
             return BadRequest("Plan name is required.");
 
+        if (!TenantPlanCatalog.IsSupportedSelection(request.PlanName))
+            return BadRequest("Plan name must be Basic, Pro, or Pro Max.");
+
         if (!string.Equals(request.BillingCycle, "Monthly", StringComparison.OrdinalIgnoreCase) &&
             !string.Equals(request.BillingCycle, "Annual", StringComparison.OrdinalIgnoreCase))
         {
@@ -130,7 +134,7 @@ public sealed class SuperAdminController : ControllerBase
             _masterDb.Subscriptions.Add(subscription);
         }
 
-        subscription.PlanName = request.PlanName.Trim();
+        subscription.PlanName = TenantPlanCatalog.Normalize(request.PlanName);
         subscription.BillingCycle = billingCycle;
         subscription.BillingAmount = decimal.Round(request.BillingAmount, 2, MidpointRounding.AwayFromZero);
         subscription.MonthlyFee = monthlyEquivalent;
