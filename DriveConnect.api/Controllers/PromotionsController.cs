@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using DriveConnect.domain.Entities;
 using DriveConnect.infrastructure.Services;
+using DriveConnect.infrastructure.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,18 +11,25 @@ namespace DriveConnect.api.Controllers;
 public sealed class PromotionsController : TenantControllerBase
 {
     private readonly ISyncService _syncService;
+    private readonly ITenantPlanService _tenantPlanService;
 
     public PromotionsController(
         ITenantDbContextFactory tenantDbFactory,
-        ISyncService syncService)
+        ISyncService syncService,
+        ITenantPlanService tenantPlanService)
         : base(tenantDbFactory)
     {
         _syncService = syncService;
+        _tenantPlanService = tenantPlanService;
     }
 
     [HttpGet]
     public async Task<ActionResult<List<Promotion>>> GetAll(int companyId)
     {
+        if (!(await _tenantPlanService.GetFeaturesAsync(companyId)).CanUsePromotions)
+            return StatusCode(StatusCodes.Status403Forbidden, "Promotions require the Pro or Pro Max plan.");
+
+
         if (!CanAccessCompany(companyId))
             return Forbid();
 
@@ -42,6 +50,10 @@ public sealed class PromotionsController : TenantControllerBase
     [HttpPost]
     public async Task<ActionResult<Promotion>> Create(int companyId, Promotion item)
     {
+        if (!(await _tenantPlanService.GetFeaturesAsync(companyId)).CanUsePromotions)
+            return StatusCode(StatusCodes.Status403Forbidden, "Promotions require the Pro or Pro Max plan.");
+
+
         if (!CanAccessCompany(companyId) || !IsStaffUser)
             return Forbid();
 
@@ -98,6 +110,10 @@ public sealed class PromotionsController : TenantControllerBase
         int id,
         Promotion updated)
     {
+        if (!(await _tenantPlanService.GetFeaturesAsync(companyId)).CanUsePromotions)
+            return StatusCode(StatusCodes.Status403Forbidden, "Promotions require the Pro or Pro Max plan.");
+
+
         if (!CanAccessCompany(companyId))
             return Forbid();
 
