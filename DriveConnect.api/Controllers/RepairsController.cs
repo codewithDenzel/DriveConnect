@@ -57,9 +57,14 @@ public sealed class RepairsController : TenantControllerBase
     [HttpPut("{id:int}")]
     public async Task<ActionResult<RepairTicket>> Update(int companyId, int id, RepairTicket updated)
     {
+        if (!CanAccessCompany(companyId))
+            return Forbid();
+
         using var tenantDb = await GetTenantDbAsync(companyId);
         var existing = await tenantDb.RepairTickets.FindAsync(id);
         if (existing == null) return NotFound();
+        if (!CanAccessBranch(existing.BranchId))
+            return Forbid();
 
         existing.FirstName = updated.FirstName;
         existing.MiddleName = updated.MiddleName;
@@ -90,9 +95,14 @@ public sealed class RepairsController : TenantControllerBase
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int companyId, int id)
     {
+        if (!CanAccessCompany(companyId))
+            return Forbid();
+
         using var tenantDb = await GetTenantDbAsync(companyId);
         var existing = await tenantDb.RepairTickets.FindAsync(id);
         if (existing == null) return NotFound();
+        if (!CanAccessBranch(existing.BranchId))
+            return Forbid();
 
         tenantDb.RepairTickets.Remove(existing);
         await tenantDb.SaveChangesAsync();
