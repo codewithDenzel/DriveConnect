@@ -20,6 +20,7 @@ public sealed class SyncController : TenantControllerBase
         _applier = applier;
     }
 
+    [AllowAnonymous]
     [HttpPost("apply")]
     public async Task<IActionResult> Apply(int companyId, SyncEnvelope envelope)
     {
