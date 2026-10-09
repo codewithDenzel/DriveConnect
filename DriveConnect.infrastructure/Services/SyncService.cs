@@ -96,7 +96,7 @@ SELECT CASE WHEN EXISTS (
             var cn=db.Database.GetDbConnection();
             if(cn.State!=ConnectionState.Open) await cn.OpenAsync();
             await using var cmd=cn.CreateCommand();
-            cmd.CommandText="SELECT TOP (@n) SyncQueueId,EntityType,Operation,LocalId,SyncId,PayloadJson,CreatedAt,AttemptCount FROM dbo.SyncQueue WHERE SyncedAt IS NULL ORDER BY CreatedAt,SyncQueueId";
+            cmd.CommandText="SELECT TOP (@n) SyncQueueId,EntityType,Operation,LocalId,SyncId,PayloadJson,CreatedAt,AttemptCount FROM dbo.SyncQueue WHERE SyncedAt IS NULL ORDER BY CASE WHEN EntityType = 'WarrantyClaim' THEN 1 ELSE 0 END, CreatedAt, SyncQueueId";
             Add(cmd,"@n",take);
             var list=new List<SyncQueueItem>();
             await using var rd=await cmd.ExecuteReaderAsync();
