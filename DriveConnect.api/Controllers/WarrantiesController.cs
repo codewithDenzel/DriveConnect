@@ -56,6 +56,9 @@ public sealed class WarrantiesController : TenantControllerBase
     [HttpPut("{id:int}")]
     public async Task<ActionResult<VehicleWarranty>> Update(int companyId, int id, VehicleWarranty updated)
     {
+        if (!CanAccessCompany(companyId))
+            return Forbid();
+
         using var tenantDb = await GetTenantDbAsync(companyId);
         var existing = await tenantDb.VehicleWarranties.FindAsync(id);
         if (existing == null) return NotFound();
