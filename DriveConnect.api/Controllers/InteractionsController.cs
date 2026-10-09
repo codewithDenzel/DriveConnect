@@ -57,6 +57,9 @@ public sealed class InteractionsController : TenantControllerBase
     [HttpPut("{id:int}")]
     public async Task<ActionResult<InteractionLog>> Update(int companyId, int id, InteractionLog updated)
     {
+        if (!CanAccessCompany(companyId))
+            return Forbid();
+
         using var tenantDb = await GetTenantDbAsync(companyId);
         var existing = await tenantDb.InteractionLogs.FindAsync(id);
         if (existing == null) return NotFound();
