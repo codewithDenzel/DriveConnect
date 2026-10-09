@@ -15,7 +15,17 @@ The API resolves the tenant database from the company's active `CompanyDatabases
 
 The code cannot create databases inside the hosting provider's control panel. Create the four databases there first and use separate database users/permissions where the host supports them. The master database should not be the same physical database as a tenant database.
 
-Apply the `TenantDriveConnectDbContext` migrations to each tenant database and the `MasterDriveConnectDbContext` migrations to the master database. Do not apply tenant migrations to the master database. Keep a backup before moving existing data.
+Apply the `MasterDriveConnectDbContext` migrations to the master database. For each tenant database, set the environment variable `DRIVECONNECT_TENANT_MIGRATION_CONNECTION` to that tenant's connection string in the terminal used to run EF migrations, then apply the `TenantDriveConnectDbContext` migrations. The design-time tenant context factory uses this variable; without it, migrations target local `DriveConnectTenant1`.
+
+Example PowerShell flow (replace the placeholders and repeat for each tenant database):
+
+```powershell
+$env:DRIVECONNECT_TENANT_MIGRATION_CONNECTION = "Server=YOUR_SQL_SERVER;Database=DriveConnectTenantA;User Id=TENANT_USER;Password=TENANT_PASSWORD;Encrypt=True;TrustServerCertificate=True;"
+dotnet ef database update --context TenantDriveConnectDbContext --project DriveConnect.infrastructure --startup-project DriveConnect.api
+Remove-Item Env:DRIVECONNECT_TENANT_MIGRATION_CONNECTION
+```
+
+Do not apply tenant migrations to the master database. Keep a backup before moving existing data.
 
 After provisioning the databases, update each company's `CompanyDatabases` row in the **master database** so its `CompanyId` points to its own tenant database. Example only; replace the company IDs and database names with the real values:
 
