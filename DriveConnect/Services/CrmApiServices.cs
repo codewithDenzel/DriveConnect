@@ -5,6 +5,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
 using DriveConnect.domain.Entities;
+using DriveConnect.domain.DTO;
 
 namespace DriveConnect.winforms.Services
 {
@@ -28,6 +29,10 @@ namespace DriveConnect.winforms.Services
                         UserSession.Token);
             }
         }
+
+        public async Task<TenantPlanFeatures> GetTenantPlanFeaturesAsync(int companyId) =>
+            await _http.GetFromJsonAsync<TenantPlanFeatures>($"/tenant/{companyId}/features")
+            ?? new TenantPlanFeatures();
 
         public async Task<List<SalesLead>> GetSalesAsync(int companyId) => await _http.GetFromJsonAsync<List<SalesLead>>($"/tenant/{companyId}/sales") ?? new();
         public async Task<HttpResponseMessage> CreateSalesAsync(int companyId, SalesLead lead) => await _http.PostAsJsonAsync($"/tenant/{companyId}/sales", lead);
