@@ -56,6 +56,9 @@ public sealed class MaintenanceController : TenantControllerBase
     [HttpPut("{id:int}")]
     public async Task<ActionResult<MaintenanceRecord>> Update(int companyId, int id, MaintenanceRecord updated)
     {
+        if (!CanAccessCompany(companyId))
+            return Forbid();
+
         using var tenantDb = await GetTenantDbAsync(companyId);
         var existing = await tenantDb.MaintenanceRecords.FindAsync(id);
         if (existing == null) return NotFound();
