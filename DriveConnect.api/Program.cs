@@ -31,6 +31,7 @@ builder.Services.AddDbContext<MasterDriveConnectDbContext>(options =>
 
 builder.Services.AddScoped<ITenantDatabaseResolver, TenantDatabaseResolver>();
 builder.Services.AddScoped<ITenantDbContextFactory, TenantDbContextFactory>();
+builder.Services.AddScoped<ITenantPlanService, TenantPlanService>();
 builder.Services.AddScoped<ISyncService, SyncService>();
 builder.Services.AddScoped<SyncApplier>();
 
