@@ -439,6 +439,24 @@ public sealed class SuperAdminControl : UserControl
         tableHeader.Controls.Add(tableTitle);
         tableHeader.Controls.Add(tableSubtitle);
 
+        var addTenantButton = new Button
+        {
+            Text = "+ Register Tenant",
+            Size = new Size(140, 36),
+            Anchor = AnchorStyles.Top | AnchorStyles.Right,
+            Location = new Point(Math.Max(10, tableHeader.ClientSize.Width - 150), 16),
+            BackColor = Color.FromArgb(124, 58, 237),
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat,
+            Font = new Font("Segoe UI Semibold", 9F),
+            Cursor = Cursors.Hand
+        };
+        addTenantButton.FlatAppearance.BorderSize = 0;
+        addTenantButton.Click += async (_, _) => await ShowRegisterTenantDialogAsync();
+        tableHeader.Controls.Add(addTenantButton);
+        tableHeader.Resize += (_, _) =>
+            addTenantButton.Left = Math.Max(10, tableHeader.ClientSize.Width - addTenantButton.Width - 8);
+
         _companiesGrid = new DataGridView
         {
             Dock = DockStyle.Fill,
@@ -519,6 +537,231 @@ public sealed class SuperAdminControl : UserControl
         _companiesPanel.Controls.Add(tableCard);
         _companiesPanel.Controls.Add(tableHeader);
         _companiesPanel.Controls.Add(summary);
+    }
+
+    private async Task ShowRegisterTenantDialogAsync()
+    {
+        using var form = new Form
+        {
+            Text = "Register Tenant Company",
+            StartPosition = FormStartPosition.CenterParent,
+            FormBorderStyle = FormBorderStyle.FixedDialog,
+            MaximizeBox = false,
+            MinimizeBox = false,
+            ClientSize = new Size(560, 720),
+            AutoScroll = true,
+            BackColor = Color.White,
+            Font = new Font("Segoe UI", 9.5F)
+        };
+
+        int y = 16;
+        const int labelX = 22;
+        const int fieldX = 190;
+        const int fieldWidth = 330;
+
+        TextBox AddTextField(string labelText, bool password = false)
+        {
+            form.Controls.Add(new Label
+            {
+                Text = labelText,
+                Location = new Point(labelX, y + 5),
+                Size = new Size(155, 26),
+                ForeColor = Color.FromArgb(55, 65, 81)
+            });
+
+            var field = new TextBox
+            {
+                Location = new Point(fieldX, y),
+                Size = new Size(fieldWidth, 30),
+                BorderStyle = BorderStyle.FixedSingle,
+                UseSystemPasswordChar = password
+            };
+
+            form.Controls.Add(field);
+            y += 42;
+            return field;
+        }
+
+        ComboBox AddComboField(string labelText, params string[] options)
+        {
+            form.Controls.Add(new Label
+            {
+                Text = labelText,
+                Location = new Point(labelX, y + 5),
+                Size = new Size(155, 26),
+                ForeColor = Color.FromArgb(55, 65, 81)
+            });
+
+            var field = new ComboBox
+            {
+                Location = new Point(fieldX, y),
+                Size = new Size(fieldWidth, 30),
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                BackColor = Color.White
+            };
+            field.Items.AddRange(options.Cast<object>().ToArray());
+            if (field.Items.Count > 0)
+                field.SelectedIndex = 0;
+            form.Controls.Add(field);
+            y += 42;
+            return field;
+        }
+
+        TextBox code = AddTextField("Company Code");
+        TextBox name = AddTextField("Company Name");
+        TextBox server = AddTextField("SQL Server / Host");
+        TextBox database = AddTextField("Tenant Database Name");
+        ComboBox plan = AddComboField("Subscription Plan", "Basic", "Pro", "Pro Max");
+        ComboBox cycle = AddComboField("Billing Cycle", "Monthly", "Annual");
+
+        form.Controls.Add(new Label
+        {
+            Text = "Billing Amount (PHP)",
+            Location = new Point(labelX, y + 5),
+            Size = new Size(155, 26),
+            ForeColor = Color.FromArgb(55, 65, 81)
+        });
+        var amount = new NumericUpDown
+        {
+            Location = new Point(fieldX, y),
+            Size = new Size(fieldWidth, 30),
+            DecimalPlaces = 2,
+            Minimum = 0.01M,
+            Maximum = 999999999M,
+            Value = 1M,
+            ThousandsSeparator = true
+        };
+        form.Controls.Add(amount);
+        y += 42;
+
+        form.Controls.Add(new Label
+        {
+            Text = "Subscription Start",
+            Location = new Point(labelX, y + 5),
+            Size = new Size(155, 26),
+            ForeColor = Color.FromArgb(55, 65, 81)
+        });
+        var startDate = new DateTimePicker
+        {
+            Location = new Point(fieldX, y),
+            Size = new Size(fieldWidth, 30),
+            Format = DateTimePickerFormat.Short,
+            Value = DateTime.Today
+        };
+        form.Controls.Add(startDate);
+        y += 42;
+
+        TextBox adminUsername = AddTextField("Initial Admin Username");
+        TextBox adminFirst = AddTextField("Admin First Name");
+        TextBox adminMiddle = AddTextField("Admin Middle Name (optional)");
+        TextBox adminLast = AddTextField("Admin Last Name");
+        TextBox adminEmail = AddTextField("Admin Email");
+        TextBox adminPassword = AddTextField("Admin Password (8+ chars)", password: true);
+
+        var saveButton = new Button
+        {
+            Text = "Create Tenant",
+            Location = new Point(fieldX, y + 4),
+            Size = new Size(160, 38),
+            BackColor = Color.FromArgb(124, 58, 237),
+            ForeColor = Color.White,
+            FlatStyle = FlatStyle.Flat,
+            Font = new Font("Segoe UI Semibold", 9.5F),
+            Cursor = Cursors.Hand
+        };
+        saveButton.FlatAppearance.BorderSize = 0;
+        form.Controls.Add(saveButton);
+        form.AcceptButton = saveButton;
+
+        saveButton.Click += async (_, _) =>
+        {
+            if (string.IsNullOrWhiteSpace(code.Text) ||
+                string.IsNullOrWhiteSpace(name.Text) ||
+                string.IsNullOrWhiteSpace(server.Text) ||
+                string.IsNullOrWhiteSpace(database.Text) ||
+                string.IsNullOrWhiteSpace(adminUsername.Text) ||
+                string.IsNullOrWhiteSpace(adminFirst.Text) ||
+                string.IsNullOrWhiteSpace(adminLast.Text) ||
+                string.IsNullOrWhiteSpace(adminEmail.Text) ||
+                string.IsNullOrWhiteSpace(adminPassword.Text))
+            {
+                MessageBox.Show(
+                    "Complete the company, database, and initial Admin fields.",
+                    "Missing Information",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (adminPassword.Text.Length < 8)
+            {
+                MessageBox.Show(
+                    "The initial Admin password must contain at least 8 characters.",
+                    "Password Too Short",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+                return;
+            }
+
+            var request = new TenantCompanyRegistrationRequest(
+                code.Text.Trim(),
+                name.Text.Trim(),
+                server.Text.Trim(),
+                database.Text.Trim(),
+                plan.SelectedItem?.ToString() ?? "Basic",
+                cycle.SelectedItem?.ToString() ?? "Monthly",
+                amount.Value,
+                startDate.Value.Date,
+                adminUsername.Text.Trim(),
+                adminFirst.Text.Trim(),
+                string.IsNullOrWhiteSpace(adminMiddle.Text) ? null : adminMiddle.Text.Trim(),
+                adminLast.Text.Trim(),
+                adminEmail.Text.Trim(),
+                adminPassword.Text);
+
+            saveButton.Enabled = false;
+            try
+            {
+                using var response = await _api.CreateTenantCompanyAsync(request);
+                var responseBody = await response.Content.ReadAsStringAsync();
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    MessageBox.Show(
+                        string.IsNullOrWhiteSpace(responseBody)
+                            ? "The tenant could not be created."
+                            : responseBody,
+                        "Tenant Registration Failed",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error);
+                    return;
+                }
+
+                MessageBox.Show(
+                    "Tenant registered. Before the new Admin signs in, make sure the tenant database already exists, its tenant migrations have been applied, and the API host has TenantCredentials configured for the new CompanyId.",
+                    "Tenant Created",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+
+                await LoadDashboardAsync();
+                form.Close();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    "Unable to register the tenant. Check the API connection and database settings.\n\n" + ex.Message,
+                    "Tenant Registration Error",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+            }
+            finally
+            {
+                if (!form.IsDisposed)
+                    saveButton.Enabled = true;
+            }
+        };
+
+        form.ShowDialog(this);
     }
 
     private void BuildSubscriptionPanel()
