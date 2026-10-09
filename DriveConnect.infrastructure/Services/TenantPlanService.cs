@@ -64,6 +64,7 @@ public sealed class TenantPlanService : ITenantPlanService
         // If a company has no current subscription, give it only the Basic feature set.
         // Existing sales/service/customer data remains available.
         var subscriptionIsActive = subscription != null
+            && subscription.StartDate.Date <= DateTime.UtcNow.Date
             && subscription.EndDate.Date >= DateTime.UtcNow.Date;
 
         var plan = subscriptionIsActive
