@@ -13,7 +13,9 @@ The API resolves the tenant database from the company's active `CompanyDatabases
 
 ## Hosting setup still required
 
-The code cannot create databases inside the hosting provider's control panel. Create the four databases there first and use separate database users/permissions where the host supports them. The master database should not be the same physical database as a tenant database.
+The code cannot create databases inside the hosting provider's control panel. Create the master database and each tenant database there first, and use separate database users/permissions where the host supports them. The master database should not be the same physical database as a tenant database.
+
+In the Super Admin app, use **Company Management → Register Tenant** after the physical tenant database exists. The form creates the company record, its `CompanyDatabases` mapping, a default `Main Branch`, an initial Admin account, and its Basic/Pro/Pro Max subscription in the master database. It does not provision the physical database or copy existing CRM records. Enter the tenant database's server and database name exactly as configured by the host.
 
 Apply the `MasterDriveConnectDbContext` migrations to the master database. For each tenant database, set the environment variable `DRIVECONNECT_TENANT_MIGRATION_CONNECTION` to that tenant's connection string in the terminal used to run EF migrations, then apply the `TenantDriveConnectDbContext` migrations. The design-time tenant context factory uses this variable; without it, migrations target local `DriveConnectTenant1`.
 
