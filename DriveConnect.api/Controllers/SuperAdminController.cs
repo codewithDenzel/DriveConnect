@@ -140,78 +140,96 @@ public sealed class SuperAdminController : ControllerBase
             ? decimal.Round(amount / 12m, 2, MidpointRounding.AwayFromZero)
             : amount;
 
-        await using var transaction = await _masterDb.Database.BeginTransactionAsync();
+        // SQL Server retry-on-failure requires the whole user transaction
+        // to run inside the configured EF Core execution strategy.
+        var strategy = _masterDb.Database.CreateExecutionStrategy();
 
-        var company = new Company
+        var created = await strategy.ExecuteAsync(async () =>
         {
-            CompanyCode = companyCode,
-            CompanyName = companyName,
-            IsActive = true,
-            CreatedAt = DateTime.UtcNow
-        };
-        _masterDb.Companies.Add(company);
-        await _masterDb.SaveChangesAsync();
+            // If the strategy retries after a transient failure, discard entities
+            // tracked during the previous attempt before beginning a new transaction.
+            _masterDb.ChangeTracker.Clear();
 
-        var mainBranch = new Branch
-        {
-            CompanyId = company.CompanyId,
-            BranchCode = "MAIN",
-            BranchName = "Main Branch",
-            IsActive = true,
-            CreatedAt = DateTime.UtcNow
-        };
-        _masterDb.Branches.Add(mainBranch);
-        await _masterDb.SaveChangesAsync();
+            await using var transaction =
+                await _masterDb.Database.BeginTransactionAsync();
 
-        var admin = new AppUser
-        {
-            CompanyId = company.CompanyId,
-            Username = adminUsername,
-            FirstName = adminFirstName,
-            MiddleName = adminMiddleName,
-            LastName = adminLastName,
-            Email = adminEmail,
-            Role = "Admin",
-            BranchId = mainBranch.BranchId,
-            IsActive = true,
-            CreatedAt = DateTime.UtcNow
-        };
-        admin.PasswordHash = new PasswordHasher<AppUser>()
-            .HashPassword(admin, request.AdminPassword);
-        _masterDb.AppUsers.Add(admin);
+            var company = new Company
+            {
+                CompanyCode = companyCode!,
+                CompanyName = companyName!,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
 
-        _masterDb.CompanyDatabases.Add(new CompanyDatabase
-        {
-            CompanyId = company.CompanyId,
-            ServerName = serverName,
-            DatabaseName = databaseName,
-            IsActive = true
+            _masterDb.Companies.Add(company);
+            await _masterDb.SaveChangesAsync();
+
+            var mainBranch = new Branch
+            {
+                CompanyId = company.CompanyId,
+                BranchCode = "MAIN",
+                BranchName = "Main Branch",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _masterDb.Branches.Add(mainBranch);
+            await _masterDb.SaveChangesAsync();
+
+            var admin = new AppUser
+            {
+                CompanyId = company.CompanyId,
+                Username = adminUsername!,
+                FirstName = adminFirstName!,
+                MiddleName = adminMiddleName,
+                LastName = adminLastName!,
+                Email = adminEmail!,
+                Role = "Admin",
+                BranchId = mainBranch.BranchId,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            admin.PasswordHash = new PasswordHasher<AppUser>()
+                .HashPassword(admin, request.AdminPassword);
+
+            _masterDb.AppUsers.Add(admin);
+
+            _masterDb.CompanyDatabases.Add(new CompanyDatabase
+            {
+                CompanyId = company.CompanyId,
+                ServerName = serverName!,
+                DatabaseName = databaseName!,
+                IsActive = true
+            });
+
+            _masterDb.Subscriptions.Add(new Subscription
+            {
+                CompanyId = company.CompanyId,
+                PlanName = TenantPlanCatalog.Normalize(request.PlanName),
+                BillingCycle = billingCycle,
+                BillingAmount = amount,
+                MonthlyFee = monthlyFee,
+                StartDate = startDate.ToUniversalTime(),
+                EndDate = endDate.ToUniversalTime(),
+                IsActive = true
+            });
+
+            await _masterDb.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            return (Company: company, MainBranch: mainBranch, Admin: admin);
         });
-
-        _masterDb.Subscriptions.Add(new Subscription
-        {
-            CompanyId = company.CompanyId,
-            PlanName = TenantPlanCatalog.Normalize(request.PlanName),
-            BillingCycle = billingCycle,
-            BillingAmount = amount,
-            MonthlyFee = monthlyFee,
-            StartDate = startDate.ToUniversalTime(),
-            EndDate = endDate.ToUniversalTime(),
-            IsActive = true
-        });
-
-        await _masterDb.SaveChangesAsync();
-        await transaction.CommitAsync();
 
         return Ok(new
         {
-            company.CompanyId,
-            company.CompanyCode,
-            company.CompanyName,
+            created.Company.CompanyId,
+            created.Company.CompanyCode,
+            created.Company.CompanyName,
             DatabaseName = databaseName,
             PlanName = TenantPlanCatalog.Normalize(request.PlanName),
-            InitialAdminUsername = admin.Username,
-            DefaultBranchName = mainBranch.BranchName
+            InitialAdminUsername = created.Admin.Username,
+            DefaultBranchName = created.MainBranch.BranchName
         });
     }
 
