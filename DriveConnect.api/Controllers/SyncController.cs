@@ -1,5 +1,6 @@
 using DriveConnect.api.Services;
 using DriveConnect.infrastructure.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DriveConnect.api.Controllers;
