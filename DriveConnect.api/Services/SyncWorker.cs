@@ -1,5 +1,8 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http.Json;
+using DriveConnect.domain.Entities;
 using DriveConnect.infrastructure.Data;
 using DriveConnect.infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
@@ -14,6 +17,7 @@ public sealed class SyncWorker : BackgroundService
     private readonly IHttpClientFactory _httpFactory;
     private readonly IConfiguration _configuration;
     private readonly ILogger<SyncWorker> _logger;
+    private readonly HashSet<int> _backfilledCompanies = new();
 
     public SyncWorker(
         IServiceScopeFactory scopeFactory,
@@ -92,6 +96,17 @@ public sealed class SyncWorker : BackgroundService
             token.ThrowIfCancellationRequested();
 
             using var tenantDb = await tenantFactory.CreateAsync(companyId);
+
+            if (_configuration.GetValue<bool>("Sync:BackfillExistingRecords") &&
+                !_backfilledCompanies.Contains(companyId))
+            {
+                await BackfillExistingRecordsAsync(tenantDb, syncService, token);
+                _backfilledCompanies.Add(companyId);
+                _logger.LogInformation(
+                    "Queued existing DriveConnect records for synchronization for company {CompanyId}.",
+                    companyId);
+            }
+
             var pending = await syncService.GetPendingAsync(tenantDb);
 
             foreach (var item in pending)
@@ -141,6 +156,77 @@ public sealed class SyncWorker : BackgroundService
                     return;
                 }
             }
+        }
+    }
+
+    private static async Task BackfillExistingRecordsAsync(
+        TenantDriveConnectDbContext tenantDb,
+        ISyncService syncService,
+        CancellationToken token)
+    {
+        await syncService.EnsureSchemaAsync(tenantDb);
+
+        // Vehicle warranties must be queued before warranty claims because claims
+        // are translated to the corresponding remote warranty ID by SyncApplier.
+        await QueueExistingAsync(
+            tenantDb, syncService, "SalesLead",
+            await tenantDb.SalesLeads.AsNoTracking().ToListAsync(token),
+            x => x.InquiryId, token);
+
+        await QueueExistingAsync(
+            tenantDb, syncService, "RepairTicket",
+            await tenantDb.RepairTickets.AsNoTracking().ToListAsync(token),
+            x => x.TicketId, token);
+
+        await QueueExistingAsync(
+            tenantDb, syncService, "Promotion",
+            await tenantDb.Promotions.AsNoTracking().ToListAsync(token),
+            x => x.PromotionId, token);
+
+        await QueueExistingAsync(
+            tenantDb, syncService, "Feedback",
+            await tenantDb.Feedback.AsNoTracking().ToListAsync(token),
+            x => x.FeedbackId, token);
+
+        await QueueExistingAsync(
+            tenantDb, syncService, "Complaint",
+            await tenantDb.Complaints.AsNoTracking().ToListAsync(token),
+            x => x.ComplaintId, token);
+
+        await QueueExistingAsync(
+            tenantDb, syncService, "InteractionLog",
+            await tenantDb.InteractionLogs.AsNoTracking().ToListAsync(token),
+            x => x.InteractionId, token);
+
+        await QueueExistingAsync(
+            tenantDb, syncService, "VehicleWarranty",
+            await tenantDb.VehicleWarranties.AsNoTracking().ToListAsync(token),
+            x => x.WarrantyId, token);
+
+        await QueueExistingAsync(
+            tenantDb, syncService, "WarrantyClaim",
+            await tenantDb.WarrantyClaims.AsNoTracking().ToListAsync(token),
+            x => x.ClaimId, token);
+
+        await QueueExistingAsync(
+            tenantDb, syncService, "MaintenanceRecord",
+            await tenantDb.MaintenanceRecords.AsNoTracking().ToListAsync(token),
+            x => x.MaintenanceId, token);
+    }
+
+    private static async Task QueueExistingAsync<T>(
+        TenantDriveConnectDbContext tenantDb,
+        ISyncService syncService,
+        string entityType,
+        IEnumerable<T> records,
+        Func<T, int> getId,
+        CancellationToken token)
+    {
+        foreach (var record in records)
+        {
+            token.ThrowIfCancellationRequested();
+            await syncService.EnqueueIfMissingAsync(
+                tenantDb, entityType, "Create", getId(record), record);
         }
     }
 }
