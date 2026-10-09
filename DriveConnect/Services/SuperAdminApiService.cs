@@ -49,6 +49,12 @@ public sealed class SuperAdminApiService
             request);
     }
 
+    public async Task<HttpResponseMessage> CreateTenantCompanyAsync(
+        TenantCompanyRegistrationRequest request)
+    {
+        return await _http.PostAsJsonAsync("/super-admin/companies", request);
+    }
+
     public async Task<HttpResponseMessage> DeactivateSubscriptionAsync(int companyId)
     {
         return await _http.PostAsync(
@@ -62,6 +68,22 @@ public sealed class SuperAdminApiService
             "/super-admin/system-status");
     }
 }
+
+public sealed record TenantCompanyRegistrationRequest(
+    string CompanyCode,
+    string CompanyName,
+    string ServerName,
+    string DatabaseName,
+    string PlanName,
+    string BillingCycle,
+    decimal BillingAmount,
+    DateTime StartDate,
+    string AdminUsername,
+    string AdminFirstName,
+    string? AdminMiddleName,
+    string AdminLastName,
+    string AdminEmail,
+    string AdminPassword);
 
 public sealed record CompanyOverview(
     int CompanyId,
