@@ -36,6 +36,9 @@ builder.Services.AddScoped<SyncApplier>();
 
 builder.Services.AddHttpClient("DriveConnectCloudSync");
 
+// Run the local-to-cloud sync queue processor when Sync:Enabled is true.
+builder.Services.AddHostedService<SyncWorker>();
+
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
