@@ -1592,7 +1592,9 @@ namespace DriveConnect.winforms.Modules.Admin.CustomerRelationship.Controls
 
             header.Controls.Add(new Label
             {
-                Text = _tenantPlanFeatures.CanUseBranching\n                    ? "Select a report, branch, and date range, then generate the management report preview."\n                    : "Select a report and date range, then generate an exportable report.",
+                Text = _tenantPlanFeatures.CanUseBranching
+                    ? "Select a report, branch, and date range, then generate the management report preview."
+                    : "Select a report and date range, then generate an exportable report.",
                 AutoSize = true,
                 Location = new Point(20, 39),
                 Font = new Font("Segoe UI", 8.5F),
