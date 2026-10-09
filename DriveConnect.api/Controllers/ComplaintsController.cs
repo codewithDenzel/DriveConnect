@@ -57,6 +57,9 @@ public sealed class ComplaintsController : TenantControllerBase
     [HttpPut("{id:int}")]
     public async Task<ActionResult<Complaint>> Update(int companyId, int id, Complaint updated)
     {
+        if (!CanAccessCompany(companyId))
+            return Forbid();
+
         using var tenantDb = await GetTenantDbAsync(companyId);
         var existing = await tenantDb.Complaints.FindAsync(id);
         if (existing == null) return NotFound();
