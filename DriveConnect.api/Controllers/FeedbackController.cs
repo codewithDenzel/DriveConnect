@@ -57,9 +57,14 @@ public sealed class FeedbackController : TenantControllerBase
     [HttpPut("{id:int}")]
     public async Task<ActionResult<Feedback>> Update(int companyId, int id, Feedback updated)
     {
+        if (!CanAccessCompany(companyId))
+            return Forbid();
+
         using var tenantDb = await GetTenantDbAsync(companyId);
         var existing = await tenantDb.Feedback.FindAsync(id);
         if (existing == null) return NotFound();
+        if (!CanAccessBranch(existing.BranchId))
+            return Forbid();
 
         existing.CustomerName = updated.CustomerName;
         existing.PhoneNumber = updated.PhoneNumber;
