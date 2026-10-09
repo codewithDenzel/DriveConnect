@@ -5,6 +5,7 @@ using DriveConnect.infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
 
 namespace DriveConnect.api.Controllers;
 
@@ -55,6 +56,163 @@ public sealed class SuperAdminController : ControllerBase
             .ToListAsync();
 
         return Ok(companies);
+    }
+
+    [HttpPost("companies")]
+    public async Task<IActionResult> CreateTenantCompany(
+        [FromBody] TenantCompanyRegistrationRequest request)
+    {
+        var companyCode = request.CompanyCode?.Trim().ToUpperInvariant();
+        var companyName = request.CompanyName?.Trim();
+        var serverName = request.ServerName?.Trim();
+        var databaseName = request.DatabaseName?.Trim();
+        var adminUsername = request.AdminUsername?.Trim();
+        var adminFirstName = request.AdminFirstName?.Trim();
+        var adminMiddleName = string.IsNullOrWhiteSpace(request.AdminMiddleName)
+            ? null
+            : request.AdminMiddleName.Trim();
+        var adminLastName = request.AdminLastName?.Trim();
+        var adminEmail = request.AdminEmail?.Trim();
+
+        if (string.IsNullOrWhiteSpace(companyCode) ||
+            string.IsNullOrWhiteSpace(companyName) ||
+            string.IsNullOrWhiteSpace(serverName) ||
+            string.IsNullOrWhiteSpace(databaseName) ||
+            string.IsNullOrWhiteSpace(adminUsername) ||
+            string.IsNullOrWhiteSpace(adminFirstName) ||
+            string.IsNullOrWhiteSpace(adminLastName) ||
+            string.IsNullOrWhiteSpace(adminEmail) ||
+            string.IsNullOrWhiteSpace(request.AdminPassword))
+        {
+            return BadRequest("Company, database, and initial Admin account fields are required.");
+        }
+
+        if (!TenantPlanCatalog.IsSupportedSelection(request.PlanName))
+            return BadRequest("Plan name must be Basic, Pro, or Pro Max.");
+
+        if (!string.Equals(request.BillingCycle, "Monthly", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(request.BillingCycle, "Annual", StringComparison.OrdinalIgnoreCase))
+        {
+            return BadRequest("Billing cycle must be Monthly or Annual.");
+        }
+
+        if (request.BillingAmount <= 0)
+            return BadRequest("Billing amount must be greater than zero.");
+
+        if (request.AdminPassword.Length < 8)
+            return BadRequest("The initial Admin password must contain at least 8 characters.");
+
+        if (!databaseName.All(ch => char.IsLetterOrDigit(ch) || ch == '_' || ch == '-'))
+            return BadRequest("Database name can contain letters, numbers, underscores, and hyphens only.");
+
+        if (await _masterDb.Companies.AnyAsync(x => x.CompanyCode == companyCode))
+            return Conflict("Company code is already in use.");
+
+        if (await _masterDb.AppUsers.AnyAsync(x =>
+            x.Username == adminUsername || x.Email == adminEmail))
+        {
+            return Conflict("The initial Admin username or email is already in use.");
+        }
+
+        var databaseAlreadyAssigned = await _masterDb.CompanyDatabases
+            .AsNoTracking()
+            .AnyAsync(x => x.IsActive &&
+                           x.ServerName == serverName &&
+                           x.DatabaseName == databaseName);
+
+        if (databaseAlreadyAssigned)
+            return Conflict("That database is already assigned to another company. Each tenant needs its own database.");
+
+        var startDate = request.StartDate == default
+            ? DateTime.UtcNow.Date
+            : request.StartDate.Date;
+        var billingCycle = string.Equals(
+            request.BillingCycle,
+            "Annual",
+            StringComparison.OrdinalIgnoreCase)
+            ? "Annual"
+            : "Monthly";
+        var endDate = billingCycle == "Annual"
+            ? startDate.AddYears(1).AddDays(-1)
+            : startDate.AddMonths(1).AddDays(-1);
+        var amount = decimal.Round(request.BillingAmount, 2, MidpointRounding.AwayFromZero);
+        var monthlyFee = billingCycle == "Annual"
+            ? decimal.Round(amount / 12m, 2, MidpointRounding.AwayFromZero)
+            : amount;
+
+        await using var transaction = await _masterDb.Database.BeginTransactionAsync();
+
+        var company = new Company
+        {
+            CompanyCode = companyCode,
+            CompanyName = companyName,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+        _masterDb.Companies.Add(company);
+        await _masterDb.SaveChangesAsync();
+
+        var mainBranch = new Branch
+        {
+            CompanyId = company.CompanyId,
+            BranchCode = "MAIN",
+            BranchName = "Main Branch",
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+        _masterDb.Branches.Add(mainBranch);
+        await _masterDb.SaveChangesAsync();
+
+        var admin = new AppUser
+        {
+            CompanyId = company.CompanyId,
+            Username = adminUsername,
+            FirstName = adminFirstName,
+            MiddleName = adminMiddleName,
+            LastName = adminLastName,
+            Email = adminEmail,
+            Role = "Admin",
+            BranchId = mainBranch.BranchId,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+        admin.PasswordHash = new PasswordHasher<AppUser>()
+            .HashPassword(admin, request.AdminPassword);
+        _masterDb.AppUsers.Add(admin);
+
+        _masterDb.CompanyDatabases.Add(new CompanyDatabase
+        {
+            CompanyId = company.CompanyId,
+            ServerName = serverName,
+            DatabaseName = databaseName,
+            IsActive = true
+        });
+
+        _masterDb.Subscriptions.Add(new Subscription
+        {
+            CompanyId = company.CompanyId,
+            PlanName = TenantPlanCatalog.Normalize(request.PlanName),
+            BillingCycle = billingCycle,
+            BillingAmount = amount,
+            MonthlyFee = monthlyFee,
+            StartDate = startDate.ToUniversalTime(),
+            EndDate = endDate.ToUniversalTime(),
+            IsActive = true
+        });
+
+        await _masterDb.SaveChangesAsync();
+        await transaction.CommitAsync();
+
+        return Ok(new
+        {
+            company.CompanyId,
+            company.CompanyCode,
+            company.CompanyName,
+            DatabaseName = databaseName,
+            PlanName = TenantPlanCatalog.Normalize(request.PlanName),
+            InitialAdminUsername = admin.Username,
+            DefaultBranchName = mainBranch.BranchName
+        });
     }
 
     [HttpGet("companies/{companyId:int}/subscription")]
@@ -189,6 +347,22 @@ public sealed class SuperAdminController : ControllerBase
             subscription.IsActive);
     }
 }
+
+public sealed record TenantCompanyRegistrationRequest(
+    string CompanyCode,
+    string CompanyName,
+    string ServerName,
+    string DatabaseName,
+    string PlanName,
+    string BillingCycle,
+    decimal BillingAmount,
+    DateTime StartDate,
+    string AdminUsername,
+    string AdminFirstName,
+    string? AdminMiddleName,
+    string AdminLastName,
+    string AdminEmail,
+    string AdminPassword);
 
 public sealed record CompanyOverview(
     int CompanyId,
