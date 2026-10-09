@@ -1,7 +1,6 @@
 using System.Security.Claims;
 using DriveConnect.domain.Entities;
 using DriveConnect.infrastructure.Services;
-using DriveConnect.infrastructure.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -26,12 +25,12 @@ public sealed class PromotionsController : TenantControllerBase
     [HttpGet]
     public async Task<ActionResult<List<Promotion>>> GetAll(int companyId)
     {
+        if (!CanAccessCompany(companyId))
+            return Forbid();
+
         if (!(await _tenantPlanService.GetFeaturesAsync(companyId)).CanUsePromotions)
             return StatusCode(StatusCodes.Status403Forbidden, "Promotions require the Pro or Pro Max plan.");
 
-
-        if (!CanAccessCompany(companyId))
-            return Forbid();
 
         using var tenantDb = await GetTenantDbAsync(companyId);
         var query = tenantDb.Promotions.AsNoTracking();
@@ -50,12 +49,12 @@ public sealed class PromotionsController : TenantControllerBase
     [HttpPost]
     public async Task<ActionResult<Promotion>> Create(int companyId, Promotion item)
     {
+        if (!CanAccessCompany(companyId) || !IsStaffUser)
+            return Forbid();
+
         if (!(await _tenantPlanService.GetFeaturesAsync(companyId)).CanUsePromotions)
             return StatusCode(StatusCodes.Status403Forbidden, "Promotions require the Pro or Pro Max plan.");
 
-
-        if (!CanAccessCompany(companyId) || !IsStaffUser)
-            return Forbid();
 
         if (!TryGetCurrentBranchId(out var branchId))
             return Forbid();
@@ -110,12 +109,12 @@ public sealed class PromotionsController : TenantControllerBase
         int id,
         Promotion updated)
     {
+        if (!CanAccessCompany(companyId))
+            return Forbid();
+
         if (!(await _tenantPlanService.GetFeaturesAsync(companyId)).CanUsePromotions)
             return StatusCode(StatusCodes.Status403Forbidden, "Promotions require the Pro or Pro Max plan.");
 
-
-        if (!CanAccessCompany(companyId))
-            return Forbid();
 
         using var tenantDb = await GetTenantDbAsync(companyId);
         var existing = await tenantDb.Promotions.FindAsync(id);
